@@ -13,7 +13,6 @@ X, Y = streamfs.prepare_data(credit_data, 0)
 # Simulate feature selection on a data stream (for the given data, FS algorithm and number of features)
 w, stats = streamfs.simulate_stream(X, Y, 'ofs', num_features)
 
-
 # Print resulting feature weights
 print('Feature weights:\n', w)
 
