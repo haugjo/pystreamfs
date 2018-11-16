@@ -1,10 +1,9 @@
 # streamfs
-
 This module provides different feature selection (FS) algorithms for data streams.
 The module allows you to simulate a data stream based on a provided data set. 
 It further allows you to apply different feature selection algorithms to that very data stream.
 Finally, the module provides you with a set of performance statistics of the selected feature selection algorithm.
-----
+
 ## Requirements
 You need a Python 3.x environment and the following packages to use the ``streamfs`` module:
  <br>``numpy, psutil``
