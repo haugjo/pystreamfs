@@ -30,14 +30,17 @@ You need a Python 3.x environment and the following packages to use the ``stream
         * ``ftr_weights``: numpy array, contains the weights of the (selected) features
         * ``stats``: python dictionary
             * ``time_avg``: float, average computation time for one execution of the FS algorithm
-            * ``time_measures``: list, individual computation time for each iteration (length = length of X)
+            * ``time_measures``: list, individual computation time for each iteration (length = length of ``X``)
             * ``memory_avg``: float, average memory usage (relative to the total physical memory) for one execution of the FS algorithm
             * ``memory_start``: float, memory usage (relative to the total physical memory) before start of the data stream
-            * ``memory_measures``: list, individual memory usage measure for each iteration (length = length of X)
+            * ``memory_measures``: list, individual memory usage for each iteration (length = length of ``X``)
 
 ## FS algorithms
 * Online Feature Selection (OFS) by Wang ([paper](https://ink.library.smu.edu.sg/cgi/viewcontent.cgi?article=3277&context=sis_research))
     * ``algorithm = 'ofs'``
+    
+## Data Sets
+* German Credit Score ([link](https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit+data)))
 
 ## Example
 ```python
