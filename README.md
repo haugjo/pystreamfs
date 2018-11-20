@@ -4,6 +4,9 @@ The module allows you to simulate a data stream based on a provided data set.
 It further allows you to apply different feature selection algorithms to that very data stream.
 Finally, the module provides you with a set of performance statistics of the selected feature selection algorithm.
 
+## How to get the module
+You can find the current distribution of ``streamfs`` for download in ``dist/streamfs-x.x.tar.gz``
+
 ## Requirements
 You need a Python 3.x environment and the following packages to use the ``streamfs`` module:
  <br>``numpy, psutil``
