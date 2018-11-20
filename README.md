@@ -5,7 +5,9 @@ It further allows you to apply different feature selection algorithms to that ve
 Finally, the module provides you with a set of performance statistics of the selected feature selection algorithm.
 
 ## How to get the module
-You can find the current distribution of ``streamfs`` for download in ``dist/streamfs-x.x.tar.gz``
+You can find the current distribution of ``streamfs`` for download in ``/dist``. 
+Download and unpack the .zip (Windows) or .tar.gz (Linux) file. Navigate to the unpacked folder and execute
+``python setup.py install`` to install the module.
 
 ## Requirements
 You need a Python 3.x environment and the following packages to use the ``streamfs`` module:
