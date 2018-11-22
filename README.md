@@ -20,6 +20,7 @@ You need a Python 3.x environment and the following packages to use the ``stream
     * **Input**:
         * ``data``: numpy array, this is the data set
         * ``target``: integer, index of the target variable
+        * ``shuffle``: boolean, if ``True`` sort samples randomly
     * **Output**:
         * ``X``: numpy array, contains the features
         * ``Y``: numpy array, contains the target variable
