@@ -2,6 +2,7 @@ import numpy as np
 import time
 import psutil
 import os
+import math
 
 '''
 DESCRIPTION:
@@ -18,7 +19,6 @@ OUT:
     memory -> float (currently used memory in percent of total physical memory)
 '''
 def _ofs(x, y, w, num_feature):
-    import math
     start_t = time.process_time()
 
     eta = 0.2
@@ -28,7 +28,7 @@ def _ofs(x, y, w, num_feature):
 
     if y * f <= 1:  # update classifier w
         w = w + eta * y * x
-        w = w * min(1, 1/(math.sqrt(lamb) * np.linalg.norm(w)))  # TODO: check this part again
+        w = w * min(1, 1/(math.sqrt(lamb) * np.linalg.norm(w)))
         w = _truncate(w, num_feature)
 
     return w, time.process_time() - start_t, psutil.Process(os.getpid()).memory_percent()
@@ -57,12 +57,14 @@ DESCRIPTION:
 IN:
     data -> numpy array (dataset)
     target -> integer (index of the target variable)
+    shuffle -> boolean (set to True if you want to sort the dataset randomly)
 OUT:
     X -> numpy array (containing the features)
     Y -> numpy array (containing the target variable)
 '''
-def prepare_data(data, target):
-    np.random.shuffle(data)
+def prepare_data(data, target, shuffle):
+    if shuffle:
+        np.random.shuffle(data)
 
     y = data[:, target]  # extract target variable
     x = np.delete(data, target, 1)  # delete target column
