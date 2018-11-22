@@ -15,7 +15,7 @@ You need a Python 3.x environment and the following packages to use the ``stream
  
 ## Functions
 ``streamfs`` provides the following functions:
-* ``X, Y = prepare_data(data, target)``
+* ``X, Y = prepare_data(data, target, shuffle)``
     * **Description**: Prepare the data set for the simulation of a data stream: randomly sort the rows of a the data matrix and extract the target variable ``Y`` and the features ``X``
     * **Input**:
         * ``data``: numpy array, this is the data set
