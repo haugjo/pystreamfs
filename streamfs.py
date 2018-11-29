@@ -39,7 +39,7 @@ def _ofs(x, y, w, num_features):
     return w, time.process_time() - start_t, psutil.Process(os.getpid()).memory_percent()
 
 
-def _fsds(b, yt, m, k, ell=0):
+def _fsds(B, Yt, m, k, ell=0):
     """Feature Selection on Data Streams
 
     Based on a paper by Huang et al. (2015). Feature Selection for unsupervised Learning.
@@ -67,16 +67,16 @@ def _fsds(b, yt, m, k, ell=0):
     if ell < 1:
         ell = int(np.sqrt(m))
 
-    if len(b) == 0:
+    if len(B) == 0:
         # for Y0, we need to first create an initial sketched matrix
-        B = yt[:, :ell]
-        C = np.hstack((B, yt[:, ell:]))
-        n = yt.shape[1] - ell
+        B = Yt[:, :ell]
+        C = np.hstack((B, Yt[:, ell:]))
+        n = Yt.shape[1] - ell
     else:
         # combine current sketched matrix with input at time t
         # C: m-by-(n+ell) matrix
-        C = np.hstack((b, yt))
-        n = yt.shape[1]
+        C = np.hstack((B, Yt))
+        n = Yt.shape[1]
 
     U, s, V = ln.svd(C, full_matrices=False)
     U = U[:, :ell]
@@ -103,7 +103,7 @@ def _fsds(b, yt, m, k, ell=0):
 
     w = np.amax(abs(X), axis=1)
 
-    return w, time.process_time() - start_t, psutil.Process(os.getpid()).memory_percent(),  b, ell
+    return w, time.process_time() - start_t, psutil.Process(os.getpid()).memory_percent(),  B, ell
 
 
 def _truncate(w, num_features):

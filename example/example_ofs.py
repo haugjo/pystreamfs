@@ -16,7 +16,12 @@ X, Y = streamfs.prepare_data(credit_data, 0, False)
 w, stats = streamfs.simulate_stream(X, Y, 'ofs', param)
 
 # Print resulting feature weights
-print('Feature weights:\n', w)
+idx = np.nonzero(w)
+print('Feature weights:\n', w[idx])
+print('Indices of selected features: {}'.format(idx[0]))
+
+# Print params
+print('Statistics for one execution of OFS with a batch size of {}:'.format(param['batch_size']))
 
 # Print the average memory usage for one iteration of the FS algorithm
 # -> this uses psutil.Process(pid).memory_percent()
