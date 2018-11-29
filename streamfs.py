@@ -1,25 +1,30 @@
 import numpy as np
+import numpy.linalg as ln
 import time
 import psutil
 import os
 import math
 
-'''
-DESCRIPTION:
-    Online Feature Selection Algorithm based on a paper by Wang et al. 2014. 
-    This code is an adaptation of the official Matlab implementation
-IN:
-    x -> numpy array (datapoint)
-    y -> numpy array (class of the datapoint: {-1;1})
-    w -> numpy array (feature weights)
-    num_features-> integer (number of features that should be returned)
-OUT:
-    w -> numpy array (updated feature weights)
-    time -> float (computation time in seconds)
-    memory -> float (currently used memory in percent of total physical memory)
-'''
-def _ofs(x, y, w, num_feature):
-    start_t = time.process_time()
+
+def _ofs(x, y, w, num_features):
+    """Online Feature Selection Algorithm
+
+    Based on a paper by Wang et al. 2014. Feature Selection for binary classification.
+    This code is an adaptation of the official Matlab implementation.
+
+    :param numpy.nparray x: datapoint
+    :param numpy.nparray y: class of the datapoint
+    :param numpy.nparray w: feature weights
+    :param int num_features: number of features that should be returned
+
+    :return: w (updated feature weights), time (computation time in seconds),
+        memory (currently used memory in percent of total physical memory)
+    :rtype numpy.ndarray, float, float
+
+    .. warning: y must be -1 or 1
+    """
+
+    start_t = time.process_time()  # time taking
 
     eta = 0.2
     lamb = 0.01
@@ -29,21 +34,91 @@ def _ofs(x, y, w, num_feature):
     if y * f <= 1:  # update classifier w
         w = w + eta * y * x
         w = w * min(1, 1/(math.sqrt(lamb) * np.linalg.norm(w)))
-        w = _truncate(w, num_feature)
+        w = _truncate(w, num_features)
 
     return w, time.process_time() - start_t, psutil.Process(os.getpid()).memory_percent()
 
 
-'''
-DESCRIPTION:
-    Truncates a given array by setting all but the n biggest absolute values to zero.
-IN:
-    w -> numpy array (the array that should be truncated)
-    num_features-> integer (number of features that should be kept)
-OUT:
-    w -> numpy array (truncated array)
-'''
+def _fsds(b, yt, m, k, ell=0):
+    """Feature Selection on Data Streams
+
+    Based on a paper by Huang et al. (2015). Feature Selection for unsupervised Learning.
+    This code is copied from the Python implementation of the authors with minor reductions.
+
+    :param numpy.ndarray b: sketched matrix (low-rank representation of all datapoints until current time)
+    :param numpy.ndarray yt: m-by-n_t input matrix from data stream
+    :param int m: number of original features
+    :param int k: number of singular values (equal to number of clusters in the dataset)
+    :param int ell: sketch size for a sketched m-by-ell matrix B
+
+
+    :return: w (updated feature weights), time (computation time in seconds),
+        memory (currently used memory in percent of total physical memory)
+    :rtype numpy.ndarray, float, float
+
+    .. warning: fsds runs into a type error if n_t < 1000
+    .. warning: features have to be equal to the rows in yt
+    .. warning: yt has to contain only floats
+    .. todo: check why error occurs for different n_t
+    """
+
+    start_t = time.process_time()  # time taking
+
+    if ell < 1:
+        ell = int(np.sqrt(m))
+
+    if len(b) == 0:
+        # for Y0, we need to first create an initial sketched matrix
+        B = yt[:, :ell]
+        C = np.hstack((B, yt[:, ell:]))
+        n = yt.shape[1] - ell
+    else:
+        # combine current sketched matrix with input at time t
+        # C: m-by-(n+ell) matrix
+        C = np.hstack((b, yt))
+        n = yt.shape[1]
+
+    U, s, V = ln.svd(C, full_matrices=False)
+    U = U[:, :ell]
+    s = s[:ell]
+    V = V[:, :ell]
+
+    # shrink step in Frequent Directions algorithm
+    # (shrink singular values based on the squared smallest singular value)
+    delta = s[-1] ** 2
+    s = np.sqrt(s ** 2 - delta)
+
+    # update sketched matrix B
+    # (focus on column singular vectors)
+    B = np.dot(U, np.diag(s))
+
+    # According to Section 5.1, for all experiments,
+    # the authors set alpha = 2^3 * sigma_k based on the pre-experiment
+    alpha = (2 ** 3) * s[k - 1]
+
+    # solve the ridge regression by using the top-k singular values
+    # X: m-by-k matrix (k <= ell)
+    D = np.diag(s[:k] / (s[:k] ** 2 + alpha))
+    X = np.dot(U[:, :k], D)
+
+    w = np.amax(abs(X), axis=1)
+
+    return w, time.process_time() - start_t, psutil.Process(os.getpid()).memory_percent(),  b, ell
+
+
 def _truncate(w, num_features):
+    """Truncates a given array
+
+    Set all but the **num_features** biggest absolute values to zero.
+
+    :param numpy.nparray w: the array that should be truncated
+    :param int num_features: number of features that should be kept
+
+    :return: w (truncated array)
+    :rtype: numpy.nparray
+
+    """
+
     if len(w.nonzero()[0]) > num_features:
         w_sort_idx = np.argsort(abs(w))[-num_features:]
         zero_indices = [x for x in range(len(w)) if x not in w_sort_idx]
@@ -51,18 +126,18 @@ def _truncate(w, num_features):
     return w
 
 
-'''
-DESCRIPTION:
-    Randomly sort the rows of a numpy array and extract the target variable Y and the features X
-IN:
-    data -> numpy array (dataset)
-    target -> integer (index of the target variable)
-    shuffle -> boolean (set to True if you want to sort the dataset randomly)
-OUT:
-    X -> numpy array (containing the features)
-    Y -> numpy array (containing the target variable)
-'''
 def prepare_data(data, target, shuffle):
+    """Extract features X and target variable Y
+
+    :param numpy.nparray data: dataset
+    :param int target: index of the target variable
+    :param bool shuffle: set to True if you want to sort the dataset randomly
+
+    :return: X (containing the features), Y (containing the target variable)
+    :rtype: numpy.nparray, numpy.nparray
+
+    """
+
     if shuffle:
         np.random.shuffle(data)
 
@@ -72,21 +147,24 @@ def prepare_data(data, target, shuffle):
     return x, y
 
 
-'''
-DESCRIPTION:
-    Iterate over all datapoints in a given matrix to simulate a data stream. 
+def simulate_stream(X, Y, algorithm, param):
+    """Apply Feature Selection on stream data
+
+    Iterate over all datapoints in a given matrix to simulate a data stream.
     Perform given feature selection algorithm and return an array containing the weights for each (selected) feature
-IN:
-    X -> numpy array (dataset)
-    Y -> numpy array (target)
-    algorithm -> string (feature selection algorithm)
-    num_features-> integer (number of features that should be returned)
-OUT:
-    ftr_weights -> numpy array (containing the weights of the (selected) features)
-    stats -> python dictionary (contains i.a. average computation time in ms and 
-             memory usage (in percent of physical memory) for one execution of the fs algorithm
-'''
-def simulate_stream(X, Y, algorithm, num_features):
+
+    :param numpy.ndarray X: dataset
+    :param numpy array Y: target
+    :param str algorithm: feature selection algorithm
+    :param int num_features: number of features that should be returned
+
+    :return: ftr_weights (containing the weights of the (selected) features), stats (contains i.a. average computation
+        time in ms and memory usage (in percent of physical memory) for one execution of the fs algorithm
+    :rtype: numpy.ndarray, dict
+
+    .. todo: enable OFS for different batch sizes
+    """
+
     ftr_weights = np.zeros(X.shape[1], dtype=int)  # create empty feature weights array
 
     stats = {'memory_start': psutil.Process(os.getpid()).memory_percent(),  # get current memory usage of the process
@@ -95,18 +173,29 @@ def simulate_stream(X, Y, algorithm, num_features):
              'time_avg': 0,
              'memory_avg': 0}
 
-    for i, x in enumerate(X):
+    for i in range(0, X.shape[0], param['batch_size']):
         # OFS
         if algorithm == 'ofs':
-            # update feature weights for every new data instance
-            ftr_weights, time, memory = _ofs(x, Y[i], ftr_weights, num_features)
+            if param['batch_size'] == 1:
+                ftr_weights, time, memory = _ofs(X[i], Y[i], ftr_weights, param['num_features'])
+            else:
+                print('WARNING: OFS currently only works for a batch size of 1!\n')
+                return ftr_weights, stats
+                # ftr_weights, time, memory = _ofs(X[i:i+param['batch_size']], Y[i:i+param['batch_size']], ftr_weights, param['num_features'])
 
-            # add difference in memory usage and computation time
-            stats['memory_measures'].append(memory - stats['memory_start'])
-            stats['time_measures'].append(time)
+        # FSDS
+        elif algorithm == 'fsds':
+            x_t = X[i:i+param['batch_size']].T  # transpose x batch because FSDS assumes rows to represent features
+            ftr_weights, time, memory, param['b'], param['ell'] = _fsds(param['b'], x_t, X.shape[1], param['k'], param['ell'])
+
+        # no valid algorithm selected
         else:
             print('Specified feature selection algorithm is not defined!')
             return ftr_weights, stats
+
+        # add difference in memory usage and computation time
+        stats['memory_measures'].append(memory - stats['memory_start'])
+        stats['time_measures'].append(time)
 
     stats['time_avg'] = np.mean(stats['time_measures']) * 1000  # average time in milliseconds
     stats['memory_avg'] = np.mean(stats['memory_measures'])  # average percentage of used memory
