@@ -39,6 +39,6 @@ print('Average memory usage: {}% (of total physical memory)'.format(stats['memor
 print('Average computation time: {}ms'.format(stats['time_avg']))
 
 # Plot time and memory consumption
-streamfs.print_stats(stats, feature_names).show()
+streamfs.plot_stats(stats, feature_names).show()
 
 

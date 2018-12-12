@@ -38,7 +38,7 @@ def simulate_stream(X, Y, algorithm, param):
     :param numpy.ndarray X: dataset
     :param numpy array Y: target
     :param str algorithm: feature selection algorithm
-    :param int num_features: number of features that should be returned
+    :param dict param: parameters for feature selection
 
     :return: ftr_weights (containing the weights of the (selected) features), stats (contains i.a. average computation
         time in ms and memory usage (in percent of physical memory) for one execution of the fs algorithm
@@ -57,6 +57,7 @@ def simulate_stream(X, Y, algorithm, param):
              'memory_avg': 0}
 
     for i in range(0, X.shape[0], param['batch_size']):
+        # Add additional elif statement for new algorithms
         # OFS
         if algorithm == 'ofs':
             if param['batch_size'] == 1:
@@ -89,7 +90,7 @@ def simulate_stream(X, Y, algorithm, param):
     return ftr_weights, stats
 
 
-def print_stats(stats, ftr_names=None):
+def plot_stats(stats, ftr_names):
     """Print Time and Memory consumption
 
     Print the time and memory measures as provided in stats. Also print the average time and memory consumption
