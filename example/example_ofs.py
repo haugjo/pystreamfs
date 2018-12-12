@@ -29,3 +29,6 @@ print('Average memory usage: {}% (of total physical memory)'.format(stats['memor
 
 # Print average computation time in milliseconds for one iteration of the FS algorithm
 print('Average computation time: {}ms'.format(stats['time_avg']))
+
+# Plot time and memory consumption
+streamfs.print_stats(stats).show()

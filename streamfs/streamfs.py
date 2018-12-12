@@ -1,6 +1,10 @@
 import numpy as np
 import psutil
 import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set(style="darkgrid")
 
 # import FS algorithms
 from streamfs.algorithms.ofs import run_ofs
@@ -82,3 +86,34 @@ def simulate_stream(X, Y, algorithm, param):
     stats['memory_avg'] = np.mean(stats['memory_measures'])  # average percentage of used memory
 
     return ftr_weights, stats
+
+
+def print_stats(stats):
+    """Print Time and Memory consumption
+
+    Print the time and memory measures as provided in stats. Also print the average time and memory consumption
+
+    :param dict stats: statistics
+    :return: plt (plot containing 2 subplots for time and memory)
+    """
+
+    fig, ax = plt.subplots(1, 2, figsize=(15, 8))
+    fig.subplots_adjust(wspace=0.3)
+
+    x_time = np.array(range(0, len(stats['time_measures'])))
+    y_time = np.array(stats['time_measures'])*1000
+
+    x_mem = np.array(range(0, len(stats['memory_measures'])))
+    y_mem = np.array(stats['memory_measures'])*100
+
+    ax[0].plot(x_time, y_time)
+    ax[0].plot([0, x_time.shape[0]], [stats['time_avg'], stats['time_avg']])
+    ax[0].set(xlabel='executions', ylabel='time (ms)', title='Time consumption for FS')
+    ax[0].legend(['time measures', 'avg. time'])
+
+    ax[1].plot(x_mem, y_mem)
+    ax[1].plot([0, x_mem.shape[0]], [stats['memory_avg']*100, stats['memory_avg']*100])
+    ax[1].set(xlabel='executions', ylabel='memory (% of RAM)', title='Memory consumption for FS')
+    ax[1].legend(['memory measures', 'avg. memory'])
+
+    return plt
