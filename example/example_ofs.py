@@ -1,8 +1,8 @@
-import streamfs
+from streamfs import streamfs
 import numpy as np
 
 # Load german credit score dataset
-credit_data = np.genfromtxt('./example_data/german_credit_score.csv', delimiter=';')
+credit_data = np.genfromtxt('../datasets/german_credit_score.csv', delimiter=';')
 
 # Define parameters
 param = dict()

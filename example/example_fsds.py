@@ -1,9 +1,9 @@
-import streamfs
+from streamfs import streamfs
 import numpy as np
 import pandas as pd
 
 # Load humane activity recognition
-har_data = np.array(pd.read_csv('./example_data/HAR_train.csv'))  # TODO: combine training and test csv to single dataset
+har_data = np.array(pd.read_csv('../datasets/HAR_train.csv'))  # TODO: combine training and test csv to single dataset
 
 # Extract features and target variable
 X, Y = streamfs.prepare_data(har_data, 562, False)
