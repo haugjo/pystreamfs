@@ -33,7 +33,7 @@ The main module is ``streamfs/streamfs.py``. Utility functions are stored in ``s
     * **Output**:
         * ``X``: numpy array, contains the features
         * ``Y``: numpy array, contains the target variable
-* ``w, stats = simulate_stream(X, Y, algorithm, param)``
+* ``ftr_weights, stats = simulate_stream(X, Y, algorithm, param)``
     * **Description**: Iterate over all datapoints in the dataset to simulate a data stream. 
     Perform given feature selection algorithm and return an array containing the weights for each (selected) feature as well as a set of performance statistics
     * **Input**:
@@ -52,7 +52,7 @@ The main module is ``streamfs/streamfs.py``. Utility functions are stored in ``s
             * ``memory_avg``: float, average memory usage (relative to the total physical memory) for one execution of the FS algorithm
             * ``memory_start``: float, memory usage (relative to the total physical memory) before start of the data stream
             * ``memory_measures``: list, individual memory usage for each iteration (length = length of ``X``)
-* ``plot_stats(stats, ftr_names):``
+* ``plt = plot_stats(stats, ftr_names):``
     * **Description**: Plot the time and memory consumption as provided in stats. Also plot selected features over time.
     If the number of features is smaller or equal 30, this function plots a tic for each feature in the y-axis.
     * **Input**:
