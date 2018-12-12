@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 # Load humane activity recognition
-har_data = pd.read_csv('../datasets/HAR_train.csv')  # TODO: combine training and test csv to single dataset
+har_data = pd.read_csv('../datasets/human_activity_recognition.csv')
 feature_names = np.array(har_data.columns)
 har_data = np.array(har_data)
 

@@ -3,24 +3,25 @@ import numpy as np
 import pandas as pd
 
 # Load german credit score dataset
-credit_data = pd.read_csv('../datasets/german_credit_score.csv', delimiter=';', header=None)
+credit_data = pd.read_csv('../datasets/cleaned_german_credit_score.csv')
 feature_names = np.array(credit_data.columns)
 credit_data = np.array(credit_data)
 
 # Define parameters
 param = dict()
-param['num_features'] = 10  # number of features to return
+param['num_features'] = 5  # number of features to return
 param['batch_size'] = 1  # batch size for one iteration of ofs
 
 # Extract features and target variable
-X, Y = streamfs.prepare_data(credit_data, 0, False)
+X, Y = streamfs.prepare_data(credit_data, 23, False)
+Y[Y == 0] = -1  # change 0 to -1, required by ofs
 
 # Simulate feature selection on a data stream (for the given data, FS algorithm and number of features)
 w, stats = streamfs.simulate_stream(X, Y, 'ofs', param)
 
 # Print resulting feature weights
 print('Feature weights:\n', w[stats['features'][-1]])
-print('Indices of selected features: {}'.format(stats['features'][-1]))
+print('Selected features: {}'.format(feature_names[stats['features'][-1]]))
 
 # Print params
 print('Statistics for one execution of OFS with a batch size of {}:'.format(param['batch_size']))

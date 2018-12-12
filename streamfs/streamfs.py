@@ -89,7 +89,7 @@ def simulate_stream(X, Y, algorithm, param):
     return ftr_weights, stats
 
 
-def print_stats(stats, ftr_names = None):
+def print_stats(stats, ftr_names=None):
     """Print Time and Memory consumption
 
     Print the time and memory measures as provided in stats. Also print the average time and memory consumption
@@ -107,7 +107,7 @@ def print_stats(stats, ftr_names = None):
     y_mem = np.array(stats['memory_measures'])*100
 
     plt.figure(figsize=(15, 25))
-    plt.subplots_adjust(wspace=0.3)
+    plt.subplots_adjust(wspace=0.3, hspace=0.3)
 
     plt.subplot2grid((3, 2), (0, 0))
     plt.plot(x_time, y_time)
