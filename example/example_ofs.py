@@ -1,8 +1,11 @@
 from streamfs import streamfs
 import numpy as np
+import pandas as pd
 
 # Load german credit score dataset
-credit_data = np.genfromtxt('../datasets/german_credit_score.csv', delimiter=';')
+credit_data = pd.read_csv('../datasets/german_credit_score.csv', delimiter=';', header=None)
+feature_names = np.array(credit_data.columns)
+credit_data = np.array(credit_data)
 
 # Define parameters
 param = dict()
@@ -16,9 +19,8 @@ X, Y = streamfs.prepare_data(credit_data, 0, False)
 w, stats = streamfs.simulate_stream(X, Y, 'ofs', param)
 
 # Print resulting feature weights
-idx = np.nonzero(w)
-print('Feature weights:\n', w[idx])
-print('Indices of selected features: {}'.format(idx[0]))
+print('Feature weights:\n', w[stats['features'][-1]])
+print('Indices of selected features: {}'.format(stats['features'][-1]))
 
 # Print params
 print('Statistics for one execution of OFS with a batch size of {}:'.format(param['batch_size']))
@@ -31,4 +33,4 @@ print('Average memory usage: {}% (of total physical memory)'.format(stats['memor
 print('Average computation time: {}ms'.format(stats['time_avg']))
 
 # Plot time and memory consumption
-streamfs.print_stats(stats).show()
+streamfs.print_stats(stats, feature_names).show()

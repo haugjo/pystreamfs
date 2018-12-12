@@ -1,10 +1,7 @@
 import numpy as np
 import psutil
 import os
-import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set(style="darkgrid")
 
 # import FS algorithms
 from streamfs.algorithms.ofs import run_ofs
@@ -55,6 +52,7 @@ def simulate_stream(X, Y, algorithm, param):
     stats = {'memory_start': psutil.Process(os.getpid()).memory_percent(),  # get current memory usage of the process
              'time_measures': [],
              'memory_measures': [],
+             'features': [],
              'time_avg': 0,
              'memory_avg': 0}
 
@@ -82,38 +80,79 @@ def simulate_stream(X, Y, algorithm, param):
         stats['memory_measures'].append(memory - stats['memory_start'])
         stats['time_measures'].append(time)
 
+        # save indices of currently selected features
+        stats['features'].append(np.argsort(abs(ftr_weights))[::-1][:param['num_features']])
+
     stats['time_avg'] = np.mean(stats['time_measures']) * 1000  # average time in milliseconds
     stats['memory_avg'] = np.mean(stats['memory_measures'])  # average percentage of used memory
 
     return ftr_weights, stats
 
 
-def print_stats(stats):
+def print_stats(stats, ftr_names = None):
     """Print Time and Memory consumption
 
     Print the time and memory measures as provided in stats. Also print the average time and memory consumption
 
     :param dict stats: statistics
+    :param np.array ftr_names: contains feature names (if included, features will be plotted
     :return: plt (plot containing 2 subplots for time and memory)
     """
 
-    fig, ax = plt.subplots(1, 2, figsize=(15, 8))
-    fig.subplots_adjust(wspace=0.3)
-
+    # plot time and memory
     x_time = np.array(range(0, len(stats['time_measures'])))
     y_time = np.array(stats['time_measures'])*1000
 
     x_mem = np.array(range(0, len(stats['memory_measures'])))
     y_mem = np.array(stats['memory_measures'])*100
 
-    ax[0].plot(x_time, y_time)
-    ax[0].plot([0, x_time.shape[0]], [stats['time_avg'], stats['time_avg']])
-    ax[0].set(xlabel='executions', ylabel='time (ms)', title='Time consumption for FS')
-    ax[0].legend(['time measures', 'avg. time'])
+    plt.figure(figsize=(15, 25))
+    plt.subplots_adjust(wspace=0.3)
 
-    ax[1].plot(x_mem, y_mem)
-    ax[1].plot([0, x_mem.shape[0]], [stats['memory_avg']*100, stats['memory_avg']*100])
-    ax[1].set(xlabel='executions', ylabel='memory (% of RAM)', title='Memory consumption for FS')
-    ax[1].legend(['memory measures', 'avg. memory'])
+    plt.subplot2grid((3, 2), (0, 0))
+    plt.plot(x_time, y_time)
+    plt.plot([0, x_time.shape[0]-1], [stats['time_avg'], stats['time_avg']])
+    plt.xlabel('execution no.')
+    plt.ylabel('time (ms)')
+    plt.title('Time consumption for FS')
+    plt.legend(['time measures', 'avg. time'])
+
+    plt.subplot2grid((3, 2), (0, 1))
+    plt.plot(x_mem, y_mem)
+    plt.plot([0, x_mem.shape[0]-1], [stats['memory_avg'] * 100, stats['memory_avg'] * 100])
+    plt.xlabel('execution no.')
+    plt.ylabel('memory (% of RAM)')
+    plt.title('Memory consumption for FS')
+    plt.legend(['memory measures', 'avg. memory'])
+
+    # plot selected features
+    ftr_indices = range(0, len(ftr_names))
+
+    plt.subplot2grid((3, 2), (1, 0), rowspan=2, colspan=2)
+    plt.title('Selected features')
+    plt.xlabel('execution no.')
+    plt.ylabel('feature')
+
+    # plot selected features for each execution
+    for i, val in enumerate(stats['features']):
+        for v in val:
+            plt.scatter(i, v, marker='_', color='C0')
+
+    # markers indicating final list of features
+    marker_y = '_'
+    marker_n = '_'
+
+    if len(ftr_indices) <= 30:
+        # if less than 30 features plot tic for each feature and change markers
+        plt.yticks(ftr_indices, ftr_names)
+        marker_y = 'P'
+        marker_n = 'x'
+
+    # plot final set of features
+    for i in ftr_indices:
+        if i in stats['features'][-1]:
+            plt.scatter(len(stats['features']), i, marker=marker_y, color="C2")
+        else:
+            plt.scatter(len(stats['features']), i, marker=marker_n, color="C3")
 
     return plt

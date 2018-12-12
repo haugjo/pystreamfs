@@ -3,7 +3,9 @@ import numpy as np
 import pandas as pd
 
 # Load humane activity recognition
-har_data = np.array(pd.read_csv('../datasets/HAR_train.csv'))  # TODO: combine training and test csv to single dataset
+har_data = pd.read_csv('../datasets/HAR_train.csv')  # TODO: combine training and test csv to single dataset
+feature_names = np.array(har_data.columns)
+har_data = np.array(har_data)
 
 # Extract features and target variable
 X, Y = streamfs.prepare_data(har_data, 562, False)
@@ -23,9 +25,8 @@ param['num_features'] = 10
 w, stats = streamfs.simulate_stream(X, Y, 'fsds', param)
 
 # Print resulting feature weights
-selected_idx = np.argsort(w)[::-1][:param['num_features']]
-print('Feature weights:\n', w[selected_idx])
-print('Selected features: {}'.format(selected_idx))
+print('Feature weights:\n', w[stats['features'][-1]])
+print('Selected features: {}'.format(stats['features'][-1]))
 
 # Print params
 print('Statistics for one execution of FSDS with a batch size of {}:'.format(param['batch_size']))
@@ -38,6 +39,6 @@ print('Average memory usage: {}% (of total physical memory)'.format(stats['memor
 print('Average computation time: {}ms'.format(stats['time_avg']))
 
 # Plot time and memory consumption
-streamfs.print_stats(stats).show()
+streamfs.print_stats(stats, feature_names).show()
 
 
