@@ -123,15 +123,15 @@ def plot_stats(stats, ftr_names):
     plt.subplot2grid((3, 2), (0, 0))
     plt.plot(x_time, y_time)
     plt.plot([0, x_time.shape[0]-1], [stats['time_avg'], stats['time_avg']])
-    plt.xlabel('execution no.')
-    plt.ylabel('time (ms)')
+    plt.xlabel('t')
+    plt.ylabel('computation time (ms)')
     plt.title('Time consumption for FS')
     plt.legend(['time measures', 'avg. time'])
 
     plt.subplot2grid((3, 2), (0, 1))
     plt.plot(x_mem, y_mem)
     plt.plot([0, x_mem.shape[0]-1], [stats['memory_avg'] * 100, stats['memory_avg'] * 100])
-    plt.xlabel('execution no.')
+    plt.xlabel('t')
     plt.ylabel('memory (% of RAM)')
     plt.title('Memory consumption for FS')
     plt.legend(['memory measures', 'avg. memory'])
@@ -141,7 +141,7 @@ def plot_stats(stats, ftr_names):
 
     plt.subplot2grid((3, 2), (1, 0), rowspan=2, colspan=2)
     plt.title('Selected features')
-    plt.xlabel('execution no.')
+    plt.xlabel('t')
     plt.ylabel('feature')
 
     # plot selected features for each execution
