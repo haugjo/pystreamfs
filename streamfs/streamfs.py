@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 # import FS algorithms
 from streamfs.algorithms.ofs import run_ofs
 from streamfs.algorithms.fsds import run_fsds
+from streamfs.algorithms.mcnn import run_mcnn, TimeWindow
 
 
 def prepare_data(data, target, shuffle):
@@ -56,6 +57,11 @@ def simulate_stream(X, Y, algorithm, param):
              'time_avg': 0,
              'memory_avg': 0}
 
+    # For MCNN only
+    if algorithm == 'mcnn':
+        window = TimeWindow(X[0], param)  # create a time window object
+        clusters = dict()  # create an empty dict of clusters
+
     for i in range(0, X.shape[0], param['batch_size']):
         # Add additional elif statement for new algorithms
         # OFS
@@ -71,6 +77,10 @@ def simulate_stream(X, Y, algorithm, param):
         elif algorithm == 'fsds':
             x_t = X[i:i+param['batch_size']].T  # transpose x batch because FSDS assumes rows to represent features
             ftr_weights, time, memory, param['b'], param['ell'] = run_fsds(param['b'], x_t, X.shape[1], param['k'], param['ell'])
+
+        # MCNN
+        elif algorithm == 'mcnn':
+            ftr_weights, window, clusters, time, memory = run_mcnn(X[i:i+param['batch_size']], Y[i:i+param['batch_size']], window, clusters, param)
 
         # no valid algorithm selected
         else:
