@@ -14,7 +14,7 @@ def run_mcnn(X, Y, window, clusters, param):
     :rtype numpy.ndarray, float, float
     """
 
-    start_t = time.process_time()  # time taking
+    start_t = time.perf_counter()  # time taking
 
     # update time window
     window.t += 1
@@ -74,7 +74,7 @@ def run_mcnn(X, Y, window, clusters, param):
     else:
         w = window.selected_ftr
 
-    return w, window, clusters, time.process_time() - start_t, psutil.Process(os.getpid()).memory_percent()
+    return w, window, clusters, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_percent()
 
 
 def _select_features(clusters, window, num_features):

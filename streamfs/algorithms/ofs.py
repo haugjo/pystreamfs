@@ -22,9 +22,11 @@ def run_ofs(x, y, w, num_features):
     :rtype numpy.ndarray, float, float
 
     .. warning: y must be -1 or 1
+
+    .. todo: enable OFS for different batch sizes
     """
 
-    start_t = time.process_time()  # time taking
+    start_t = time.perf_counter()  # time taking
 
     eta = 0.2
     lamb = 0.01
@@ -36,4 +38,4 @@ def run_ofs(x, y, w, num_features):
         w = w * min(1, 1/(math.sqrt(lamb) * np.linalg.norm(w)))
         w = truncate(w, num_features)
 
-    return w, time.process_time() - start_t, psutil.Process(os.getpid()).memory_percent()
+    return w, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_percent()

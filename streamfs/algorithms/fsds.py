@@ -28,7 +28,7 @@ def run_fsds(B, Yt, m, k, ell=0):
     .. todo: check why error occurs for different n_t
     """
 
-    start_t = time.process_time()  # time taking
+    start_t = time.perf_counter()  # time taking
 
     if ell < 1:
         ell = int(np.sqrt(m))
@@ -69,4 +69,4 @@ def run_fsds(B, Yt, m, k, ell=0):
 
     w = np.amax(abs(X), axis=1)
 
-    return w, time.process_time() - start_t, psutil.Process(os.getpid()).memory_percent(),  B, ell
+    return w, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_percent(),  B, ell

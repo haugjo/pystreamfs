@@ -8,23 +8,23 @@ feature_names = np.array(credit_data.columns)
 credit_data = np.array(credit_data)
 
 # Define parameters
+# todo: add additional parameters
 param = dict()
 param['num_features'] = 5  # number of features to return
 param['batch_size'] = 1  # batch size for one iteration of ofs
 
 # Extract features and target variable
 X, Y = streamfs.prepare_data(credit_data, 23, False)
-Y[Y == 0] = -1  # change 0 to -1, required by ofs
 
 # Simulate feature selection on a data stream (for the given data, FS algorithm and number of features)
-w, stats = streamfs.simulate_stream(X, Y, 'ofs', param)
+w, stats = streamfs.simulate_stream(X, Y, 'nnfs', param)
 
 # Print resulting feature weights
 print('Final feature weights:\n', w[stats['features'][-1]])
 print('Selected features: {}'.format(feature_names[stats['features'][-1]]))
 
 # Print params
-print('Statistics for one execution of OFS with a batch size of {}:'.format(param['batch_size']))
+print('Statistics for one execution of NNFS with a batch size of {}:'.format(param['batch_size']))
 
 # Print the average memory usage for one iteration of the FS algorithm
 # -> this uses psutil.Process(pid).memory_percent()

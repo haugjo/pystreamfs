@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from streamfs.algorithms.ofs import run_ofs
 from streamfs.algorithms.fsds import run_fsds
 from streamfs.algorithms.mcnn import run_mcnn, TimeWindow
+from streamfs.algorithms.nnfs import run_nnfs
 
 
 def prepare_data(data, target, shuffle):
@@ -44,8 +45,6 @@ def simulate_stream(X, Y, algorithm, param):
     :return: ftr_weights (containing the weights of the (selected) features), stats (contains i.a. average computation
         time in ms and memory usage (in percent of physical memory) for one execution of the fs algorithm
     :rtype: numpy.ndarray, dict
-
-    .. todo: enable OFS for different batch sizes
     """
 
     ftr_weights = np.zeros(X.shape[1], dtype=int)  # create empty feature weights array
@@ -64,6 +63,7 @@ def simulate_stream(X, Y, algorithm, param):
 
     for i in range(0, X.shape[0], param['batch_size']):
         # Add additional elif statement for new algorithms
+
         # OFS
         if algorithm == 'ofs':
             if param['batch_size'] == 1:
@@ -82,6 +82,11 @@ def simulate_stream(X, Y, algorithm, param):
         elif algorithm == 'mcnn':
             ftr_weights, window, clusters, time, memory = run_mcnn(X[i:i+param['batch_size']], Y[i:i+param['batch_size']], window, clusters, param)
 
+        # NNFS
+        # todo: Vadim's approach
+        elif algorithm == 'nnfs':
+            ftr_weights, time, memory = run_nnfs(X[i:i+param['batch_size']], Y[i:i+param['batch_size']], param)
+
         # no valid algorithm selected
         else:
             print('Specified feature selection algorithm is not defined!')
@@ -95,7 +100,7 @@ def simulate_stream(X, Y, algorithm, param):
         stats['features'].append(np.argsort(abs(ftr_weights))[::-1][:param['num_features']])
 
     stats['time_avg'] = np.mean(stats['time_measures']) * 1000  # average time in milliseconds
-    stats['memory_avg'] = np.mean(stats['memory_measures'])  # average percentage of used memory
+    stats['memory_avg'] = np.mean(stats['memory_measures']) * 100  # average percentage of used memory
 
     return ftr_weights, stats
 
@@ -130,7 +135,7 @@ def plot_stats(stats, ftr_names):
 
     plt.subplot2grid((3, 2), (0, 1))
     plt.plot(x_mem, y_mem)
-    plt.plot([0, x_mem.shape[0]-1], [stats['memory_avg'] * 100, stats['memory_avg'] * 100])
+    plt.plot([0, x_mem.shape[0]-1], [stats['memory_avg'], stats['memory_avg']])
     plt.xlabel('t')
     plt.ylabel('memory (% of RAM)')
     plt.title('Memory consumption for FS')

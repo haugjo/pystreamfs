@@ -25,7 +25,7 @@ param['num_features'] = 10
 w, stats = streamfs.simulate_stream(X, Y, 'fsds', param)
 
 # Print resulting feature weights
-print('Feature weights:\n', w[stats['features'][-1]])
+print('Final feature weights:\n', w[stats['features'][-1]])
 print('Selected features: {}'.format(stats['features'][-1]))
 
 # Print params
@@ -33,7 +33,7 @@ print('Statistics for one execution of FSDS with a batch size of {}:'.format(par
 
 # Print the average memory usage for one iteration of the FS algorithm
 # -> this uses psutil.Process(pid).memory_percent()
-print('Average memory usage: {}% (of total physical memory)'.format(stats['memory_avg'] * 100))
+print('Average memory usage: {}% (of total physical memory)'.format(stats['memory_avg']))
 
 # Print average computation time in milliseconds for one iteration of the FS algorithm
 print('Average computation time: {}ms'.format(stats['time_avg']))
