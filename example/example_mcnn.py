@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 # Load german credit score dataset
+# Todo: find a dataset with drift
 credit_data = pd.read_csv('../datasets/cleaned_german_credit_score.csv')
 feature_names = np.array(credit_data.columns)
 credit_data = np.array(credit_data)
@@ -10,9 +11,15 @@ credit_data = np.array(credit_data)
 # Define parameters
 param = dict()
 param['num_features'] = 5  # number of features to return
-param['batch_size'] = 1  # batch size for one iteration of ofs
+param['batch_size'] = 10  # batch size for one iteration of ofs
+
+# Original parameters from paper
 param['max_n'] = 100  # maximum number of saved instances per cluster
-param['e_threshold'] = 10  # error threshold for splitting of a cluster
+param['e_threshold'] = 3  # error threshold for splitting of a cluster
+
+# Additional parameters
+param['boundary_var_add_coef'] = 2  # factor added to the var. boundary of the closest centroid (run_mcnn()) Todo: change to multiplier
+param['p_diff_threshold'] = 50  # threshold of perc. diff. for split/death rate when drift is assumed (_detect_drift())
 
 # Extract features and target variable
 X, Y = streamfs.prepare_data(credit_data, 23, False)

@@ -6,7 +6,7 @@ from sklearn.feature_selection import mutual_info_classif
 
 
 def run_mcnn(X, Y, window, clusters, param):
-    """Python adaptation of the MCNN Feature Selection algorithm by Hammodi
+    """Feature selection based on the MCNN Feature Selection algorithm by Hammodi
 
 
     :return: w (updated feature weights), time (computation time in seconds),
@@ -19,16 +19,12 @@ def run_mcnn(X, Y, window, clusters, param):
     # update time window
     window.t += 1
     window.n = X.shape[0]
-    window.splits_h = window.splits  # save statistics from last time window
-    window.deaths_h = window.deaths
     window.split_rate_h = window.split_rate
     window.death_rate_h = window.death_rate
     window.splits = 0
     window.deaths = 0
     window.split_rate = 0
     window.death_rate = 0
-
-    updated_clusters = []
 
     # iterate over all x in the batch
     for x, y in zip(X, Y):
@@ -45,65 +41,79 @@ def run_mcnn(X, Y, window, clusters, param):
             min_c = clusters[min_c_key]
             min_dist = distances[min_c_key]
 
-            # check if x is within the variance boundary of that cluster, if not create new cluster
-            if (min_dist > min_c.variance).any():
+            # check if x is within 2x the variance boundary in all dimensions, if not create new cluster
+            # Note: boundary is not clearly defined in the paper
+            if (min_dist > min_c.variance + param['boundary_var_add_coef']).any():
                 new_c = _MicroCluster(window, x, y, param)
-                clusters[len(clusters)] = new_c  # add new cluster
+                clusters[window.cluster_idx] = new_c  # add new cluster
+                window.cluster_idx += 1  # increment cluster index
             else:
                 # add new instance to cluster min_c and return updated clusters
                 clusters = _add_instance(min_c, min_c_key, x, y, window, dist_sums, clusters)
-                updated_clusters.append(min_c_key)  # save cluster for later updating of its statistics
         else:
             # create a new cluster if their doesn't exist one yet
             new_c = _MicroCluster(window, x, y, param)
-            clusters[len(clusters)] = new_c
+            clusters[window.cluster_idx] = new_c  # add new cluster
+            window.cluster_idx += 1  # increment cluster index
 
-    # remove least participating cluster
-    clusters, window = _remove_cluster(clusters, window)
+        # remove least participating cluster
+        clusters, window = _remove_cluster(clusters, window)
 
-    # update cluster statistics
-    for c_key in updated_clusters:
-        clusters[c_key] = _update_cluster_stats(clusters[c_key])
+    # update cluster velocity for all clusters
+    for key, c in clusters.items():  # check if cluster was not removed already
+            # calculate velocity of each feature
+            c.velocity = abs(c.f_val / c.n - c.f_val_h / c.n_h)
+
+            # update historic statistics
+            c.f_val_h = c.f_val
+            c.n_h = c.n
+
+            clusters[key] = c
 
     # check for concept drift
-    window = _detect_drift(window)
+    window = _detect_drift(window, param)
 
     # update selected features when drift detected
     if window.drift:
-        w = _select_features(clusters, window, param['num_features'])
+        w = _select_features(clusters, window)
     else:
         w = window.selected_ftr
 
     return w, window, clusters, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_percent()
 
 
-def _select_features(clusters, window, num_features):
+def _select_features(clusters, window):
     """
 
     :param clusters:
     :param window:
     :return:
     """
-    max_iqr_scores = np.zeros(clusters[0].instances[0].shape)
-    total_data = []
-    total_labels = []
+    max_iqr_scores = np.zeros(window.selected_ftr.shape)
+    total_data = None
+    total_labels = None
 
     # for each cluster, find the feature with highest iqr and increment its max_iqr score
-    for c in clusters:
-        max_iqr_idx = max(c.iqr, key=c.iqr.get)
+    for key, c in clusters.items():
+        max_iqr_idx = np.argmax(c.iqr)
         c.max_iqr[max_iqr_idx] += 1
 
         # add max_iqr of the cluster to total max_iqr_scores
         max_iqr_scores += c.max_iqr
 
         # add instances of c to all data
-        total_data = np.append(total_data, c.instances, axis=0)
-        total_labels = np.append(total_labels, c.instance_labels, axis=0)
+        if total_data is None and total_labels is None:
+            total_data = c.instances
+            total_labels = c.instance_labels
+        else:
+            total_data = np.append(total_data, c.instances, axis=0)
+            total_labels = np.append(total_labels, c.instance_labels)
 
     # feature with max iqr score is considered irrelevant for classification this time window
-    irr_feature = max(max_iqr_scores, key=max_iqr_scores.get)
+    irr_feature = np.argmax(max_iqr_scores)
 
     # update the information gain for all irrelevant features of last time window
+    # Todo: move this part to separate function and call every time window
     irr_ftr_idx = window.ftr_relevancy[window.ftr_relevancy == 0]
 
     for ftr in irr_ftr_idx:
@@ -125,21 +135,22 @@ def _select_features(clusters, window, num_features):
     # update relevancy of newly found irrelevant feature
     window.ftr_relevancy[irr_feature] = 0
 
-    # select top features
-    window.selected_ftr = np.argsort(window.ftr_ig[window.ftr_relevancy == 1])[:num_features]
+    # update selected features array
+    window.selected_ftr[:] = 0
+    window.selected_ftr[window.ftr_relevancy == 1] = window.ftr_ig[window.ftr_relevancy == 1]  # add weight where feature is relevant
 
     return window.selected_ftr
 
 
-def _detect_drift(window):
+def _detect_drift(window, param):
     """Detect if a concept drift appeared in this time window
 
     :param window:
     :return:
     """
     # calculate split and death rate
-    window.split_rate = (window.splits - window.splits_h)/window.n
-    window.death_rate = (window.deaths - window.deaths_h) / window.n
+    window.split_rate = window.splits / window.n
+    window.death_rate = window.deaths / window.n
 
     # calculate mean split and death rate for current and previous window
     mean_split_rate = (window.split_rate + window.split_rate_h) / 2
@@ -147,19 +158,19 @@ def _detect_drift(window):
 
     # calculate percentage difference of split and death rate
     try:
-        p_diff_split = (abs(window.split_rate - window.split_rate_h)) / ((window.split_rate + window.split_rate_h) / 2) * 100
+        p_diff_split = (abs(window.split_rate - window.split_rate_h) / mean_split_rate) * 100
     except ZeroDivisionError:
         p_diff_split = 0
 
     try:
-        p_diff_death = (abs(window.death_rate - window.death_rate_h)) / ((window.death_rate + window.death_rate_h) / 2) * 100
+        p_diff_death = (abs(window.death_rate - window.death_rate_h) / mean_death_rate) * 100
     except ZeroDivisionError:
         p_diff_death = 0
 
     # if current split/death rate > mean  and percentage difference of both rates > 50%, we assume there is a drift
     split_greater_mean = window.split_rate > mean_split_rate
     death_greater_mean = window.death_rate > mean_death_rate
-    p_diff_greater_50 = p_diff_split > 50 and p_diff_death > 50
+    p_diff_greater_50 = p_diff_split > param['p_diff_threshold'] and p_diff_death > param['p_diff_threshold']  # in the paper the threshold is 50%
 
     if split_greater_mean and death_greater_mean and p_diff_greater_50:
         window.drift = True
@@ -194,7 +205,9 @@ def _add_instance(c, c_key, x, y, window, dist_sums, clusters):
         if c.e > 0:
             c.e -= 1
     else:
-        c.e += 1  # increment error code when x is misclassified by cluster
+        # increment error code  and fpr when x is misclassified by cluster
+        c.e += 1
+        c.fpr += 1
 
         # also increment error count of closest cluster where y = cluster.label
         dist_sums.pop(c_key, None)  # remove c from distances
@@ -210,12 +223,16 @@ def _add_instance(c, c_key, x, y, window, dist_sums, clusters):
         # perform split and delete old cluster
         new_c1, new_c2, window = _split_cluster(c, window)
 
-        clusters[len(clusters)] = new_c1
-        clusters[len(clusters)] = new_c2
-        clusters.pop(c_key, None)
+        clusters[window.cluster_idx] = new_c1
+        window.cluster_idx += 1  # increment cluster index
+
+        clusters[window.cluster_idx] = new_c2
+        window.cluster_idx += 1  # increment cluster index
+
+        clusters.pop(c_key, None)  # delete old cluster
     else:
         # update cluster
-        clusters[c_key] = c
+        clusters[c_key] = _update_cluster_stats(c)
 
     return clusters
 
@@ -227,18 +244,12 @@ def _update_cluster_stats(c):
         np.delete(c.t, 0, 0)
         np.delete(c.instance_labels, 0, 0)
 
-    # update basic statistics
-    c.f_val_h = c.f_val
-    c.n_h = c.n
     c.f_val = np.sum(c.instances, axis=0)
     c.n = c.instances.shape[0]
     c.f_val2 = np.sum(c.instances ** 2, axis=0)
     c.label = np.argmax(np.bincount(c.instance_labels))
-    c.variance = np.sqrt((c.f_val2/c.n)-(c.f_val/c.n)**2)
-    c.centroid = c.f_val/c.n
-
-    # calculate velocity of each feature
-    c.velocity = abs(c.f_val/c.n - c.f_val_h/c.n_h)
+    c.variance = np.sqrt((c.f_val2 / c.n) - (c.f_val / c.n) ** 2)
+    c.centroid = c.f_val / c.n
 
     # update q1 and q3
     c.q1 = np.percentile(c.instances, 25, axis=0)
@@ -285,8 +296,8 @@ def _remove_cluster(clusters, window):
     # find cluster with highest time difference
     max_t_c = max(t_diff, key=t_diff.get)
 
-    # remove max_t_c if error > 0
-    if clusters[max_t_c].e > 0:
+    # remove max_t_c if false positive rate > 0
+    if clusters[max_t_c].fpr > 0:
         clusters.pop(max_t_c, None)
 
         # increment death count on window
@@ -315,6 +326,7 @@ class _MicroCluster:
         self.label = y  # label of majority class in cluster
         self.e = 0  # error count
         self.e_threshold = param['e_threshold']  # error threshold
+        self.fpr = 0  # false positive rate
         self.initial_t = window.t  # initial timestamp
         self.max_iqr = np.zeros(x.shape)  # counter for maximum iqr values
 
@@ -344,15 +356,18 @@ class TimeWindow:
 
         self.t = 0  # current time step
         self.n = 0  # instances in time window = batch size
+        self.cluster_idx = 0  # Index for new clusters
         self.drift = False  # indicates whether there was a drift
         self.splits = 0  # cluster splits
-        self.splits_h = 0  # splits of last window
         self.deaths = 0  # cluster deaths
-        self.deaths_h = 0  # deaths of last window
         self.split_rate = 0  # cluster split rate
         self.split_rate_h = 0  # split rate of last window
         self.death_rate = 0  # cluster death rate
         self.death_rate_h = 0  # death rate of last window
         self.ftr_relevancy = np.ones(x.shape)  # relevancy of features: 0 = irrelevant, 1 = relevant
-        self.selected_ftr = np.random.randint(0, x.shape[0]-1, param['num_features'])  # selected features (initially random selection)
         self.ftr_ig = np.zeros(x.shape)  # Information Gain for every feature
+
+        # selected features (initially random selection)
+        self.selected_ftr = np.zeros(x.shape)
+        rand_indices = np.random.randint(0, x.shape[0], param['num_features'])
+        self.selected_ftr[rand_indices] = 1
