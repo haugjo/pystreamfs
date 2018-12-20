@@ -43,7 +43,7 @@ def run_mcnn(X, Y, window, clusters, param):
 
             # check if x is within 2x the variance boundary in all dimensions, if not create new cluster
             # Note: boundary is not clearly defined in the paper
-            if (min_dist > min_c.variance + param['boundary_var_add_coef']).any():
+            if (min_dist > min_c.variance * param['boundary_var_multiplier']).any():
                 new_c = _MicroCluster(window, x, y, param)
                 clusters[window.cluster_idx] = new_c  # add new cluster
                 window.cluster_idx += 1  # increment cluster index
@@ -73,6 +73,17 @@ def run_mcnn(X, Y, window, clusters, param):
     # check for concept drift
     window = _detect_drift(window, param)
 
+    # update information gain
+    if window.t == 1:
+        # initially set the info gain after the first time window
+        ftr_idx = np.where(window.ftr_relevancy == 1)[0]
+    else:
+        # update information gain of currently irrelevant features
+        ftr_idx = np.where(window.ftr_relevancy == 0)[0]
+
+    for ftr in ftr_idx:
+        window = _update_info_gain(window, clusters, ftr)
+
     # update selected features when drift detected
     if window.drift:
         w = _select_features(clusters, window)
@@ -90,8 +101,6 @@ def _select_features(clusters, window):
     :return:
     """
     max_iqr_scores = np.zeros(window.selected_ftr.shape)
-    total_data = None
-    total_labels = None
 
     # for each cluster, find the feature with highest iqr and increment its max_iqr score
     for key, c in clusters.items():
@@ -101,36 +110,8 @@ def _select_features(clusters, window):
         # add max_iqr of the cluster to total max_iqr_scores
         max_iqr_scores += c.max_iqr
 
-        # add instances of c to all data
-        if total_data is None and total_labels is None:
-            total_data = c.instances
-            total_labels = c.instance_labels
-        else:
-            total_data = np.append(total_data, c.instances, axis=0)
-            total_labels = np.append(total_labels, c.instance_labels)
-
     # feature with max iqr score is considered irrelevant for classification this time window
     irr_feature = np.argmax(max_iqr_scores)
-
-    # update the information gain for all irrelevant features of last time window
-    # Todo: move this part to separate function and call every time window
-    irr_ftr_idx = window.ftr_relevancy[window.ftr_relevancy == 0]
-
-    for ftr in irr_ftr_idx:
-        new_ig = mutual_info_classif(total_data[ftr], total_labels, random_state=0)
-
-        # calculate the mean IG for this and the last time window
-        mean_ig = (window.ftr_ig[ftr] + new_ig) / 2
-
-        # calculate percentage difference of ig
-        p_diff_ig = (abs(window.ftr_ig[ftr] - new_ig)/mean_ig) * 100
-
-        # if percentage difference is greater than 50%, make feature relevant again
-        if p_diff_ig > 50:
-            window.ftr_relevancy[ftr] = 1
-
-        # save new ig
-        window.ftr_ig[ftr] = new_ig
 
     # update relevancy of newly found irrelevant feature
     window.ftr_relevancy[irr_feature] = 0
@@ -140,6 +121,42 @@ def _select_features(clusters, window):
     window.selected_ftr[window.ftr_relevancy == 1] = window.ftr_ig[window.ftr_relevancy == 1]  # add weight where feature is relevant
 
     return window.selected_ftr
+
+
+def _update_info_gain(window, clusters, ftr):
+    # sum up the instances and labels of all clusters to calc. info gain
+    total_data = None
+    total_labels = None
+
+    for c in clusters.values():
+        # add instances of c to all data
+        if total_data is None and total_labels is None:
+            total_data = c.instances
+            total_labels = c.instance_labels
+        else:
+            total_data = np.append(total_data, c.instances, axis=0)
+            total_labels = np.append(total_labels, c.instance_labels)
+
+    new_ig = mutual_info_classif(total_data, total_labels, random_state=0)
+
+    # calculate the mean IG for this and the last time window
+    mean_ig = (window.ftr_ig[ftr] + new_ig[ftr]) / 2
+
+    # calculate percentage difference of ig
+    p_diff_ig = (abs(window.ftr_ig[ftr] - new_ig[ftr]) / mean_ig) * 100
+
+    # if percentage difference is greater than 50%, make feature relevant again
+    if p_diff_ig > 50:
+        window.ftr_relevancy[ftr] = 1
+
+    # save new ig
+    window.ftr_ig[ftr] = new_ig[ftr]
+
+    # update selected features array
+    window.selected_ftr[:] = 0
+    window.selected_ftr[window.ftr_relevancy == 1] = window.ftr_ig[window.ftr_relevancy == 1]
+
+    return window
 
 
 def _detect_drift(window, param):
@@ -240,9 +257,10 @@ def _add_instance(c, c_key, x, y, window, dist_sums, clusters):
 def _update_cluster_stats(c):
     # delete oldest instances + its label + its time stamp until n <= max_n
     while c.n > c.max_n:
-        np.delete(c.instances, 0, 0)
-        np.delete(c.t, 0, 0)
-        np.delete(c.instance_labels, 0, 0)
+        c.instances = np.delete(c.instances, 0, 0)
+        c.t = np.delete(c.t, 0, 0)
+        c.instance_labels = np.delete(c.instance_labels, 0, 0)
+        c.n -= 1
 
     c.f_val = np.sum(c.instances, axis=0)
     c.n = c.instances.shape[0]
@@ -346,7 +364,7 @@ class _MicroCluster:
 
 
 class TimeWindow:
-    def __init__(self, x, param):
+    def __init__(self, x):
         """Initilaize Time Window
 
         You need only one TimeWindow object during feature selection
@@ -365,9 +383,9 @@ class TimeWindow:
         self.death_rate = 0  # cluster death rate
         self.death_rate_h = 0  # death rate of last window
         self.ftr_relevancy = np.ones(x.shape)  # relevancy of features: 0 = irrelevant, 1 = relevant
-        self.ftr_ig = np.zeros(x.shape)  # Information Gain for every feature
 
-        # selected features (initially random selection)
-        self.selected_ftr = np.zeros(x.shape)
-        rand_indices = np.random.randint(0, x.shape[0], param['num_features'])
-        self.selected_ftr[rand_indices] = 1
+        # Information Gain -> initially set after the first time window
+        self.ftr_ig = np.ones(x.shape)
+
+        # selected features -> initially set after the first time window
+        self.selected_ftr = np.ones(x.shape)

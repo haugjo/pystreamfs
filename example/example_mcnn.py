@@ -18,7 +18,7 @@ param['max_n'] = 100  # maximum number of saved instances per cluster
 param['e_threshold'] = 3  # error threshold for splitting of a cluster
 
 # Additional parameters
-param['boundary_var_add_coef'] = 2  # factor added to the var. boundary of the closest centroid (run_mcnn()) Todo: change to multiplier
+param['boundary_var_multiplier'] = 2  # multiplier for the var. boundary of the closest centroid (run_mcnn())
 param['p_diff_threshold'] = 50  # threshold of perc. diff. for split/death rate when drift is assumed (_detect_drift())
 
 # Extract features and target variable

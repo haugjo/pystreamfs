@@ -58,7 +58,7 @@ def simulate_stream(X, Y, algorithm, param):
 
     # For MCNN only
     if algorithm == 'mcnn':
-        window = TimeWindow(X[0], param)  # create a time window object
+        window = TimeWindow(X[0])  # create a time window object
         clusters = dict()  # create an empty dict of clusters
 
     for i in range(0, X.shape[0], param['batch_size']):
