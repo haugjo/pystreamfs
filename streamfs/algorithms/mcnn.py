@@ -8,10 +8,17 @@ from sklearn.feature_selection import mutual_info_classif
 def run_mcnn(X, Y, window, clusters, param):
     """Feature selection based on the MCNN Feature Selection algorithm by Hammodi
 
+    This code is based on the descriptions, formulas and pseudo code snippets from the paper by Hammodi et al.
+    We cannot claim this to be the exact same implementation as intended by Hammodi et al.
 
-    :return: w (updated feature weights), time (computation time in seconds),
+    :param numpy.ndarray X: the instances for this time window
+    :param numpy.ndarray Y: the labels for the instances in X
+    :param TimeWindow window: a TimeWindow object that is sequentially updated for every time window t
+    :param dict param: parameters for MCNN
+
+    :return: w (updated feature weights), window (updated TimeWindow object), time (computation time in seconds),
         memory (currently used memory in percent of total physical memory)
-    :rtype numpy.ndarray, float, float
+    :rtype numpy.ndarray, TimeWindow, float, float
     """
 
     start_t = time.perf_counter()  # time taking
@@ -94,11 +101,15 @@ def run_mcnn(X, Y, window, clusters, param):
 
 
 def _select_features(clusters, window):
-    """
+    """Selection of relevant features
 
-    :param clusters:
-    :param window:
-    :return:
+    After a drift is detected we want to update the relevancy of our features, i.e. find the feature which is
+    responsible for drift and set consider it irrelevant for the next time window
+
+    :param dict(MicroCluster) clusters: dictionary of currently existing Micro Clusters
+    :param TimeWindow window: time window
+    :return: window.selected_ftr (an updated vector of feature weights)
+    :rtype TimeWindow
     """
     max_iqr_scores = np.zeros(window.selected_ftr.shape)
 
@@ -124,6 +135,17 @@ def _select_features(clusters, window):
 
 
 def _update_info_gain(window, clusters, ftr):
+    """Update the Information Gain
+
+    Updates the Information Gain of the given feature. Called once for all features at t = 1
+    and whenever there is an irrelevant feature
+
+    :param TimeWindow window: time window
+    :param dict(MicroCluster) clusters: dictionary of currently existing Micro Clusters
+    :param ftr: index of the feature for which IG shall be updated
+    :return: window (updated time window)
+    :rtype TimeWindow
+    """
     # sum up the instances and labels of all clusters to calc. info gain
     total_data = None
     total_labels = None
@@ -160,10 +182,14 @@ def _update_info_gain(window, clusters, ftr):
 
 
 def _detect_drift(window, param):
-    """Detect if a concept drift appeared in this time window
+    """Detection of a concept drift
 
-    :param window:
-    :return:
+    Called for each time window. Checks whether a concept drift appeared in the data by looking at split and death rates
+
+    :param TimeWindow window: time window
+    :param dict param: parameters
+    :return: window (updated time window)
+    :rtype TimeWindow
     """
     # calculate split and death rate
     window.split_rate = window.splits / window.n
@@ -198,16 +224,19 @@ def _detect_drift(window, param):
 
 
 def _add_instance(c, c_key, x, y, window, dist_sums, clusters):
-    """Add the given instance to the given cluster
+    """Add and instance to a cluster
 
-    :param c:
-    :param c_key:
-    :param x:
-    :param y:
-    :param window:
-    :param distances:
-    :param clusters:
-    :return:
+    Add the given instance x to the given cluster c.
+
+    :param MicroCluster c: the cluster to which x shall be added
+    :param int c_key: index of c in clusters
+    :param numpy.ndarray x: data instance
+    :param int y: label of x
+    :param TimeWindow window: time window
+    :param numpy.ndarray dist_sums: total distance of x to each centroid
+    :param dict(MicroCluster) clusters: dictionary of currently existing Micro Clusters
+    :return: clusters (clusters dictionary with updated cluster c)
+    :rtype dict(MicroCluster)
 
     ...todo... authors suggest to apply Lowpass Filter to instance and cluster before adding it
     """
@@ -255,6 +284,15 @@ def _add_instance(c, c_key, x, y, window, dist_sums, clusters):
 
 
 def _update_cluster_stats(c):
+    """Update cluster statistics
+
+    Updates the statistics (centroid, n etc.) for the given cluster c.
+
+    :param MicroCluster c: Micro Cluster that is updated
+    :return: c (updated cluster)
+    :rtype MicroCluster
+    """
+
     # delete oldest instances + its label + its time stamp until n <= max_n
     while c.n > c.max_n:
         c.instances = np.delete(c.instances, 0, 0)
@@ -280,9 +318,13 @@ def _update_cluster_stats(c):
 def _split_cluster(c, window):
     """Split a cluster
 
-    :param c:
-    :param window:
-    :return:
+    Perform a cluster split of the given cluster c, because its error threshold is reached.
+    The new cluster centroids are set to Q1 and Q3 of c respectively.
+
+    :param MicroCluster c: Micro Cluster that is split
+    :param TimeWindow window: time window
+    :return: new_c1, new_c2 (new clusters), window (updated time window)
+    :rtype MicroCluster, MicroCluster, TimeWindow
     """
 
     param = dict()
@@ -299,11 +341,14 @@ def _split_cluster(c, window):
 
 
 def _remove_cluster(clusters, window):
-    """Remove cluster that was least recently updated
+    """Remove a cluster
 
-    :param clusters:
-    :param window:
-    :return:
+    Remove the cluster that was least recently updated if its false positive score is greater than 0.
+
+    :param dict(MicroCluster) clusters: dictionary of currently existing Micro Clusters
+    :param TimeWindow window: time window
+    :return: clusters (updated clusters), window (updated time window)
+    :rtype dict(MicroCluster), TimeWindow
     """
     t_diff = dict()
 
@@ -328,10 +373,10 @@ class _MicroCluster:
     def __init__(self, window, x, y, param):
         """Initialize new Micro Cluster
 
-        Create a MicroCluster object every time you need a new cluster (when splitting old clusters)
+        Create a MicroCluster object every time you need a new cluster
 
         :param TimeWindow window: TimeWindow object
-        :param np.array x: single instance
+        :param numpy.ndarray x: single instance
         :param int y: class label of x
         :param dict param: parameters
         """
@@ -365,11 +410,12 @@ class _MicroCluster:
 
 class TimeWindow:
     def __init__(self, x):
-        """Initilaize Time Window
+        """Initialize Time Window
 
-        You need only one TimeWindow object during feature selection
+        Time Window object that is passed from each MCNN iteration to one another.
+        You need only one TimeWindow object during MCNN feature selection.
 
-        :param np.array x: single (first) instance
+        :param numpy.ndarray x: single (first) instance
         """
 
         self.t = 0  # current time step
