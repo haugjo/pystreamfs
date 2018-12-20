@@ -177,5 +177,3 @@ print('Average computation time: {}ms'.format(stats['time_avg']))
 # Plot time and memory consumption
 streamfs.plot_stats(stats, feature_names).show()
 ```
-             
- Test github
