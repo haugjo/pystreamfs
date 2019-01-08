@@ -53,8 +53,11 @@ def simulate_stream(X, Y, algorithm, param):
     ftr_weights = np.zeros(X.shape[1], dtype=int)  # create empty feature weights array
     model = None  # empty object that later holds the ML model
 
-    stats = {'memory_start': psutil.Process(os.getpid()).memory_percent(),  # get current memory usage of the process
-             'time_measures': [],
+    # measure current RAM usage in Byte
+    # uss = “Unique Set Size”, this is the memory which is unique to a process and which would be freed if the process was terminated right now.
+    start_memory = psutil.Process(os.getpid()).memory_full_info().uss
+
+    stats = {'time_measures': [],
              'memory_measures': [],
              'acc_measures': [],
              'features': [],
@@ -69,7 +72,6 @@ def simulate_stream(X, Y, algorithm, param):
 
     for i in range(0, X.shape[0], param['batch_size']):
         # Add additional elif statement for new algorithms
-
         # OFS
         if algorithm == 'ofs':
             ftr_weights, time, memory = run_ofs(X[i:i+param['batch_size']], Y[i:i+param['batch_size']], ftr_weights, param['num_features'])
@@ -93,7 +95,7 @@ def simulate_stream(X, Y, algorithm, param):
             return ftr_weights, stats
 
         # add difference in memory usage and computation time
-        stats['memory_measures'].append(memory - stats['memory_start'])
+        stats['memory_measures'].append(memory - start_memory)
         stats['time_measures'].append(time)
 
         # save indices of currently selected features
@@ -105,13 +107,26 @@ def simulate_stream(X, Y, algorithm, param):
         stats['acc_measures'].append(acc)
 
     stats['time_avg'] = np.mean(stats['time_measures']) * 1000  # average time in milliseconds
-    stats['memory_avg'] = np.mean(stats['memory_measures']) * 100  # average percentage of used memory
+    stats['memory_avg'] = np.mean(stats['memory_measures'])  # average memory usage
     stats['acc_avg'] = np.mean(stats['acc_measures']) * 100  # average accuracy score
 
     return ftr_weights, stats
 
 
 def perform_learning(X, y, i, selected_ftr, model, param):
+    """
+
+    :param numpy.ndarray X: dataset
+    :param numpy.ndarray Y: target
+    :param int i: current stream index (start of current batch)
+    :param numpy.ndarray selected_ftr: indices of currently selected features
+    :param object model: ML model (either KNN or Decision Tree classifier
+    :param dict param: parameters for feature selection
+
+    :return: model (ML model), acc(accuracy score)
+    :rtype: object, float
+    """
+
     # test samples = current batch
     X_test = X[i:i + param['batch_size'], selected_ftr]
     y_test = y[i:i + param['batch_size']]
@@ -163,7 +178,7 @@ def plot_stats(stats, ftr_names):
     y_time = np.array(stats['time_measures'])*1000
 
     x_mem = np.array(range(0, len(stats['memory_measures'])))
-    y_mem = np.array(stats['memory_measures'])*100
+    y_mem = np.array(stats['memory_measures']) / 1000
 
     x_acc = np.array(range(0, len(stats['acc_measures'])))
     y_acc = np.array(stats['acc_measures']) * 100
@@ -181,9 +196,9 @@ def plot_stats(stats, ftr_names):
 
     plt.subplot2grid((4, 2), (0, 1))
     plt.plot(x_mem, y_mem)
-    plt.plot([0, x_mem.shape[0]-1], [stats['memory_avg'], stats['memory_avg']])
+    plt.plot([0, x_mem.shape[0]-1], [stats['memory_avg'] / 1000, stats['memory_avg'] / 1000])  # in kByte
     plt.xlabel('t')
-    plt.ylabel('memory (% of RAM)')
+    plt.ylabel('memory (kB)')
     plt.title('Memory consumption for FS')
     plt.legend(['memory measures', 'avg. memory'])
 

@@ -18,8 +18,8 @@ def run_ofs(X, Y, w, num_features):
     :param int num_features: number of features that should be returned
 
     :return: w (updated feature weights), time (computation time in seconds),
-        memory (currently used memory in percent of total physical memory)
-    :rtype numpy.ndarray, float, float
+        memory (currently used memory in Byte)
+    :rtype numpy.ndarray, float, integer
 
     .. warning: y must be -1 or 1
     """
@@ -37,4 +37,4 @@ def run_ofs(X, Y, w, num_features):
             w = w * min(1, 1/(math.sqrt(lamb) * np.linalg.norm(w)))
             w = truncate(w, num_features)
 
-    return w, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_percent()
+    return w, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_full_info().uss
