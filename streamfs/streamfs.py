@@ -131,11 +131,12 @@ def perform_learning(X, y, i, selected_ftr, model, param):
         model = DecisionTreeClassifier(random_state=0)
 
     # set n_neighbors for KNN
-    if type(model) is KNeighborsClassifier and X_train.shape[0] < param['neighbors']:
-        # adjust KNN neighbors if there are too less samples available yet
-        model.n_neighbors = X_train.shape[0]
-    else:
-        model.n_neighbors = param['neighbors']
+    if type(model) is KNeighborsClassifier:
+        if X_train.shape[0] < param['neighbors']:
+            # adjust KNN neighbors if there are too less samples available yet
+            model.n_neighbors = X_train.shape[0]
+        else:
+            model.n_neighbors = param['neighbors']
 
     # train model
     model.fit(X_train, y_train)

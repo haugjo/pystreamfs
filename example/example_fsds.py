@@ -19,7 +19,8 @@ param['b'] = []  # initial sketch matrix
 param['ell'] = 0  # initial sketch size
 param['k'] = clusters.size  # no. of singular values (equal to no. of clusters)
 param['batch_size'] = 1000  # batch size for one iteration
-param['num_features'] = 10
+param['num_features'] = 5
+param['algorithm'] = 'tree'  # apply Classification Tree classifier to calculate accuracy per time t
 
 # Simulate feature selection on a data stream (for the given data, FS algorithm and parameters)
 w, stats = streamfs.simulate_stream(X, Y, 'fsds', param)
@@ -37,6 +38,9 @@ print('Average memory usage: {}% (of total physical memory)'.format(stats['memor
 
 # Print average computation time in milliseconds for one iteration of the FS algorithm
 print('Average computation time: {}ms'.format(stats['time_avg']))
+
+# Print average accuracy
+print('Average accuracy: {}%'.format(stats['acc_avg']))
 
 # Plot time and memory consumption
 streamfs.plot_stats(stats, feature_names).show()
