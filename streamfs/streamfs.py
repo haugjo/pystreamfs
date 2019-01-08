@@ -2,6 +2,9 @@ import numpy as np
 import psutil
 import os
 import matplotlib.pyplot as plt
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
 
 # import FS algorithms
 from streamfs.algorithms.ofs import run_ofs
@@ -48,13 +51,16 @@ def simulate_stream(X, Y, algorithm, param):
     """
 
     ftr_weights = np.zeros(X.shape[1], dtype=int)  # create empty feature weights array
+    model = None  # empty object that later holds the ML model
 
     stats = {'memory_start': psutil.Process(os.getpid()).memory_percent(),  # get current memory usage of the process
              'time_measures': [],
              'memory_measures': [],
+             'acc_measures': [],
              'features': [],
              'time_avg': 0,
-             'memory_avg': 0}
+             'memory_avg': 0,
+             'acc_avg': 0}
 
     # For MCNN only
     if algorithm == 'mcnn':
@@ -66,12 +72,7 @@ def simulate_stream(X, Y, algorithm, param):
 
         # OFS
         if algorithm == 'ofs':
-            if param['batch_size'] == 1:
-                ftr_weights, time, memory = run_ofs(X[i], Y[i], ftr_weights, param['num_features'])
-            else:
-                print('WARNING: OFS currently only works for a batch size of 1!\n')
-                return ftr_weights, stats
-                # ftr_weights, time, memory = _ofs(X[i:i+param['batch_size']], Y[i:i+param['batch_size']], ftr_weights, param['num_features'])
+            ftr_weights, time, memory = run_ofs(X[i:i+param['batch_size']], Y[i:i+param['batch_size']], ftr_weights, param['num_features'])
 
         # FSDS
         elif algorithm == 'fsds':
@@ -83,7 +84,6 @@ def simulate_stream(X, Y, algorithm, param):
             ftr_weights, window, clusters, time, memory = run_mcnn(X[i:i+param['batch_size']], Y[i:i+param['batch_size']], window, clusters, param)
 
         # NNFS
-        # todo: Vadim's approach
         elif algorithm == 'nnfs':
             ftr_weights, time, memory = run_nnfs(X[i:i+param['batch_size']], Y[i:i+param['batch_size']], param)
 
@@ -97,12 +97,54 @@ def simulate_stream(X, Y, algorithm, param):
         stats['time_measures'].append(time)
 
         # save indices of currently selected features
-        stats['features'].append(np.argsort(abs(ftr_weights))[::-1][:param['num_features']])
+        selected_ftr = np.argsort(abs(ftr_weights))[::-1][:param['num_features']]
+        stats['features'].append(selected_ftr)
+
+        # perform actual learning
+        model, acc = perform_learning(X, Y, i, selected_ftr, model, param)
+        stats['acc_measures'].append(acc)
 
     stats['time_avg'] = np.mean(stats['time_measures']) * 1000  # average time in milliseconds
     stats['memory_avg'] = np.mean(stats['memory_measures']) * 100  # average percentage of used memory
+    stats['acc_avg'] = np.mean(stats['acc_measures']) * 100  # average accuracy score
 
     return ftr_weights, stats
+
+
+def perform_learning(X, y, i, selected_ftr, model, param):
+    # test samples = current batch
+    X_test = X[i:i + param['batch_size'], selected_ftr]
+    y_test = y[i:i + param['batch_size']]
+
+    # training samples = all samples up until current batch
+    if i == 0:
+        # for first iteration st X_train = X_test
+        X_train = X_test
+        y_train = y_test
+    else:
+        X_train = X[0:i, selected_ftr]
+        y_train = y[0:i]
+
+    if model is None and param['algorithm'] == "knn":
+        model = KNeighborsClassifier()
+    elif model is None and param['algorithm'] == "tree":
+        model = DecisionTreeClassifier(random_state=0)
+
+    # set n_neighbors for KNN
+    if type(model) is KNeighborsClassifier and X_train.shape[0] < param['neighbors']:
+        # adjust KNN neighbors if there are too less samples available yet
+        model.n_neighbors = X_train.shape[0]
+    else:
+        model.n_neighbors = param['neighbors']
+
+    # train model
+    model.fit(X_train, y_train)
+
+    # predict current batch
+    y_pred = model.predict(X_test)
+    acc = accuracy_score(y_test, y_pred)
+
+    return model, acc
 
 
 def plot_stats(stats, ftr_names):

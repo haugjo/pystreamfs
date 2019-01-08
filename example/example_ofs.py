@@ -10,7 +10,9 @@ credit_data = np.array(credit_data)
 # Define parameters
 param = dict()
 param['num_features'] = 5  # number of features to return
-param['batch_size'] = 1  # batch size for one iteration of ofs
+param['batch_size'] = 5  # batch size for one iteration of ofs
+param['algorithm'] = 'knn'  # apply KNN classifier to calculate accuracy per time t
+param['neighbors'] = 5  # set n_neighbors for KNN
 
 # Extract features and target variable
 X, Y = streamfs.prepare_data(credit_data, 23, False)
@@ -32,6 +34,9 @@ print('Average memory usage: {}% (of total physical memory)'.format(stats['memor
 
 # Print average computation time in milliseconds for one iteration of the FS algorithm
 print('Average computation time: {}ms'.format(stats['time_avg']))
+
+# Print average accuracy
+print('Average accuracy: {}%'.format(stats['acc_avg']))
 
 # Plot time and memory consumption
 streamfs.plot_stats(stats, feature_names).show()
