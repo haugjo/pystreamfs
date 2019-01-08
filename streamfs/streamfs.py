@@ -150,24 +150,27 @@ def perform_learning(X, y, i, selected_ftr, model, param):
 def plot_stats(stats, ftr_names):
     """Print Time and Memory consumption
 
-    Print the time and memory measures as provided in stats. Also print the average time and memory consumption
+    Print the time, memory and accuracy measures as provided in stats. Also print the average time, memory consumption, accuracy
 
     :param dict stats: statistics
     :param np.array ftr_names: contains feature names (if included, features will be plotted
     :return: plt (plot containing 2 subplots for time and memory)
     """
 
-    # plot time and memory
+    # plot time, memory and accuracy
     x_time = np.array(range(0, len(stats['time_measures'])))
     y_time = np.array(stats['time_measures'])*1000
 
     x_mem = np.array(range(0, len(stats['memory_measures'])))
     y_mem = np.array(stats['memory_measures'])*100
 
-    plt.figure(figsize=(15, 25))
-    plt.subplots_adjust(wspace=0.3, hspace=0.3)
+    x_acc = np.array(range(0, len(stats['acc_measures'])))
+    y_acc = np.array(stats['acc_measures']) * 100
 
-    plt.subplot2grid((3, 2), (0, 0))
+    plt.figure(figsize=(15, 25))
+    plt.subplots_adjust(wspace=0.3, hspace=0.5)
+
+    plt.subplot2grid((4, 2), (0, 0))
     plt.plot(x_time, y_time)
     plt.plot([0, x_time.shape[0]-1], [stats['time_avg'], stats['time_avg']])
     plt.xlabel('t')
@@ -175,7 +178,7 @@ def plot_stats(stats, ftr_names):
     plt.title('Time consumption for FS')
     plt.legend(['time measures', 'avg. time'])
 
-    plt.subplot2grid((3, 2), (0, 1))
+    plt.subplot2grid((4, 2), (0, 1))
     plt.plot(x_mem, y_mem)
     plt.plot([0, x_mem.shape[0]-1], [stats['memory_avg'], stats['memory_avg']])
     plt.xlabel('t')
@@ -183,10 +186,18 @@ def plot_stats(stats, ftr_names):
     plt.title('Memory consumption for FS')
     plt.legend(['memory measures', 'avg. memory'])
 
+    plt.subplot2grid((4, 2), (1, 0), colspan=2)
+    plt.plot(x_acc, y_acc)
+    plt.plot([0, x_mem.shape[0] - 1], [stats['acc_avg'], stats['acc_avg']])
+    plt.xlabel('t')
+    plt.ylabel('accuracy (%)')
+    plt.title('Accuracy for FS')
+    plt.legend(['accuracy measures', 'avg. accuracy'])
+
     # plot selected features
     ftr_indices = range(0, len(ftr_names))
 
-    plt.subplot2grid((3, 2), (1, 0), rowspan=2, colspan=2)
+    plt.subplot2grid((4, 2), (2, 0), rowspan=2, colspan=2)
     plt.title('Selected features')
     plt.xlabel('t')
     plt.ylabel('feature')
@@ -196,21 +207,8 @@ def plot_stats(stats, ftr_names):
         for v in val:
             plt.scatter(i, v, marker='_', color='C0')
 
-    # markers indicating final list of features
-    marker_y = '_'
-    marker_n = '_'
-
     if len(ftr_indices) <= 30:
         # if less than 30 features plot tic for each feature and change markers
         plt.yticks(ftr_indices, ftr_names)
-        marker_y = 'P'
-        marker_n = 'x'
-
-    # plot final set of features
-    for i in ftr_indices:
-        if i in stats['features'][-1]:
-            plt.scatter(len(stats['features']), i, marker=marker_y, color="C2")
-        else:
-            plt.scatter(len(stats['features']), i, marker=marker_n, color="C3")
 
     return plt
