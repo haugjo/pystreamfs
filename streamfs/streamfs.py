@@ -55,6 +55,7 @@ def simulate_stream(X, Y, algorithm, param):
 
     # measure current RAM usage in Byte
     # uss = “Unique Set Size”, this is the memory which is unique to a process and which would be freed if the process was terminated right now.
+    # Todo: use resource.getrusage(resource.RUSAGE_SELF) in Unix environment
     start_memory = psutil.Process(os.getpid()).memory_full_info().uss
 
     stats = {'time_measures': [],
