@@ -69,4 +69,4 @@ def run_fsds(B, Yt, m, k, ell=0):
 
     w = np.amax(abs(X), axis=1)
 
-    return w, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_percent(),  B, ell
+    return w, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_full_info().uss,  B, ell

@@ -97,7 +97,7 @@ def run_mcnn(X, Y, window, clusters, param):
     else:
         w = window.selected_ftr
 
-    return w, window, clusters, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_percent()
+    return w, window, clusters, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_full_info().uss
 
 
 def _select_features(clusters, window):

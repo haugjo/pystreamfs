@@ -143,4 +143,4 @@ def run_nnfs(X, y, param):
 
     w = train_ann(X_all, y_all, 10)
 
-    return w, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_percent()
+    return w, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_full_info().uss

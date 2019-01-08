@@ -34,7 +34,7 @@ print('Statistics for one execution of FSDS with a batch size of {}:'.format(par
 
 # Print the average memory usage for one iteration of the FS algorithm
 # -> this uses psutil.Process(pid).memory_percent()
-print('Average memory usage: {}% (of total physical memory)'.format(stats['memory_avg']))
+print('Average memory usage: {}kB'.format(stats['memory_avg'] / 1000))
 
 # Print average computation time in milliseconds for one iteration of the FS algorithm
 print('Average computation time: {}ms'.format(stats['time_avg']))
