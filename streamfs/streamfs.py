@@ -199,7 +199,7 @@ def plot_stats(stats, ftr_names):
     x_mfcr = np.array(range(1, len(stats['mfcr_measures']) + 1))
     y_mfcr = np.array(stats['mfcr_measures'])
 
-    plt.figure(figsize=(15, 25))
+    plt.figure(figsize=(20, 25))
     gs1 = gridspec.GridSpec(5, 2)
     gs1.update(wspace=0.2, hspace=0.6)
 
@@ -226,7 +226,7 @@ def plot_stats(stats, ftr_names):
     ax3.set_xlabel('t')
     ax3.set_ylabel('accuracy (%)')
     ax3.set_title('Accuracy for FS')
-    ax3.legend(['accuracy measures', 'mean',  'iqr'])
+    ax3.legend(['accuracy measures', 'mean',  'iqr'], loc="lower right")
 
     # plot selected features
     ftr_indices = range(0, len(ftr_names))
@@ -254,6 +254,6 @@ def plot_stats(stats, ftr_names):
     ax5.plot(x_mfcr, y_mfcr)
     ax5.set_xlabel('t')
     ax5.set_ylabel('MFCR')
-    ax5.legend(['MFCR development'])
+    ax5.legend(['MFCR development'], loc="lower right")
 
     return plt
