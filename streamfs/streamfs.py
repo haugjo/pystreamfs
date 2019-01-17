@@ -2,6 +2,7 @@ import numpy as np
 import psutil
 import os
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score
@@ -11,6 +12,7 @@ from streamfs.algorithms.ofs import run_ofs
 from streamfs.algorithms.fsds import run_fsds
 from streamfs.algorithms.mcnn import run_mcnn, TimeWindow
 from streamfs.algorithms.nnfs import run_nnfs
+from streamfs.utils import comp_mfcr
 
 
 def prepare_data(data, target, shuffle):
@@ -52,6 +54,7 @@ def simulate_stream(X, Y, algorithm, param):
 
     ftr_weights = np.zeros(X.shape[1], dtype=int)  # create empty feature weights array
     model = None  # empty object that later holds the ML model
+    mfcr = 0  # initialize mean feature change rate
 
     # measure current RAM usage in Byte
     # uss = “Unique Set Size”, this is the memory which is unique to a process and which would be freed if the process was terminated right now.
@@ -62,6 +65,7 @@ def simulate_stream(X, Y, algorithm, param):
              'memory_measures': [],
              'acc_measures': [],
              'features': [],
+             'mfcr_measures': [],
              'time_avg': 0,
              'memory_avg': 0,
              'acc_avg': 0}
@@ -106,6 +110,12 @@ def simulate_stream(X, Y, algorithm, param):
         # perform actual learning
         model, acc = perform_learning(X, Y, i, selected_ftr, model, param)
         stats['acc_measures'].append(acc)
+
+        # update mfcr for time windows t >= 1
+        t = i/param['batch_size']
+        if t >= 1:
+            mfcr = comp_mfcr(stats['features'][-2], selected_ftr, X.shape[1], t, mfcr)
+            stats['mfcr_measures'].append(mfcr)
 
     stats['time_avg'] = np.mean(stats['time_measures']) * 1000  # average time in milliseconds
     stats['memory_avg'] = np.mean(stats['memory_measures'])  # average memory usage
@@ -183,49 +193,67 @@ def plot_stats(stats, ftr_names):
 
     x_acc = np.array(range(0, len(stats['acc_measures'])))
     y_acc = np.array(stats['acc_measures']) * 100
+    acc_q1 = np.percentile(stats['acc_measures'], 25, axis=0) * 100
+    acc_q3 = np.percentile(stats['acc_measures'], 75, axis=0) * 100
+
+    x_mfcr = np.array(range(1, len(stats['mfcr_measures']) + 1))
+    y_mfcr = np.array(stats['mfcr_measures'])
 
     plt.figure(figsize=(15, 25))
-    plt.subplots_adjust(wspace=0.3, hspace=0.5)
+    gs1 = gridspec.GridSpec(5, 2)
+    gs1.update(wspace=0.2, hspace=0.6)
 
-    plt.subplot2grid((4, 2), (0, 0))
-    plt.plot(x_time, y_time)
-    plt.plot([0, x_time.shape[0]-1], [stats['time_avg'], stats['time_avg']])
-    plt.xlabel('t')
-    plt.ylabel('computation time (ms)')
-    plt.title('Time consumption for FS')
-    plt.legend(['time measures', 'avg. time'])
+    ax1 = plt.subplot(gs1[0, 0])
+    ax1.plot(x_time, y_time)
+    ax1.plot([0, x_time.shape[0]-1], [stats['time_avg'], stats['time_avg']])
+    ax1.set_xlabel('t')
+    ax1.set_ylabel('computation time (ms)')
+    ax1.set_title('Time consumption for FS')
+    ax1.legend(['time measures', 'avg. time'])
 
-    plt.subplot2grid((4, 2), (0, 1))
-    plt.plot(x_mem, y_mem)
-    plt.plot([0, x_mem.shape[0]-1], [stats['memory_avg'] / 1000, stats['memory_avg'] / 1000])  # in kByte
-    plt.xlabel('t')
-    plt.ylabel('memory (kB)')
-    plt.title('Memory consumption for FS')
-    plt.legend(['memory measures', 'avg. memory'])
+    ax2 = plt.subplot(gs1[0, 1])
+    ax2.plot(x_mem, y_mem)
+    ax2.plot([0, x_mem.shape[0]-1], [stats['memory_avg'] / 1000, stats['memory_avg'] / 1000])  # in kByte
+    ax2.set_xlabel('t')
+    ax2.set_ylabel('memory (kB)')
+    ax2.set_title('Memory consumption for FS')
+    ax2.legend(['memory measures', 'avg. memory'])
 
-    plt.subplot2grid((4, 2), (1, 0), colspan=2)
-    plt.plot(x_acc, y_acc)
-    plt.plot([0, x_mem.shape[0] - 1], [stats['acc_avg'], stats['acc_avg']])
-    plt.xlabel('t')
-    plt.ylabel('accuracy (%)')
-    plt.title('Accuracy for FS')
-    plt.legend(['accuracy measures', 'avg. accuracy'])
+    ax3 = plt.subplot(gs1[1, :])
+    ax3.plot(x_acc, y_acc)
+    ax3.plot([0, x_acc.shape[0] - 1], [stats['acc_avg'], stats['acc_avg']])
+    ax3.fill_between([0, x_mem.shape[0]-1], acc_q3, acc_q1, facecolor='green', alpha=0.5)
+    ax3.set_xlabel('t')
+    ax3.set_ylabel('accuracy (%)')
+    ax3.set_title('Accuracy for FS')
+    ax3.legend(['accuracy measures', 'mean',  'iqr'])
 
     # plot selected features
     ftr_indices = range(0, len(ftr_names))
 
-    plt.subplot2grid((4, 2), (2, 0), rowspan=2, colspan=2)
-    plt.title('Selected features')
-    plt.xlabel('t')
-    plt.ylabel('feature')
+    ax4 = plt.subplot(gs1[2:-1, :])
+    ax4.set_title('Selected features')
+    ax4.set_ylabel('feature')
+    ax4.set_xticklabels([])
 
     # plot selected features for each execution
     for i, val in enumerate(stats['features']):
         for v in val:
-            plt.scatter(i, v, marker='_', color='C0')
+            ax4.scatter(i, v, marker='_', color='C0')
 
     if len(ftr_indices) <= 30:
         # if less than 30 features plot tic for each feature and change markers
-        plt.yticks(ftr_indices, ftr_names)
+        ax4.set_yticks(ftr_indices)
+        ax4.set_yticklabels(ftr_names)
+
+    # plot mfcr
+    gs2 = gridspec.GridSpec(5, 2)
+    gs2.update(hspace=0)
+
+    ax5 = plt.subplot(gs2[4, :])
+    ax5.plot(x_mfcr, y_mfcr)
+    ax5.set_xlabel('t')
+    ax5.set_ylabel('MFCR')
+    ax5.legend(['MFCR development'])
 
     return plt
