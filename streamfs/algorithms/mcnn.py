@@ -1,7 +1,5 @@
 import numpy as np
 import time
-import psutil
-import os
 from sklearn.feature_selection import mutual_info_classif
 
 
@@ -16,9 +14,8 @@ def run_mcnn(X, Y, window, clusters, param):
     :param TimeWindow window: a TimeWindow object that is sequentially updated for every time window t
     :param dict param: parameters for MCNN
 
-    :return: w (updated feature weights), window (updated TimeWindow object), time (computation time in seconds),
-        memory (currently used memory in percent of total physical memory)
-    :rtype numpy.ndarray, TimeWindow, float, float
+    :return: w (updated feature weights), window (updated TimeWindow object), time (computation time in seconds)
+    :rtype numpy.ndarray, TimeWindow, float
     """
 
     start_t = time.perf_counter()  # time taking
@@ -97,7 +94,7 @@ def run_mcnn(X, Y, window, clusters, param):
     else:
         w = window.selected_ftr
 
-    return w, window, clusters, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_full_info().uss
+    return w, window, clusters, time.perf_counter() - start_t
 
 
 def _select_features(clusters, window):

@@ -1,7 +1,5 @@
 import numpy as np
 import time
-import psutil
-import os
 import numpy.linalg as ln
 
 
@@ -11,16 +9,15 @@ def run_fsds(B, Yt, m, k, ell=0):
     Based on a paper by Huang et al. (2015). Feature Selection for unsupervised Learning.
     This code is copied from the Python implementation of the authors with minor reductions.
 
-    :param numpy.ndarray b: sketched matrix (low-rank representation of all datapoints until current time)
+    :param numpy.ndarray B: sketched matrix (low-rank representation of all datapoints until current time)
     :param numpy.ndarray yt: m-by-n_t input matrix from data stream
     :param int m: number of original features
     :param int k: number of singular values (equal to number of clusters in the dataset)
     :param int ell: sketch size for a sketched m-by-ell matrix B
 
 
-    :return: w (updated feature weights), time (computation time in seconds),
-        memory (currently used memory in percent of total physical memory)
-    :rtype numpy.ndarray, float, float
+    :return: w (updated feature weights), time (computation time in seconds), B, ell
+    :rtype numpy.ndarray, float, numpy.ndarray, int
 
     .. warning: fsds runs into a type error if n_t < 1000
     .. warning: features have to be equal to the rows in yt
@@ -69,4 +66,4 @@ def run_fsds(B, Yt, m, k, ell=0):
 
     w = np.amax(abs(X), axis=1)
 
-    return w, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_full_info().uss,  B, ell
+    return w, time.perf_counter() - start_t,  B, ell

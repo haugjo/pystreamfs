@@ -1,6 +1,4 @@
 import time
-import psutil
-import os
 
 import numpy as np
 
@@ -143,4 +141,4 @@ def run_nnfs(X, y, param):
 
     w = train_ann(X_all, y_all, 10)
 
-    return w, time.perf_counter() - start_t, psutil.Process(os.getpid()).memory_full_info().uss
+    return w, time.perf_counter() - start_t
