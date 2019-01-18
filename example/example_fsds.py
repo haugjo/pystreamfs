@@ -42,6 +42,9 @@ print('Average computation time: {}ms'.format(stats['time_avg']))
 # Print average accuracy
 print('Average accuracy: {}%'.format(stats['acc_avg']))
 
+# Print MFCR
+print('MFCR: {}'.format(stats['mfcr_measures'][-1]))
+
 # Plot time and memory consumption
 streamfs.plot_stats(stats, feature_names).show()
 
