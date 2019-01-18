@@ -30,7 +30,7 @@ def comp_mfcr(ftr_t_1, ftr_t, total_no_ftr, t, mfcr):
     c = len(set(ftr_t_1).difference(set(ftr_t))) * 2
 
     if t == 1:
-        return c / len(ftr_t) * t
+        return c / (total_no_ftr * t)
     else:
         return mfcr * (t-1)/t + c / (total_no_ftr * t)
 
