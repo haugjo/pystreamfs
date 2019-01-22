@@ -17,9 +17,9 @@ Y = np.array(Y)
 param = dict()
 param['b'] = []  # initial sketch matrix
 param['ell'] = 0  # initial sketch size
-param['k'] = clusters.size  # no. of singular values (equal to no. of clusters)
-param['batch_size'] = 1000  # batch size for one iteration
-param['num_features'] = 5
+param['k'] = clusters.size  # no. of singular values (can be equal to no. of clusters)
+param['batch_size'] = 500  # batch size for one iteration, must be at least the same size than the no. of clusters!!
+param['num_features'] = 20
 param['algorithm'] = 'tree'  # apply Classification Tree classifier to calculate accuracy per time t
 
 # Simulate feature selection on a data stream (for the given data, FS algorithm and parameters)

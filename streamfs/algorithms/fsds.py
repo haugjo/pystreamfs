@@ -51,6 +51,10 @@ def run_fsds(B, Yt, m, k, ell=0):
     delta = s[-1] ** 2
     s = np.sqrt(s ** 2 - delta)
 
+    # -- Extension of original code --
+    # replace nan values with 0 to prevent division by zero error for small batch numbers
+    s = np.nan_to_num(s)
+
     # update sketched matrix B
     # (focus on column singular vectors)
     B = np.dot(U, np.diag(s))
@@ -62,6 +66,11 @@ def run_fsds(B, Yt, m, k, ell=0):
     # solve the ridge regression by using the top-k singular values
     # X: m-by-k matrix (k <= ell)
     D = np.diag(s[:k] / (s[:k] ** 2 + alpha))
+
+    # -- Extension of original code --
+    # replace nan values with 0 to prevent division by zero error for small batch numbers
+    D = np.nan_to_num(D)
+
     X = np.dot(U[:, :k], D)
 
     w = np.amax(abs(X), axis=1)
