@@ -2,6 +2,7 @@ import numpy as np
 import psutil
 import os
 import platform
+import warnings
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
@@ -53,6 +54,9 @@ def simulate_stream(X, Y, algorithm, param):
         time in ms and memory usage (in percent of physical memory) for one execution of the fs algorithm
     :rtype: numpy.ndarray, dict
     """
+
+    # Do not display warnings in the console
+    warnings.filterwarnings("ignore")
 
     ftr_weights = np.zeros(X.shape[1], dtype=int)  # create empty feature weights array
     model = None  # empty object that later holds the ML model
@@ -116,7 +120,7 @@ def simulate_stream(X, Y, algorithm, param):
 
         # save indices of currently selected features
         selected_ftr = np.argsort(abs(ftr_weights))[::-1][:param['num_features']]
-        stats['features'].append(selected_ftr)
+        stats['features'].append(selected_ftr.tolist())
 
         # perform actual learning
         model, acc = perform_learning(X, Y, i, selected_ftr, model, param)
