@@ -14,7 +14,7 @@ credit_data = np.array(credit_data)
 # todo: add additional parameters
 param = dict()
 param['num_features'] = 5  # number of features to return
-param['batch_size'] = 1  # batch size for one iteration of ofs
+param['batch_size'] = 50  # batch size for one iteration of ofs
 param['algorithm'] = 'knn'  # apply KNN classifier to calculate accuracy per time t
 param['neighbors'] = 5  # set n_neighbors for KNN
 
