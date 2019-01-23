@@ -24,7 +24,7 @@ param['boundary_var_multiplier'] = 2  # multiplier for the var. boundary of the 
 param['p_diff_threshold'] = 50  # threshold of perc. diff. for split/death rate when drift is assumed (_detect_drift())
 
 # Extract features and target variable
-X, Y = streamfs.prepare_data(credit_data, 23, False)
+X, Y = streamfs.prepare_data(credit_data, 5, False)
 
 # Simulate feature selection on a data stream (for the given data, FS algorithm and number of features)
 w, stats = streamfs.simulate_stream(X, Y, 'mcnn', param)
