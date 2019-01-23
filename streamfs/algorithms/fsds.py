@@ -22,7 +22,6 @@ def run_fsds(B, Yt, m, k, ell=0):
     .. warning: fsds runs into a type error if n_t < 1000
     .. warning: features have to be equal to the rows in yt
     .. warning: yt has to contain only floats
-    .. todo: check why error occurs for different n_t
     """
 
     start_t = time.perf_counter()  # time taking

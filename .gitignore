@@ -1,3 +1,4 @@
 .idea/
 __pycache__/
 MANIFEST
+.ipynb_checkpoints/
