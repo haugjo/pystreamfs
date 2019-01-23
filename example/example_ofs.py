@@ -15,7 +15,7 @@ param['algorithm'] = 'knn'  # apply KNN classifier to calculate accuracy per tim
 param['neighbors'] = 5  # set n_neighbors for KNN
 
 # Extract features and target variable
-X, Y = streamfs.prepare_data(credit_data, 23, False)
+X, Y = streamfs.prepare_data(credit_data, 5, False)
 Y[Y == 0] = -1  # change 0 to -1, required by ofs
 
 # Simulate feature selection on a data stream (for the given data, FS algorithm and number of features)
