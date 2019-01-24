@@ -6,8 +6,8 @@ from sklearn.preprocessing import StandardScaler
 
 
 # Load german credit score dataset
-credit_data = pd.read_csv('../datasets/cleaned_german_credit_score.csv')
-feature_names = np.array(credit_data.drop('Risk',1).columns)
+credit_data = pd.read_csv('../datasets/kddcup.csv', index=0)
+feature_names = np.array(credit_data.drop('target',1).columns)
 credit_data = np.array(credit_data)
 
 # Define parameters

@@ -63,7 +63,7 @@ def perform_learning(X, y, i, selected_ftr, model, param):
         y_train = y[0:i]
 
     if model is None and param['algorithm'] == "knn":
-        model = KNeighborsClassifier()
+        model = KNeighborsClassifier(n_jobs=-1)
     elif model is None and param['algorithm'] == "tree":
         model = DecisionTreeClassifier(random_state=0)
 
