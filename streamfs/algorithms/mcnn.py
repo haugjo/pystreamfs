@@ -45,9 +45,12 @@ def run_mcnn(X, Y, window, clusters, param):
             min_c = clusters[min_c_key]
             min_dist = distances[min_c_key]
 
-            # check if x is within 2x the variance boundary in all dimensions, if not create new cluster
-            # Note: boundary is not clearly defined in the paper
-            if (min_dist > min_c.variance * param['boundary_var_multiplier']).any():
+            # check if x percent of the dimensions are outside the boundary and create new cluster in that case
+            # Note: boundary is not clearly defined in the paper. We chose this approach, because in high dimensional..
+            # ..data sets we would always get outside of the boundary when looking at all dimensions
+            out_of_boundary = sum(min_dist > min_c.variance)/len(min_dist)
+
+            if out_of_boundary > param['max_out_of_var_bound']:
                 new_c = _MicroCluster(window, x, y, param)
                 clusters[window.cluster_idx] = new_c  # add new cluster
                 window.cluster_idx += 1  # increment cluster index
@@ -257,9 +260,12 @@ def _add_instance(c, c_key, x, y, window, dist_sums, clusters):
         if c.e > 0:
             c.e -= 1
     else:
-        # increment error code  and fpr when x is misclassified by cluster
+        # increment error code
         c.e += 1
-        c.fpr += 1
+
+        # if false positive also increment fpr
+        if y == 1:
+            c.fpr += 1
 
         # also increment error count of closest cluster where y = cluster.label
         dist_sums.pop(c_key, None)  # remove c from distances

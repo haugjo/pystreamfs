@@ -4,14 +4,12 @@ import pandas as pd
 
 # Load german credit score dataset
 '''
-credit_data = pd.read_csv('../datasets/cleaned_german_credit_score.csv')
+credit_data = pd.read_csv('../datasets/credit.csv')
 credit_feature_names = np.array(credit_data.drop('Risk', 1).columns)
 credit_data = np.array(credit_data)
 '''
-har_data = pd.read_csv('../datasets/human_activity_recognition.csv')
+har_data = pd.read_csv('../datasets/har_binary.csv')
 har_feature_names = np.array(har_data.drop('Activity', 1).columns)
-har_data = har_data[np.isin(har_data['Activity'], ['STANDING', 'WALKING'])]
-har_data['Activity'], _ = pd.factorize(har_data['Activity'])
 har_data = np.array(har_data)
 
 
@@ -27,11 +25,12 @@ param['max_n'] = 100  # maximum number of saved instances per cluster
 param['e_threshold'] = 3  # error threshold for splitting of a cluster
 
 # Additional parameters
-param['boundary_var_multiplier'] = 2  # multiplier for the var. boundary of the closest centroid (run_mcnn())
+# percentage of variables that can at most be outside of variance boundary before new cluster is created
+param['max_out_of_var_bound'] = 0.5
 param['p_diff_threshold'] = 50  # threshold of perc. diff. for split/death rate when drift is assumed (_detect_drift())
 
 # Extract features and target variable
-X, Y = streamfs.prepare_data(har_data, 5, False)
+X, Y = streamfs.prepare_data(har_data, 0, False)
 
 # Simulate feature selection on a data stream (for the given data, FS algorithm and number of features)
 w, stats = streamfs.simulate_stream(X, Y, 'mcnn', param)
