@@ -63,8 +63,9 @@ def run_mcnn(X, Y, window, clusters, param):
             clusters[window.cluster_idx] = new_c  # add new cluster
             window.cluster_idx += 1  # increment cluster index
 
-        # remove least participating cluster
-        clusters, window = _remove_cluster(clusters, window)
+        # remove least participating cluster, but only if number of clusters is > 1
+        if len(clusters) > 1:
+            clusters, window = _remove_cluster(clusters, window)
 
     # update cluster velocity for all clusters
     for key, c in clusters.items():  # check if cluster was not removed already
@@ -372,7 +373,7 @@ def _remove_cluster(clusters, window):
     max_t_c = max(t_diff, key=t_diff.get)
 
     # remove max_t_c if false positive rate > 0
-    if clusters[max_t_c].fpr > 0:
+    if clusters[max_t_c].fpr:
         clusters.pop(max_t_c, None)
 
         # increment death count on window
