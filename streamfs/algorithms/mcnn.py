@@ -85,8 +85,12 @@ def run_mcnn(X, Y, window, clusters, param):
         # update information gain of currently irrelevant features
         ftr_idx = np.where(window.ftr_relevancy == 0)[0]
 
+    if ftr_idx.size:
+        # if there are features whose ig must be updated, calculate new IG
+        ig = _calc_info_gain(clusters)
+
     for ftr in ftr_idx:
-        window = _update_info_gain(window, clusters, ftr)
+        window = _update_info_gain(window, ig, ftr)
 
     # update selected features when drift detected
     if window.drift:
@@ -131,18 +135,7 @@ def _select_features(clusters, window):
     return window.selected_ftr
 
 
-def _update_info_gain(window, clusters, ftr):
-    """Update the Information Gain
-
-    Updates the Information Gain of the given feature. Called once for all features at t = 1
-    and whenever there is an irrelevant feature
-
-    :param TimeWindow window: time window
-    :param dict(MicroCluster) clusters: dictionary of currently existing Micro Clusters
-    :param ftr: index of the feature for which IG shall be updated
-    :return: window (updated time window)
-    :rtype TimeWindow
-    """
+def _calc_info_gain(clusters):
     # sum up the instances and labels of all clusters to calc. info gain
     total_data = None
     total_labels = None
@@ -156,7 +149,23 @@ def _update_info_gain(window, clusters, ftr):
             total_data = np.append(total_data, c.instances, axis=0)
             total_labels = np.append(total_labels, c.instance_labels)
 
-    new_ig = mutual_info_classif(total_data, total_labels, random_state=0)
+    ig = mutual_info_classif(total_data, total_labels, random_state=0)
+
+    return ig
+
+
+def _update_info_gain(window, new_ig, ftr):
+    """Update the Information Gain
+
+    Updates the Information Gain of the given feature. Called once for all features at t = 1
+    and whenever there is an irrelevant feature
+
+    :param TimeWindow window: time window
+    :param dict(MicroCluster) new_ig: new information gain
+    :param ftr: index of the feature for which IG shall be updated
+    :return: window (updated time window)
+    :rtype TimeWindow
+    """
 
     # calculate the mean IG for this and the last time window
     mean_ig = (window.ftr_ig[ftr] + new_ig[ftr]) / 2

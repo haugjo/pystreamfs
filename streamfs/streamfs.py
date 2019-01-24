@@ -14,8 +14,11 @@ from streamfs.algorithms.nnfs import run_nnfs
 from streamfs.utils import comp_mfcr, perform_learning
 
 # if on Unix system import resource module
+# Todo: check why this does not work on Linux
+'''
 if platform.system() == "Linux" or platform.system() == "Darwin":
     import resource
+'''
 
 
 def prepare_data(data, target, shuffle):
@@ -63,13 +66,8 @@ def simulate_stream(X, Y, algorithm, param):
     mfcr = 0  # initialize mean feature change rate
 
     # measure current RAM usage in Byte
-    if platform.system() == "Linux" or platform.system() == "Darwin":
-        # on Unix
-        start_memory = resource.getrusage(resource.RUSAGE_SELF)
-    else:
-        # on Windows
-        # uss = “Unique Set Size”, this is the memory which is unique to a process and which would be freed if the process was terminated right now.
-        start_memory = psutil.Process(os.getpid()).memory_full_info().uss
+    # uss = “Unique Set Size”, this is the memory which is unique to a process and which would be freed if the process was terminated right now.
+    start_memory = psutil.Process(os.getpid()).memory_full_info().uss
 
     stats = {'time_measures': [],
              'memory_measures': [],
@@ -110,10 +108,7 @@ def simulate_stream(X, Y, algorithm, param):
             return ftr_weights, stats
 
         # measure current memory consumption
-        if platform.system() == "Linux" or platform.system() == "Darwin":  # on Unix
-            memory = resource.getrusage(resource.RUSAGE_SELF)
-        else:  # on Windows
-            memory = psutil.Process(os.getpid()).memory_full_info().uss
+        memory = psutil.Process(os.getpid()).memory_full_info().uss
 
         stats['memory_measures'].append(memory - start_memory)
         stats['time_measures'].append(time)
