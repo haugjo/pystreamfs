@@ -6,7 +6,44 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset
-import torch.nn.functional as F
+
+class EarlyStopping:
+    """Early stops the training if validation loss doesn't improve after a given patience."""
+    # https: // github.com / Bjarten / early - stopping - pytorch
+
+    def __init__(self, patience=7, verbose=False):
+        """
+        Args:
+            patience (int): How long to wait after last time validation loss improved.
+                            Default: 7
+            verbose (bool): If True, prints a message for each validation loss improvement.
+                            Default: False
+        """
+        self.patience = patience
+        self.verbose = verbose
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.val_loss_min = np.Inf
+
+    def __call__(self, val_loss, model):
+
+        score = -val_loss
+
+        if self.best_score is None:
+            self.best_score = score
+        elif score < self.best_score:
+            self.counter += 1
+            #if self.verbose:
+            print(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.counter = 0
+
+
+
 
 class CancelOut(nn.Module):
     '''
@@ -84,28 +121,47 @@ def train_ann(X, y, num_epochs):
     :return: CancelOut weights
     '''
 
-    model = NeuralNet(X.shape[1], 10, 2)
+    model = NeuralNet(X.shape[1], X.shape[1]+1, 2)
 
     mydataset = myDataset(X, y)
     batch_size = 32
     learning_rate = 0.01
+
     train_loader = torch.utils.data.DataLoader(dataset=mydataset,
                                                batch_size=batch_size,
                                                shuffle=True)
     criterion = nn.CrossEntropyLoss()
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0)
+
+    patience = 3
+
+    early_stopping = EarlyStopping(patience=patience, verbose=False)
+
+    avg_train_losses = []
+    train_losses = []
+
     for epoch in range(num_epochs):
         for i, (sample, labels) in enumerate(train_loader):
             # Forward pass
             outputs = model(sample.float())
             loss = criterion(outputs, labels.long())
+            train_losses.append(loss.item())
+
             # Backward and optimize
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-    return list(model.CancelOut.parameters())[0].detach().numpy()
 
+        # data for early stoping
+        train_loss = np.average(train_losses)
+        avg_train_losses.append(train_loss)
+        early_stopping(train_loss, model)
+        if early_stopping.early_stop:
+            print("Early stopping")
+            break
+
+    return list(model.CancelOut.parameters())[0].detach().numpy()
 
 # params for the run function
 First_run = True
@@ -139,6 +195,6 @@ def run_nnfs(X, y, param):
 
     start_t = time.perf_counter()  # time taking
 
-    w = train_ann(X_all, y_all, 10)
+    w = train_ann(X_all, y_all, 20)
 
     return w, time.perf_counter() - start_t
