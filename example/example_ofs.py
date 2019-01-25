@@ -10,7 +10,7 @@ data = np.array(data)
 # Define parameters
 param = dict()
 param['num_features'] = 5  # number of features to return
-param['batch_size'] = 50  # batch size for one iteration of ofs
+param['batch_size'] = 10  # batch size for one iteration of ofs
 param['algorithm'] = 'svm'  # apply KNN classifier to calculate accuracy per time t
 param['neighbors'] = 5  # set n_neighbors for KNN
 
@@ -38,8 +38,8 @@ print('Average computation time: {}ms'.format(stats['time_avg']))
 # Print average accuracy
 print('Average accuracy: {}%'.format(stats['acc_avg']))
 
-# Print MFCR
-print('MFCR: {}'.format(stats['mfcr_measures'][-1]))
+# Print fscr
+print('Average fscr: {}'.format(stats['fscr_avg']))
 
 # Plot time and memory consumption
 streamfs.plot_stats(stats, feature_names).show()

@@ -3,12 +3,12 @@ import numpy as np
 import pandas as pd
 
 # Load humane activity recognition
-har_data = pd.read_csv('../datasets/har_binary.csv')
-feature_names = np.array(har_data.columns)
-har_data = np.array(har_data)
+data = pd.read_csv('../datasets/har_binary.csv')
+feature_names = np.array(data.drop('walking', 1).columns)
+data = np.array(data)
 
 # Extract features and target variable
-X, Y = streamfs.prepare_data(har_data, 0, False)
+X, Y = streamfs.prepare_data(data, 0, False)
 
 # Define initial parameters for FSDS
 param = dict()
@@ -39,8 +39,8 @@ print('Average computation time: {}ms'.format(stats['time_avg']))
 # Print average accuracy
 print('Average accuracy: {}%'.format(stats['acc_avg']))
 
-# Print MFCR
-print('MFCR: {}'.format(stats['mfcr_measures'][-1]))
+# Print fscr
+print('Average fscr: {}'.format(stats['fscr_avg']))
 
 # Plot time and memory consumption
 streamfs.plot_stats(stats, feature_names).show()

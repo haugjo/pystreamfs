@@ -3,14 +3,9 @@ import numpy as np
 import pandas as pd
 
 # Load german credit score dataset
-credit_data = pd.read_csv('../datasets/credit.csv')
-credit_feature_names = np.array(credit_data.drop('Risk', 1).columns)
-credit_data = np.array(credit_data)
-'''
-har_data = pd.read_csv('../datasets/har_binary.csv')
-har_feature_names = np.array(har_data.drop('Activity', 1).columns)
-har_data = np.array(har_data)
-'''
+data = pd.read_csv('../datasets/credit.csv')
+feature_names = np.array(data.drop('Risk', 1).columns)
+data = np.array(data)
 
 # Define parameters
 param = dict()
@@ -29,14 +24,14 @@ param['max_out_of_var_bound'] = 0.3
 param['p_diff_threshold'] = 50  # threshold of perc. diff. for split/death rate when drift is assumed (_detect_drift())
 
 # Extract features and target variable
-X, Y = streamfs.prepare_data(credit_data, 0, False)
+X, Y = streamfs.prepare_data(data, 0, False)
 
 # Simulate feature selection on a data stream (for the given data, FS algorithm and number of features)
 w, stats = streamfs.simulate_stream(X, Y, 'mcnn', param)
 
 # Print resulting feature weights
 print('Final feature weights:\n', w[stats['features'][-1]])
-print('Selected features: {}'.format(credit_feature_names[stats['features'][-1]]))
+print('Selected features: {}'.format(feature_names[stats['features'][-1]]))
 
 # Print params
 print('Statistics for one execution of MCNN with a batch size of {}:'.format(param['batch_size']))
@@ -51,8 +46,8 @@ print('Average computation time: {}ms'.format(stats['time_avg']))
 # Print average accuracy
 print('Average accuracy: {}%'.format(stats['acc_avg']))
 
-# Print MFCR
-print('MFCR: {}'.format(stats['mfcr_measures'][-1]))
+# Print fscr
+print('Average fscr: {}'.format(stats['fscr_avg']))
 
 # Plot time and memory consumption
-streamfs.plot_stats(stats, credit_feature_names).show()
+streamfs.plot_stats(stats, feature_names).show()

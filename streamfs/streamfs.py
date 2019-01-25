@@ -10,7 +10,7 @@ from streamfs.algorithms.ofs import run_ofs
 from streamfs.algorithms.fsds import run_fsds
 from streamfs.algorithms.mcnn import run_mcnn, TimeWindow
 from streamfs.algorithms.nnfs import run_nnfs
-from streamfs.utils import comp_mfcr, perform_learning
+from streamfs.utils import comp_fscr, perform_learning
 
 # if on Unix system import resource module
 # Todo: check why this does not work on Linux
@@ -62,7 +62,6 @@ def simulate_stream(X, Y, algorithm, param):
 
     ftr_weights = np.zeros(X.shape[1], dtype=int)  # create empty feature weights array
     model = None  # empty object that later holds the ML model
-    mfcr = 0  # initialize mean feature change rate
 
     # measure current RAM usage in Byte
     # uss = “Unique Set Size”, this is the memory which is unique to a process and which would be freed if the process was terminated right now.
@@ -72,10 +71,11 @@ def simulate_stream(X, Y, algorithm, param):
              'memory_measures': [],
              'acc_measures': [],
              'features': [],
-             'mfcr_measures': [],
+             'fscr_measures': [],
              'time_avg': 0,
              'memory_avg': 0,
-             'acc_avg': 0}
+             'acc_avg': 0,
+             'fscr_avg': 0}
 
     # For MCNN only
     if algorithm == 'mcnn':
@@ -120,15 +120,16 @@ def simulate_stream(X, Y, algorithm, param):
         model, acc = perform_learning(X, Y, i, selected_ftr, model, param)
         stats['acc_measures'].append(acc)
 
-        # update mfcr for time windows t >= 1
-        t = i/param['batch_size']
+        # compute fscr for t >=1
+        t = i / param['batch_size']
         if t >= 1:
-            mfcr = comp_mfcr(stats['features'][-2], selected_ftr, X.shape[1], t, mfcr)
-            stats['mfcr_measures'].append(mfcr)
+            fscr = comp_fscr(stats['features'][-2], selected_ftr, param['num_features'])
+            stats['fscr_measures'].append(fscr)
 
     stats['time_avg'] = np.mean(stats['time_measures']) * 1000  # average time in milliseconds
     stats['memory_avg'] = np.mean(stats['memory_measures'])  # average memory usage
     stats['acc_avg'] = np.mean(stats['acc_measures']) * 100  # average accuracy score
+    stats['fscr_avg'] = np.mean(stats['fscr_measures'])  # average feature selection change rate
 
     return ftr_weights, stats
 
@@ -155,8 +156,8 @@ def plot_stats(stats, ftr_names):
     acc_q1 = np.percentile(stats['acc_measures'], 25, axis=0) * 100
     acc_q3 = np.percentile(stats['acc_measures'], 75, axis=0) * 100
 
-    x_mfcr = np.array(range(1, len(stats['mfcr_measures']) + 1))
-    y_mfcr = np.array(stats['mfcr_measures'])
+    x_fscr = np.array(range(1, len(stats['fscr_measures']) + 1))
+    y_fscr = np.array(stats['fscr_measures'])
 
     plt.figure(figsize=(20, 25))
     gs1 = gridspec.GridSpec(5, 2)
@@ -205,14 +206,15 @@ def plot_stats(stats, ftr_names):
         ax4.set_yticks(ftr_indices)
         ax4.set_yticklabels(ftr_names)
 
-    # plot mfcr
+    # plot fscr
     gs2 = gridspec.GridSpec(5, 2)
     gs2.update(hspace=0)
 
     ax5 = plt.subplot(gs2[4, :])
-    ax5.plot(x_mfcr, y_mfcr)
+    ax5.plot(x_fscr, y_fscr)
+    ax5.plot([0, x_acc.shape[0] - 1], [stats['fscr_avg'], stats['fscr_avg']])
     ax5.set_xlabel('t')
-    ax5.set_ylabel('MFCR')
-    ax5.legend(['MFCR development'], loc="lower right")
+    ax5.set_ylabel('fscr')
+    ax5.legend(['fscr measures', 'mean'], loc="lower right")
 
     return plt

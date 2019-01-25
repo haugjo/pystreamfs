@@ -25,15 +25,13 @@ def truncate(w, num_features):
     return w
 
 
-def comp_mfcr(ftr_t_1, ftr_t, total_no_ftr, t, mfcr):
-    # number of changes with regard to t-1
-    # every change in the selected feature set indicates 2 changes of feature weights -> thus we multiply by 2
-    c = len(set(ftr_t_1).difference(set(ftr_t))) * 2
+def comp_fscr(ftr_t_1, ftr_t, n):
+    c = len(set(ftr_t_1).difference(set(ftr_t)))
 
-    if t == 1:
-        return c / (total_no_ftr * t)
-    else:
-        return mfcr * (t-1)/t + c / (total_no_ftr * t)
+    # we do not need to divide by 2n, because c only counts where a new feature is selected and not the ones unselected
+    fscr = c/n
+
+    return fscr
 
 
 def perform_learning(X, y, i, selected_ftr, model, param):
