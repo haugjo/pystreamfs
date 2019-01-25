@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score
+from sklearn.svm import SVC
 
 
 def truncate(w, num_features):
@@ -66,6 +67,8 @@ def perform_learning(X, y, i, selected_ftr, model, param):
         model = KNeighborsClassifier(n_jobs=-1)
     elif model is None and param['algorithm'] == "tree":
         model = DecisionTreeClassifier(random_state=0)
+    elif model is None and param['algorithm'] == "svm":
+        model = SVC()
 
     # set n_neighbors for KNN
     if type(model) is KNeighborsClassifier:

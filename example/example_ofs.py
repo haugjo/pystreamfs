@@ -3,19 +3,19 @@ import numpy as np
 import pandas as pd
 
 # Load german credit score dataset
-credit_data = pd.read_csv('../datasets/credit.csv')
-feature_names = np.array(credit_data.drop('Risk', 1).columns)
-credit_data = np.array(credit_data)
+data = pd.read_csv('../datasets/credit.csv')
+feature_names = np.array(data.drop('Risk', 1).columns)
+data = np.array(data)
 
 # Define parameters
 param = dict()
 param['num_features'] = 5  # number of features to return
-param['batch_size'] = 10  # batch size for one iteration of ofs
-param['algorithm'] = 'knn'  # apply KNN classifier to calculate accuracy per time t
+param['batch_size'] = 50  # batch size for one iteration of ofs
+param['algorithm'] = 'svm'  # apply KNN classifier to calculate accuracy per time t
 param['neighbors'] = 5  # set n_neighbors for KNN
 
 # Extract features and target variable
-X, Y = streamfs.prepare_data(credit_data, 0, False)
+X, Y = streamfs.prepare_data(data, 0, False)
 Y[Y == 0] = -1  # change 0 to -1, required by ofs
 
 # Simulate feature selection on a data stream (for the given data, FS algorithm and number of features)
