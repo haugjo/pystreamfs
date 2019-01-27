@@ -3,14 +3,14 @@ import numpy as np
 import pandas as pd
 
 # Load german credit score dataset
-data = pd.read_csv('../datasets/credit.csv')
-feature_names = np.array(data.drop('Risk', 1).columns)
+data = pd.read_csv('../datasets/usenet.csv')
+feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
 # Define parameters
 param = dict()
-param['num_features'] = 5  # number of features to return
-param['batch_size'] = 10  # batch size for one iteration of ofs
+param['num_features'] = 10  # number of features to return
+param['batch_size'] = 50  # batch size for one iteration of ofs
 param['algorithm'] = 'svm'  # apply KNN classifier to calculate accuracy per time t
 param['neighbors'] = 5  # set n_neighbors for KNN
 

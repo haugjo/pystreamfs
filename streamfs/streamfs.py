@@ -148,8 +148,11 @@ def plot_stats(stats, ftr_names):
     x_time = np.array(range(0, len(stats['time_measures'])))
     y_time = np.array(stats['time_measures'])*1000
 
+    # Todo: removed for KDD paper -> improve or ultimately remove memory measurement
+    '''
     x_mem = np.array(range(0, len(stats['memory_measures'])))
     y_mem = np.array(stats['memory_measures']) / 1000
+    '''
 
     x_acc = np.array(range(0, len(stats['acc_measures'])))
     y_acc = np.array(stats['acc_measures']) * 100
@@ -161,16 +164,25 @@ def plot_stats(stats, ftr_names):
 
     plt.figure(figsize=(20, 25))
     gs1 = gridspec.GridSpec(5, 2)
-    gs1.update(wspace=0.2, hspace=0.6)
+    gs1.update(wspace=0.2, hspace=0.8)
 
-    ax1 = plt.subplot(gs1[0, 0])
+    # define tick labels for time t
+    time_labels = np.arange(0, x_time.shape[0], 1)
+    if x_time.shape[0] > 30:
+        time_labels = ['' if i % 5 != 0 else b for i, b in enumerate(time_labels)]
+
+    ax1 = plt.subplot(gs1[0, :])
     ax1.plot(x_time, y_time)
     ax1.plot([0, x_time.shape[0]-1], [stats['time_avg'], stats['time_avg']])
+    ax1.set_xticks(np.arange(0, x_time.shape[0], 1))
+    ax1.set_xticklabels(time_labels)
     ax1.set_xlabel('t')
     ax1.set_ylabel('computation time (ms)')
     ax1.set_title('Time consumption for FS')
-    ax1.legend(['time measures', 'avg. time'])
+    ax1.legend(['time measures', 'avg. time'], loc="best")
 
+    # Todo: removed for KDD paper
+    '''
     ax2 = plt.subplot(gs1[0, 1])
     ax2.plot(x_mem, y_mem)
     ax2.plot([0, x_mem.shape[0]-1], [stats['memory_avg'] / 1000, stats['memory_avg'] / 1000])  # in kByte
@@ -178,15 +190,18 @@ def plot_stats(stats, ftr_names):
     ax2.set_ylabel('memory (kB)')
     ax2.set_title('Memory consumption for FS')
     ax2.legend(['memory measures', 'avg. memory'])
+    '''
 
     ax3 = plt.subplot(gs1[1, :])
     ax3.plot(x_acc, y_acc)
     ax3.plot([0, x_acc.shape[0] - 1], [stats['acc_avg'], stats['acc_avg']])
-    ax3.fill_between([0, x_mem.shape[0]-1], acc_q3, acc_q1, facecolor='green', alpha=0.5)
+    ax3.fill_between([0, x_acc.shape[0]-1], acc_q3, acc_q1, facecolor='green', alpha=0.5)
+    ax3.set_xticks(np.arange(0, x_acc.shape[0], 1))
+    ax3.set_xticklabels(time_labels)
     ax3.set_xlabel('t')
     ax3.set_ylabel('accuracy (%)')
     ax3.set_title('Accuracy for FS')
-    ax3.legend(['accuracy measures', 'mean',  'iqr'], loc="lower right")
+    ax3.legend(['accuracy measures', 'mean',  'iqr'], loc="best")
 
     # plot selected features
     ftr_indices = range(0, len(ftr_names))
@@ -194,6 +209,7 @@ def plot_stats(stats, ftr_names):
     ax4 = plt.subplot(gs1[2:-1, :])
     ax4.set_title('Selected features')
     ax4.set_ylabel('feature')
+    ax4.set_xticks(np.arange(0, x_acc.shape[0], 1))
     ax4.set_xticklabels([])
 
     # plot selected features for each execution
@@ -201,8 +217,8 @@ def plot_stats(stats, ftr_names):
         for v in val:
             ax4.scatter(i, v, marker='_', color='C0')
 
-    if len(ftr_indices) <= 30:
-        # if less than 30 features plot tic for each feature and change markers
+    if len(ftr_indices) <= 20:
+        # if less than 20 features plot tic for each feature and change markers
         ax4.set_yticks(ftr_indices)
         ax4.set_yticklabels(ftr_names)
 
@@ -212,9 +228,11 @@ def plot_stats(stats, ftr_names):
 
     ax5 = plt.subplot(gs2[4, :])
     ax5.plot(x_fscr, y_fscr)
-    ax5.plot([0, x_acc.shape[0] - 1], [stats['fscr_avg'], stats['fscr_avg']])
+    ax5.plot([1, x_fscr.shape[0]], [stats['fscr_avg'], stats['fscr_avg']])
+    ax5.set_xticks(np.arange(0, x_fscr.shape[0]+1, 1))
+    ax5.set_xticklabels(time_labels)
     ax5.set_xlabel('t')
     ax5.set_ylabel('fscr')
-    ax5.legend(['fscr measures', 'mean'], loc="lower right")
+    ax5.legend(['fscr measures', 'mean'], loc="best")
 
     return plt

@@ -11,7 +11,7 @@ data = np.array(data)
 param = dict()
 param['num_features'] = 5  # number of features to return
 param['batch_size'] = 200  # batch size for one iteration of ofs
-param['algorithm'] = 'knn'  # apply KNN classifier to calculate accuracy per time t
+param['algorithm'] = 'svm'  # apply KNN classifier to calculate accuracy per time t
 param['neighbors'] = 5  # set n_neighbors for KNN
 
 # Original parameters from paper
