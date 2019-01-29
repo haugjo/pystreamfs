@@ -42,9 +42,6 @@ class EarlyStopping:
             self.best_score = score
             self.counter = 0
 
-
-
-
 class CancelOut(nn.Module):
     '''
     CancelOut layer
@@ -94,7 +91,7 @@ class NeuralNet(nn.Module):
         '''
 
         super(NeuralNet, self).__init__()
-        self.relu = nn.ReLU()
+        self.relu = nn.ReLU6()
         self.CancelOut = CancelOut(input_size)
         self.fc1 = nn.Linear(input_size, hidden_size)
         self.fc2 = nn.Linear(hidden_size, num_classes)
@@ -183,18 +180,20 @@ def run_nnfs(X, y, param):
 
     TODO think about param
     """
-    global First_run, X_all, y_all
+    # global First_run, X_all, y_all
 
-    if First_run:
-        First_run = False
-        X_all = X
-        y_all = y
-    else:
-        X_all = np.vstack((X_all, X))
-        y_all = np.append(y_all, y)
+    # if First_run:
+    #     First_run = False
+    #     X_all = X
+    #     y_all = y
+    # else:
+    #     X_all = np.vstack((X_all, X))
+    #     y_all = np.append(y_all, y)
+    #
+    # print('shape ->', X_all.shape)
 
     start_t = time.perf_counter()  # time taking
 
-    w = train_ann(X_all, y_all, 20)
+    w = train_ann(X, y, 20)
 
     return w, time.perf_counter() - start_t
