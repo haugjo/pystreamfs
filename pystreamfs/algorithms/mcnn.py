@@ -1,9 +1,8 @@
 import numpy as np
-import time
 from sklearn.feature_selection import mutual_info_classif
 
 
-def run_mcnn(X, Y, window, clusters, param):
+def run_mcnn(X, Y, param, **kw):
     """Feature selection based on the MCNN Feature Selection algorithm by Hammodi
 
     This code is based on the descriptions, formulas and pseudo code snippets from the paper by Hammodi et al.
@@ -18,7 +17,16 @@ def run_mcnn(X, Y, window, clusters, param):
     :rtype numpy.ndarray, TimeWindow, float
     """
 
-    start_t = time.perf_counter()  # time taking
+    # set window and clusters object
+    if 'window' not in param:
+        window = TimeWindow(X[0])
+    else:
+        window = param['window']
+
+    if 'clusters' not in param:
+        clusters = dict()
+    else:
+        clusters = param['clusters']
 
     # update time window
     window.t += 1
@@ -102,7 +110,11 @@ def run_mcnn(X, Y, window, clusters, param):
     else:
         w = window.selected_ftr
 
-    return w, window, clusters, time.perf_counter() - start_t
+    # update param
+    param['window'] = window
+    param['clusters'] = clusters
+
+    return w, param
 
 
 def _select_features(clusters, window):
