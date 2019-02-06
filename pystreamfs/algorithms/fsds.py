@@ -1,9 +1,8 @@
 import numpy as np
-import time
 import numpy.linalg as ln
 
 
-def run_fsds(B, Yt, m, k, ell=0):
+def run_fsds(X, param, **kw):
     """Feature Selection on Data Streams
 
     Based on a paper by Huang et al. (2015). Feature Selection for unsupervised Learning.
@@ -24,26 +23,26 @@ def run_fsds(B, Yt, m, k, ell=0):
     .. warning: yt has to contain only floats
     """
 
-    start_t = time.perf_counter()  # time taking
+    Yt = X.T  # algorithm assumes rows to represent features
 
-    if ell < 1:
-        ell = int(np.sqrt(m))
+    if param['ell'] < 1:
+        param['ell'] = int(np.sqrt(param['m']))
 
-    if len(B) == 0:
+    if len(param['B']) == 0:
         # for Y0, we need to first create an initial sketched matrix
-        B = Yt[:, :ell]
-        C = np.hstack((B, Yt[:, ell:]))
-        n = Yt.shape[1] - ell
+        param['B'] = Yt[:, :param['ell']]
+        C = np.hstack((param['B'], Yt[:, param['ell']:]))
+        n = Yt.shape[1] - param['ell']
     else:
         # combine current sketched matrix with input at time t
         # C: m-by-(n+ell) matrix
-        C = np.hstack((B, Yt))
+        C = np.hstack((param['B'], Yt))
         n = Yt.shape[1]
 
     U, s, V = ln.svd(C, full_matrices=False)
-    U = U[:, :ell]
-    s = s[:ell]
-    V = V[:, :ell]
+    U = U[:, :param['ell']]
+    s = s[:param['ell']]
+    V = V[:, :param['ell']]
 
     # shrink step in Frequent Directions algorithm
     # (shrink singular values based on the squared smallest singular value)
@@ -56,22 +55,22 @@ def run_fsds(B, Yt, m, k, ell=0):
 
     # update sketched matrix B
     # (focus on column singular vectors)
-    B = np.dot(U, np.diag(s))
+    param['B'] = np.dot(U, np.diag(s))
 
     # According to Section 5.1, for all experiments,
     # the authors set alpha = 2^3 * sigma_k based on the pre-experiment
-    alpha = (2 ** 3) * s[k - 1]
+    alpha = (2 ** 3) * s[param['k'] - 1]
 
     # solve the ridge regression by using the top-k singular values
     # X: m-by-k matrix (k <= ell)
-    D = np.diag(s[:k] / (s[:k] ** 2 + alpha))
+    D = np.diag(s[:param['k']] / (s[:param['k']] ** 2 + alpha))
 
     # -- Extension of original code --
     # replace nan values with 0 to prevent division by zero error for small batch numbers
     D = np.nan_to_num(D)
 
-    X = np.dot(U[:, :k], D)
+    X = np.dot(U[:, :param['k']], D)
 
     w = np.amax(abs(X), axis=1)
 
-    return w, time.perf_counter() - start_t,  B, ell
+    return w,  param

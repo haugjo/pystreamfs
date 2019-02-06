@@ -1,20 +1,17 @@
-import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score
 from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
 
 
-def comp_fscr(ftr_t_1, ftr_t, n):
+def fscr_score(ftr_t_1, ftr_t, n):
     c = len(set(ftr_t_1).difference(set(ftr_t)))
-
-    # we do not need to divide by 2n, because c only counts where a new feature is selected and not the ones unselected
     fscr = c/n
 
     return fscr
 
 
-def perform_learning(X, y, i, selected_ftr, model, param):
+def classify(X, Y, i, selected_ftr, model, param):
     """
 
     :param numpy.ndarray X: dataset
@@ -28,19 +25,20 @@ def perform_learning(X, y, i, selected_ftr, model, param):
     :rtype: object, float
     """
 
-    # test samples = current batch
-    X_test = X[i:i + param['batch_size'], selected_ftr]
-    y_test = y[i:i + param['batch_size']]
+    # Test set = current batch
+    x_test = X[i:i + param['batch_size'], selected_ftr]
+    y_test = Y[i:i + param['batch_size']]
 
-    # training samples = all samples up until current batch
+    # Training set = all samples except current batch
     if i == 0:
         # for first iteration st X_train = X_test
-        X_train = X_test
+        x_train = x_test
         y_train = y_test
     else:
-        X_train = X[0:i, selected_ftr]
-        y_train = y[0:i]
+        x_train = X[0:i, selected_ftr]
+        y_train = Y[0:i]
 
+    # Initialize ML model
     if model is None and param['algorithm'] == "knn":
         model = KNeighborsClassifier(n_jobs=-1)
     elif model is None and param['algorithm'] == "tree":
@@ -48,19 +46,19 @@ def perform_learning(X, y, i, selected_ftr, model, param):
     elif model is None and param['algorithm'] == "svm":
         model = SVC()
 
-    # set n_neighbors for KNN
+    # n_neighbors for KNN
     if type(model) is KNeighborsClassifier:
-        if X_train.shape[0] < param['neighbors']:
+        if x_train.shape[0] < param['neighbors']:
             # adjust KNN neighbors if there are too less samples available yet
-            model.n_neighbors = X_train.shape[0]
+            model.n_neighbors = x_train.shape[0]
         else:
             model.n_neighbors = param['neighbors']
 
-    # train model
-    model.fit(X_train, y_train)
+    # Train model
+    model.fit(x_train, y_train)
 
-    # predict current batch
-    y_pred = model.predict(X_test)
+    # Predict test set
+    y_pred = model.predict(x_test)
     acc = accuracy_score(y_test, y_pred)
 
     return model, acc

@@ -1,5 +1,4 @@
 from pystreamfs import pystreamfs_new
-from pystreamfs import pystreamfs
 import numpy as np
 import pandas as pd
 from pystreamfs.algorithms import ofs

@@ -3,7 +3,7 @@ import psutil
 import os
 import warnings
 import time
-from pystreamfs.utils import comp_fscr, perform_learning
+from pystreamfs.utils import fscr_score, classify
 from pystreamfs.plots import plot
 
 
@@ -70,7 +70,8 @@ def simulate_stream(X, Y, ftr_selection, param):
         start_m = psutil.Process(os.getpid()).memory_full_info().uss
 
         # Perform feature selection
-        ftr_weights, param = ftr_selection(X[i:i+param['batch_size']], Y[i:i+param['batch_size']], ftr_weights, param)
+        ftr_weights, param = ftr_selection(X=X[i:i+param['batch_size']], Y=Y[i:i+param['batch_size']],
+                                           w=ftr_weights, param=param)
         selected_ftr = np.argsort(abs(ftr_weights))[::-1][:param['num_features']]  # top m features
 
         # Memory and time taking
@@ -78,7 +79,7 @@ def simulate_stream(X, Y, ftr_selection, param):
         m = psutil.Process(os.getpid()).memory_full_info().uss - start_m
 
         # Classify samples
-        classifier, acc = perform_learning(X, Y, i, selected_ftr, classifier, param)
+        classifier, acc = classify(X, Y, i, selected_ftr, classifier, param)
 
         # Save statistics
         stats['time_measures'].append(t)
@@ -90,7 +91,7 @@ def simulate_stream(X, Y, ftr_selection, param):
         # fscr for t >=1
         t = i / param['batch_size']
         if t >= 1:
-            fscr = comp_fscr(stats['features'][-2], selected_ftr, param['num_features'])
+            fscr = fscr_score(stats['features'][-2], selected_ftr, param['num_features'])
             stats['fscr_measures'].append(fscr)
 
     # end of stream simulation
