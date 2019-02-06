@@ -29,7 +29,7 @@ param['p_diff_threshold'] = 50  # threshold of perc. diff. for split/death rate 
 X, Y = pystreamfs.prepare_data(data, 0, False)
 
 # Data stream simulation
-w, stats = pystreamfs.simulate_stream(X, Y, algorithm, param)
+stats = pystreamfs.simulate_stream(X, Y, algorithm, param)
 
 # Plot statistics
 pystreamfs.plot_stats(stats, feature_names).show()

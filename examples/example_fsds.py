@@ -26,7 +26,7 @@ param['m'] = data.shape[1]-1  # no. of original features
 X, Y = pystreamfs.prepare_data(data, 0, False)
 
 # Data stream simulation
-w, stats = pystreamfs.simulate_stream(X, Y, algorithm, param)
+stats = pystreamfs.simulate_stream(X, Y, algorithm, param)
 
 # Plot statistics
 pystreamfs.plot_stats(stats, feature_names).show()

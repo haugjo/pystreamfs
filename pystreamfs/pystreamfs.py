@@ -97,7 +97,7 @@ def simulate_stream(X, Y, ftr_selection, param):
     stats['acc_avg'] = np.mean(stats['acc_measures'])  # average accuracy score
     stats['fscr_avg'] = np.mean(stats['fscr_measures'])  # average feature selection change rate
 
-    return ftr_weights, stats
+    return stats
 
 
 def plot_stats(stats, ftr_names):

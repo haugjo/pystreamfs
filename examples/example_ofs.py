@@ -23,7 +23,7 @@ X, Y = pystreamfs.prepare_data(data, 0, False)
 Y[Y == 0] = -1  # change 0 to -1, required by ofs
 
 # Data stream simulation
-w, stats = pystreamfs.simulate_stream(X, Y, algorithm, param)
+stats = pystreamfs.simulate_stream(X, Y, algorithm, param)
 
 # Plot statistics
 pystreamfs.plot_stats(stats, feature_names).show()

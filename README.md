@@ -1,57 +1,70 @@
-# streamfs
-This module provides different feature selection (FS) algorithms for data streams.
-The module allows you to simulate a data stream based on a provided data set. 
-It further allows you to apply different feature selection algorithms to that very data stream.
-Finally, the module provides you with a set of performance statistics of the selected feature selection algorithm.
+# PyStreamFS
+PyStreamFS allows for quick and simple comparison of feature selection algorithms on a simulated data stream.
+
+The user can simulate data streams with varying batch size on any dataset provided as a numpy array. 
+PyStreamFS applies a specified feature selection algorithm to every batch and computes performance metrics for the
+selected feature set at every time t. PyStreamFS can also be used to plot the performance metrics.
+
+The package currently includes 3 datasets, 4 feature selection algorithms and 3 classifiers for computation of the accuracy scores.
+
+**Version:** 0.0.1<br>
+**Upcoming changes:**
+* additional dataset, feature selection algorithms and classifiers
+* ability to simulate feature streams
+* ability to generate artificial data streams
 
 ## 1 Getting started
 ### 1.1 How to get the module
-You can find the current distribution of ``streamfs`` for download in ``/dist``. 
+You can find the current distribution of ``pystreamfs`` for download in ``/dist``. 
 Download and unpack the .zip (Windows) or .tar.gz (Linux) file. Navigate to the unpacked folder and execute
 ``python setup.py install`` to install the module.
 
-### 1.2 Requirements
-You need a Python 3.x environment and the following packages to use the ``streamfs`` module:
- <br>``numpy, psutil``
+### 1.2 Prerequesites
+* python >= 3.7.1
+* numpy >= 1.15.4
+* pandas >= 0.23.4
+* psutil >= 5.4.7
+* matplotlib >= 2.2.3
+* scikit-learn >= 0.20.2
  
 ## 2 The Package  
-### 2.1 Included files
-The main module is ``streamfs/streamfs.py``. Utility functions are stored in ``streamfs/util.py``. 
- FS algorithms are stored in the ``algorithms`` folder. All datasets can be found in the 
- ``datasets`` folder.
+### 2.1 Files
+The main module is ``pystreamfs/pystreamfs.py``. Feature selection algorithms are stored in ``algorithms``. 
+Datasets are stored in ``datasets``.
  
- For performing feature selection you need only access ``streamfs.py`` and the ``datasets`` (see also example below).
- 
-### 2.2 Functions of streamfs.py
-``streamfs.py`` provides the following functions:
+### 2.2 Functions of pystreamfs.py
+``pystreamfs`` provides the following functions:
 * ``X, Y = prepare_data(data, target, shuffle)``
     * **Description**: Prepare the data set for the simulation of a data stream: randomly sort the rows of a the data matrix and extract the target variable ``Y`` and the features ``X``
     * **Input**:
-        * ``data``: numpy array, this is the data set
-        * ``target``: integer, index of the target variable
-        * ``shuffle``: boolean, if ``True`` sort samples randomly
+        * ``data``: numpy.ndarray, data set
+        * ``target``: int, index of the target variable
+        * ``shuffle``: bool, if ``True`` sort samples randomly
     * **Output**:
-        * ``X``: numpy array, contains the features
-        * ``Y``: numpy array, contains the target variable
-* ``ftr_weights, stats = simulate_stream(X, Y, algorithm, param)``
+        * ``X``: numpy.ndarray, features
+        * ``Y``: numpy.ndarray, target variable
+* ``stats = simulate_stream(X, Y, algorithm, param)``
     * **Description**: Iterate over all datapoints in the dataset to simulate a data stream. 
-    Perform given feature selection algorithm and return an array containing the weights for each (selected) feature as well as a set of performance statistics
+    Perform given feature selection algorithm and return performance statistics.
     * **Input**:
         * ``X``: numpy array, this is the ``X`` returned by ``prepare_data()``
         * ``Y``: numpy array, this is the ``Y`` returned by ``prepare_data()``
-        * ``algorithm``: string, this is the FS algorithm you want to apply
-        * ``param``: python dictionary
+        * ``algorithm``: function, feature selection algorithm
+        * ``param``: python dict(), includes:
             * ``num_features``: integer, the number of features you want returned
             * ``batch_size``: integer, number of instances processed in one iteration
-            * there might be more algorithm specific parameters (check 2.3)
+            * ... additional algorithm specific parameters (check 2.3)
     * **Output**:
-        * ``ftr_weights``: numpy array, contains the weights of the (selected) features
         * ``stats``: python dictionary
-            * ``time_avg``: float, average computation time for one execution of the FS algorithm
-            * ``time_measures``: list, individual computation time for each iteration (length = length of ``X``)
-            * ``memory_avg``: float, average memory usage (relative to the total physical memory) for one execution of the FS algorithm
-            * ``memory_start``: float, memory usage (relative to the total physical memory) before start of the data stream
-            * ``memory_measures``: list, individual memory usage for each iteration (length = length of ``X``)
+            * ``features``: set of selected features for every batch
+            * ``time_avg``: float, average computation time for one execution of the feature selection
+            * ``time_measures``: list, time measures for every batch
+            * ``memory_avg``: float, average memory usage after one execution of the feature selection, uses ``psutil.Process(os.getpid()).memory_full_info().uss``
+            * ``memory_measures``: list, memory measures for every batch
+            * ``acc_avg``: float, average accuracy for classification with the selected feature set
+            * ``acc_measures``: list, accuracy measures for every batch
+            * ``fscr_avg``: HIER WEITER!!!!!!!!!!!
+            * ``fscr_measures``
 * ``plt = plot_stats(stats, ftr_names):``
     * **Description**: Plot the time and memory consumption as provided in stats. Also plot selected features over time.
     If the number of features is smaller or equal 30, this function plots a tic for each feature in the y-axis.
