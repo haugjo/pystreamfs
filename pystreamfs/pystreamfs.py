@@ -8,15 +8,13 @@ from pystreamfs.plots import plot
 
 
 def prepare_data(data, target, shuffle):
-    """Extract features X and target variable Y
+    """Extract the target and features
 
     :param numpy.nparray data: dataset
     :param int target: index of the target variable
     :param bool shuffle: set to True if you want to sort the dataset randomly
-
     :return: X (containing the features), Y (containing the target variable)
     :rtype: numpy.nparray, numpy.nparray
-
     """
 
     if shuffle:
@@ -29,18 +27,16 @@ def prepare_data(data, target, shuffle):
 
 
 def simulate_stream(X, Y, ftr_selection, param):
-    """Apply Feature Selection on stream data
+    """Feature selection on simulated data stream
 
-    Iterate over all datapoints in a given matrix to simulate a data stream.
-    Perform given feature selection algorithm and return an array containing the weights for each (selected) feature
+    Stream simulation by batch-wise iteration over dataset.
+    Feature selection, classification and saving of performance metrics for every batch
 
     :param numpy.ndarray X: dataset
-    :param numpy array Y: target
-    :param function algorithm: feature selection algorithm
-    :param dict param: parameters for feature selection
-
-    :return: ftr_weights (containing the weights of the (selected) features), stats (contains i.a. average computation
-        time in ms and memory usage (in percent of physical memory) for one execution of the fs algorithm
+    :param numpy.ndarray Y: target
+    :param function ftr_selection: feature selection algorithm
+    :param dict param: parameters
+    :return: ftr_weights (selected features and their weights over time), stats (performance metrics over time)
     :rtype: numpy.ndarray, dict
     """
 
@@ -65,9 +61,8 @@ def simulate_stream(X, Y, ftr_selection, param):
             print('Feature selection algorithm is not defined!')
             return ftr_weights, stats
 
-        # Memory and time taking
+        # Time taking
         start_t = time.perf_counter()
-        start_m = psutil.Process(os.getpid()).memory_full_info().uss
 
         # Perform feature selection
         ftr_weights, param = ftr_selection(X=X[i:i+param['batch_size']], Y=Y[i:i+param['batch_size']],
@@ -76,7 +71,7 @@ def simulate_stream(X, Y, ftr_selection, param):
 
         # Memory and time taking
         t = time.perf_counter() - start_t
-        m = psutil.Process(os.getpid()).memory_full_info().uss - start_m
+        m = psutil.Process(os.getpid()).memory_full_info().uss
 
         # Classify samples
         classifier, acc = classify(X, Y, i, selected_ftr, classifier, param)
@@ -106,13 +101,14 @@ def simulate_stream(X, Y, ftr_selection, param):
 
 
 def plot_stats(stats, ftr_names):
-    """Print Time and Memory consumption
+    """Print statistics
 
-    Print the time, memory and accuracy measures as provided in stats. Also print the average time, memory consumption, accuracy
+    Prints performance metrics obtained during feature selection on simulated data stream
 
     :param dict stats: statistics
-    :param np.array ftr_names: contains feature names (if included, features will be plotted
-    :return: plt (plot containing 2 subplots for time and memory)
+    :param np.array ftr_names: names of original features
+    :return: chart
+    :rtype: plt.figure
     """
 
     plot_data = dict()

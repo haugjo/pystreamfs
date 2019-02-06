@@ -3,20 +3,20 @@ import math
 
 
 def run_ofs(X, Y, w, param):
-    """Online Feature Selection Algorithm
+    """Online Feature Selection
 
     Based on a paper by Wang et al. 2014. Feature Selection for binary classification.
     This code is an adaptation of the official Matlab implementation.
 
-    :param numpy.nparray X: data for current batch
-    :param numpy.nparray Y: classes of the datapoints in current batch
+    :param numpy.nparray X: current data batch
+    :param numpy.nparray Y: labels of current batch
     :param numpy.nparray w: feature weights
-    :param int num_features: number of features that should be returned
+    :param dict param: parameters, this includes...
+        int num_features: number of selected features
+    :return: w (feature weights), param
+    :rtype numpy.ndarray, dict
 
-    :return: w (updated feature weights), time (computation time in seconds)
-    :rtype numpy.ndarray, float
-
-    .. warning: y must be -1 or 1
+    .. warning: Y must be -1 or 1
     """
 
     eta = 0.2
@@ -34,16 +34,14 @@ def run_ofs(X, Y, w, param):
 
 
 def _truncate(w, num_features):
-    """Truncates a given array
+    """Truncate the weight vector
 
     Set all but the **num_features** biggest absolute values to zero.
 
-    :param numpy.nparray w: the array that should be truncated
+    :param numpy.nparray w: weights
     :param int num_features: number of features that should be kept
-
     :return: w (truncated array)
     :rtype: numpy.nparray
-
     """
 
     if len(w.nonzero()[0]) > num_features:

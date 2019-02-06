@@ -6,21 +6,19 @@ def run_fsds(X, param, **kw):
     """Feature Selection on Data Streams
 
     Based on a paper by Huang et al. (2015). Feature Selection for unsupervised Learning.
-    This code is copied from the Python implementation of the authors with minor reductions.
+    This code is copied from the Python implementation of the authors with minor reductions and adaptations.
 
-    :param numpy.ndarray B: sketched matrix (low-rank representation of all datapoints until current time)
-    :param numpy.ndarray yt: m-by-n_t input matrix from data stream
-    :param int m: number of original features
-    :param int k: number of singular values (equal to number of clusters in the dataset)
-    :param int ell: sketch size for a sketched m-by-ell matrix B
+    :param numpy.ndarray X: current data batch
+    :param dict param: parameters, this includes...
+        numpy.ndarray B: sketched matrix (low-rank representation of all datapoints until current time)
+        int m: number of original features
+        int k: number of singular values (equal to number of clusters in the dataset)
+        int ell: sketch size for a sketched m-by-ell matrix B
+    :return: w (feature weights), param (with updated B and ell)
+    :rtype numpy.ndarray, dict
 
-
-    :return: w (updated feature weights), time (computation time in seconds), B, ell
-    :rtype numpy.ndarray, float, numpy.ndarray, int
-
-    .. warning: fsds runs into a type error if n_t < 1000
-    .. warning: features have to be equal to the rows in yt
-    .. warning: yt has to contain only floats
+    .. warning: features are represented as rows in Yt
+    .. warning: Yt has to contain only floats
     """
 
     Yt = X.T  # algorithm assumes rows to represent features

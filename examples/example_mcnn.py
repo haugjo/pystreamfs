@@ -1,4 +1,4 @@
-from pystreamfs import pystreamfs_new
+from pystreamfs import pystreamfs
 import numpy as np
 import pandas as pd
 from pystreamfs.algorithms import mcnn
@@ -26,10 +26,10 @@ param['max_out_of_var_bound'] = 0.3  # percentage of variables that can at most 
 param['p_diff_threshold'] = 50  # threshold of perc. diff. for split/death rate when drift is assumed (_detect_drift())
 
 # Extract features and target variable
-X, Y = pystreamfs_new.prepare_data(data, 0, False)
+X, Y = pystreamfs.prepare_data(data, 0, False)
 
 # Data stream simulation
-w, stats = pystreamfs_new.simulate_stream(X, Y, algorithm, param)
+w, stats = pystreamfs.simulate_stream(X, Y, algorithm, param)
 
 # Plot statistics
-pystreamfs_new.plot_stats(stats, feature_names).show()
+pystreamfs.plot_stats(stats, feature_names).show()

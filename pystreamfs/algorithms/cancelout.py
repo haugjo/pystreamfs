@@ -162,21 +162,20 @@ def train_ann(X, y, num_epochs):
 First_run = True
 X_all, y_all = None, None
 
-def run_nnfs(X, Y, param, **kw):
-    """Neural Network Feature Selection
+def run_cancelout(X, Y, param, **kw):
+    """Cancel Out
 
-    FS using Deep Learning
+    FS using Deep Learning. An approach by Vadim Borisov (Todo: add reference)
 
-    :param numpy.nparray x: datapoint
-    :param numpy.nparray y: class of the datapoint
+    :param numpy.nparray X: current data batch
+    :param numpy.nparray y: labels of current batch
     :param dict param: parameters
 
-    :return: w (feature weights), time (computation time in seconds),
-        memory (currently used memory in percent of total physical memory)
-    :rtype numpy.ndarray, float, float
+    :return: w (feature weights), param
+    :rtype numpy.ndarray, dict
 
 
-    TODO think about param
+    ...todo... think about param
     """
     # global First_run, X_all, y_all
 

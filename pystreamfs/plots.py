@@ -4,6 +4,13 @@ import matplotlib.gridspec as gridspec
 
 
 def plot(data):
+    """Plot statistics
+
+    :param data: statistics prepared for plotting
+    :return: plt
+    :rtype: plt.figure
+    """
+
     plt.figure(figsize=(20, 25))
     gs1 = gridspec.GridSpec(5, 2)
     gs1.update(wspace=0.2, hspace=0.8)
@@ -49,6 +56,22 @@ def plot(data):
 
 
 def _plot_one_chart(ax, x, y, avg, q1, q3, x_ticks, x_label, y_label, title, starts_at_one=False):
+    """Plot one axis of the chart
+
+    Plots the measurements over time, the mean and optionally an interquartile range
+
+    :param ax: grid axis
+    :param x: x coordinates
+    :param y: y coordinates
+    :param avg: mean
+    :param q1: first quartile
+    :param q3: third quartile
+    :param x_ticks: ticks for x-axis
+    :param x_label: x labels
+    :param y_label: y labels
+    :param title: title
+    :param starts_at_one: indicates whether plot starts at t=1 (required for fscr score)
+    """
     ax.plot(x, y)
 
     # Mean

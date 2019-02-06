@@ -1,4 +1,4 @@
-from pystreamfs import pystreamfs_new
+from pystreamfs import pystreamfs
 import numpy as np
 import pandas as pd
 from pystreamfs.algorithms import fsds
@@ -23,10 +23,10 @@ param['k'] = 2  # no. of singular values (can be equal to no. of clusters/classe
 param['m'] = data.shape[1]-1  # no. of original features
 
 # Extract features and target variable
-X, Y = pystreamfs_new.prepare_data(data, 0, False)
+X, Y = pystreamfs.prepare_data(data, 0, False)
 
 # Data stream simulation
-w, stats = pystreamfs_new.simulate_stream(X, Y, algorithm, param)
+w, stats = pystreamfs.simulate_stream(X, Y, algorithm, param)
 
 # Plot statistics
-pystreamfs_new.plot_stats(stats, feature_names).show()
+pystreamfs.plot_stats(stats, feature_names).show()

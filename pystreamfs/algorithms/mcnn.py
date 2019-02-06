@@ -3,18 +3,22 @@ from sklearn.feature_selection import mutual_info_classif
 
 
 def run_mcnn(X, Y, param, **kw):
-    """Feature selection based on the MCNN Feature Selection algorithm by Hammodi
+    """Feature selection based on the Micro Clusters Nearest Neighbor
 
     This code is based on the descriptions, formulas and pseudo code snippets from the paper by Hammodi et al.
     We cannot claim this to be the exact same implementation as intended by Hammodi et al.
 
-    :param numpy.ndarray X: the instances for this time window
-    :param numpy.ndarray Y: the labels for the instances in X
-    :param TimeWindow window: a TimeWindow object that is sequentially updated for every time window t
-    :param dict param: parameters for MCNN
-
-    :return: w (updated feature weights), window (updated TimeWindow object), time (computation time in seconds)
-    :rtype numpy.ndarray, TimeWindow, float
+    :param numpy.ndarray X: current data batch
+    :param numpy.ndarray Y: labels of current data batch
+    :param dict param: parameters, this includes...
+        TimeWindow window: a TimeWindow object that is sequentially updated for every time window t
+        dict clusters: a set of clusters
+        int max_n': maximum number of saved instances per cluster
+        int e_threshold: error threshold for splitting of a cluster
+        max_out_of_var_bound: percentage of variables that can at most be outside of variance boundary before new cluster is created
+        p_diff_threshold: threshold of perc. diff. for split/death rate when drift is assumed (_detect_drift())
+    :return: w (feature weights), param (with updated window and clusters)
+    :rtype numpy.ndarray, dict
     """
 
     # set window and clusters object
@@ -152,6 +156,13 @@ def _select_features(clusters, window):
 
 
 def _calc_info_gain(clusters):
+    """Calculate the Information Gain of features
+
+    :param dict(MicroCluster) clusters: dictionary of currently existing Micro Clusters
+    :return: ig (information gain for all features)
+    :rtype: list
+    """
+
     # sum up the instances and labels of all clusters to calc. info gain
     total_data = None
     total_labels = None
