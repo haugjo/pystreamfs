@@ -1,5 +1,3 @@
-import time
-
 import numpy as np
 
 # load PyTorch
@@ -164,7 +162,7 @@ def train_ann(X, y, num_epochs):
 First_run = True
 X_all, y_all = None, None
 
-def run_nnfs(X, y, param):
+def run_nnfs(X, Y, param, **kw):
     """Neural Network Feature Selection
 
     FS using Deep Learning
@@ -192,8 +190,6 @@ def run_nnfs(X, y, param):
     #
     # print('shape ->', X_all.shape)
 
-    start_t = time.perf_counter()  # time taking
+    w = train_ann(X, Y, 20)
 
-    w = train_ann(X, y, 20)
-
-    return w, time.perf_counter() - start_t
+    return w, param

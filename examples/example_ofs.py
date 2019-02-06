@@ -15,7 +15,8 @@ algorithm = ofs.run_ofs
 param = dict()
 param['num_features'] = 5  # number of features to return
 param['batch_size'] = 50  # batch size
-param['algorithm'] = 'svm'  # classification algorithm: here SVM
+param['algorithm'] = 'knn'  # classification algorithm: here KNN
+param['neighbors'] = 5  # n_neighbors for KNN
 
 # Extract features and target variable
 X, Y = pystreamfs_new.prepare_data(data, 0, False)
