@@ -12,13 +12,6 @@ from pystreamfs.algorithms.mcnn import run_mcnn, TimeWindow
 from pystreamfs.algorithms.nnfs import run_nnfs
 from pystreamfs.utils import comp_fscr, perform_learning
 
-# if on Unix system import resource module
-# Todo: check why this does not work on Linux
-'''
-if platform.system() == "Linux" or platform.system() == "Darwin":
-    import resource
-'''
-
 
 def prepare_data(data, target, shuffle):
     """Extract features X and target variable Y
@@ -63,10 +56,6 @@ def simulate_stream(X, Y, algorithm, param):
     ftr_weights = np.zeros(X.shape[1], dtype=int)  # create empty feature weights array
     model = None  # empty object that later holds the ML model
 
-    # measure current RAM usage in Byte
-    # uss = “Unique Set Size”, this is the memory which is unique to a process and which would be freed if the process was terminated right now.
-    start_memory = psutil.Process(os.getpid()).memory_full_info().uss
-
     stats = {'time_measures': [],
              'memory_measures': [],
              'acc_measures': [],
@@ -83,6 +72,10 @@ def simulate_stream(X, Y, algorithm, param):
         clusters = dict()  # create an empty dict of clusters
 
     for i in range(0, X.shape[0], param['batch_size']):
+        # measure current RAM usage in Byte
+        # uss = “Unique Set Size”, this is the memory which is unique to a process and which would be freed if the process was terminated right now.
+        start_memory = psutil.Process(os.getpid()).memory_full_info().uss
+
         # Add additional elif statement for new algorithms
         # OFS
         if algorithm == 'ofs':
@@ -148,11 +141,8 @@ def plot_stats(stats, ftr_names):
     x_time = np.array(range(0, len(stats['time_measures'])))
     y_time = np.array(stats['time_measures'])*1000
 
-    # Todo: removed for KDD paper -> improve or ultimately remove memory measurement
-    '''
     x_mem = np.array(range(0, len(stats['memory_measures'])))
     y_mem = np.array(stats['memory_measures']) / 1000
-    '''
 
     x_acc = np.array(range(0, len(stats['acc_measures'])))
     y_acc = np.array(stats['acc_measures']) * 100
@@ -171,7 +161,7 @@ def plot_stats(stats, ftr_names):
     if x_time.shape[0] > 30:
         time_labels = ['' if i % 5 != 0 else b for i, b in enumerate(time_labels)]
 
-    ax1 = plt.subplot(gs1[0, :])
+    ax1 = plt.subplot(gs1[0, 0])
     ax1.plot(x_time, y_time)
     ax1.plot([0, x_time.shape[0]-1], [stats['time_avg'], stats['time_avg']])
     ax1.set_xticks(np.arange(0, x_time.shape[0], 1))
@@ -181,8 +171,6 @@ def plot_stats(stats, ftr_names):
     ax1.set_title('Time consumption for FS')
     ax1.legend(['time measures', 'avg. time'], loc="best")
 
-    # Todo: removed for KDD paper
-    '''
     ax2 = plt.subplot(gs1[0, 1])
     ax2.plot(x_mem, y_mem)
     ax2.plot([0, x_mem.shape[0]-1], [stats['memory_avg'] / 1000, stats['memory_avg'] / 1000])  # in kByte
@@ -190,7 +178,6 @@ def plot_stats(stats, ftr_names):
     ax2.set_ylabel('memory (kB)')
     ax2.set_title('Memory consumption for FS')
     ax2.legend(['memory measures', 'avg. memory'])
-    '''
 
     ax3 = plt.subplot(gs1[1, :])
     ax3.plot(x_acc, y_acc)

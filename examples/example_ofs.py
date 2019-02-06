@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 # Load a dataset
-data = pd.read_csv('../datasets/usenet.csv')
+data = pd.read_csv('../datasets/credit.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
