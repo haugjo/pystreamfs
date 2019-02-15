@@ -48,11 +48,11 @@ def classify(X, Y, i, selected_ftr, model, param):
         y_train = Y[0:i]
 
     # Initialize ML model
-    if model is None and param['algorithm'] == "knn":
+    if model is None and param['classifier'] == "knn":
         model = KNeighborsClassifier(n_jobs=-1)
-    elif model is None and param['algorithm'] == "tree":
+    elif model is None and param['classifier'] == "tree":
         model = DecisionTreeClassifier(random_state=0)
-    elif model is None and param['algorithm'] == "svm":
+    elif model is None and param['classifier'] == "svm":
         model = SVC()
 
     # n_neighbors for KNN

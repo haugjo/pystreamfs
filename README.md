@@ -9,7 +9,7 @@ The package currently includes 3 datasets, 4 feature selection algorithms and 3 
 
 **Version:** 0.0.1<br>
 **Upcoming changes:**
-* additional dataset, feature selection algorithms and classifiers
+* additional datasets, feature selection algorithms and classifiers
 * ability to simulate feature streams
 * ability to generate artificial data streams
 
@@ -53,7 +53,9 @@ Datasets are stored in ``datasets``.
         * ``param``: python dict(), includes:
             * ``num_features``: integer, the number of features you want returned
             * ``batch_size``: integer, number of instances processed in one iteration
-            * ... additional algorithm specific parameters (check 2.3)
+            * ``classifier``: string, the classifier to use for calculation of accuracy score, currently ``knn`` for K Nearest Neighbor,
+                ``tree`` for Decision Tree and ``svm`` for Support Vector Classifier
+            * ... additional algorithm specific parameters
     * **Output**:
         * ``stats``: python dictionary
             * ``features``: set of selected features for every batch
@@ -63,130 +65,64 @@ Datasets are stored in ``datasets``.
             * ``memory_measures``: list, memory measures for every batch
             * ``acc_avg``: float, average accuracy for classification with the selected feature set
             * ``acc_measures``: list, accuracy measures for every batch
-            * ``fscr_avg``: HIER WEITER!!!!!!!!!!!
-            * ``fscr_measures``
+            * ``fscr_avg``: float, average feature selection change rate (fscr) per time window. 
+            The fscr is the percentage of selected features that changes in *t* with respect to *t-1* (fscr=0 if all selected features remain the same, fscr=1 if all selected features change)
+            * ``fscr_measures`` list, fscr measures for every batch
 * ``plt = plot_stats(stats, ftr_names):``
-    * **Description**: Plot the time and memory consumption as provided in stats. Also plot selected features over time.
-    If the number of features is smaller or equal 30, this function plots a tic for each feature in the y-axis.
+    * **Description**: Plot the statistics for time, memory, fscr and selected features over all time windows.
     * **Input**:
         * ``stats``: python dictionary (see ``stats`` of ``simulate_stream()``)
         * ``ftr_names``: numpy array, contains all feature names
     * **Output**:
-        * ``plt``: pyplot object: contains a subplot for time/memory consumption and selected features over time
+        * ``plt``: pyplot object: statistic plots
 
 ### 2.3 FS algorithms
 * Online Feature Selection (OFS) by Wang et al. ([paper](https://ink.library.smu.edu.sg/cgi/viewcontent.cgi?article=3277&context=sis_research))
-    * ``algorithm = 'ofs'``
 * Unsupervised Feature Selection on Data Streams (FSDS) by Huang et al.([paper](http://www.shivakasiviswanathan.com/CIKM15.pdf))
-    * ``algorithm =  'fsds'``
-    * Additional parameters included in ``param``:
-        * ``b``: list, initial sketch matrix
-        * ``ell``: integer, initial sketch size
-        * ``k``: integer, number of singular values (usually equal to number of clusters)
+* Feature Selection based on Micro Cluster Nearest Neighbors by Hamoodi et al. ([paper](https://www.researchgate.net/profile/Mahmood_Shakir2/publication/326949948_Real-Time_Feature_Selection_Technique_with_Concept_Drift_Detection_using_Adaptive_Micro-Clusters_for_Data_Stream_Mining/links/5b89149e4585151fd13e1b1a/Real-Time-Feature-Selection-Technique-with-Concept-Drift-Detection-using-Adaptive-Micro-Clusters-for-Data-Stream-Mining.pdf))
+* CancelOut Feature Selection based on a Neural Network by Vadim Borisov (*more information will be included*)
     
 ### 2.4 Data Sets
-* Cleaned version of German Credit Score dataset ([link](https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit+data)))
-* Human Activity Recognition dataset ([link](https://archive.ics.uci.edu/ml/datasets/Human+Activity+Recognition+Using+Smartphones))
+All datasets are cleaned and normalized. The target variable of all datasets is moved to the first column.
+* German Credit Score ([link](https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit+data)))
+* Binary version of Human Activity Recognition ([link](https://archive.ics.uci.edu/ml/datasets/Human+Activity+Recognition+Using+Smartphones)).
+    * The original HAR dataset has a multivariate target. For its binary version we defined the class "WALKING" as our positive class (label=1) and all other classes as the negative (non-walking) class. 
+    We combined the 1722 samples of the original "WALKING" class with a random sample of 3000 instances from all other classes.
+* Usenet ([link](http://www.liaad.up.pt/kdus/products/datasets-for-concept-drift))
 
-## 3. Adding new FS algorithms
-If you want to add a new algorithm to the ``streamfs`` package follow these steps:
-1. create a new python file in the ``algorithms`` folder: ``[acronym].py``.
-2. check ``utils.py`` for existing utility functions (e.g. truncation of feature vector).
-3. Implement your algorithm as function ``run_[acronym]()`` in ``[acronym].py``. 
-The function has to return at least a vector of feature-weights + the computation time and memory consumption for one execution.
-Comment your function with docstring. **In any case, check ``ofs.py`` or ``fsds.py`` for reference.**
-4. Import ``algorithms/[acronym].py`` in ``streamfs.py``.
-5. Add ``elif algorithm == [acronym]``-condition in ``simulate_stream()`` function.
-Call ``run_[acronym]()`` from here (this executes your function for every "newly arrived" datapoint).
-6. Add algorithm description to README (section 2.3)
-7. Add example of algorithm usage to README (section 4)
+### 2.4 Classifiers
+Currently there are a K Nearest Neighbor, Decision Tree and Support Vector Classifier included.
 
 
-
-## 4. Examples
-### 4.1 OFS example
+## 3. Example
 ```python
-from streamfs import streamfs
+from pystreamfs import pystreamfs
 import numpy as np
 import pandas as pd
+from pystreamfs.algorithms import ofs
 
-# Load german credit score dataset
-credit_data = pd.read_csv('../datasets/cleaned_german_credit_score.csv')
-feature_names = np.array(credit_data.columns)
-credit_data = np.array(credit_data)
+# Load a dataset
+data = pd.read_csv('../datasets/credit.csv')
+feature_names = np.array(data.drop('target', 1).columns)
+data = np.array(data)
+
+# Load a FS algorithm
+algorithm = ofs.run_ofs
 
 # Define parameters
 param = dict()
 param['num_features'] = 5  # number of features to return
-param['batch_size'] = 1  # batch size for one iteration of ofs
+param['batch_size'] = 50  # batch size
+param['algorithm'] = 'knn'  # classification algorithm: here KNN
+param['neighbors'] = 5  # n_neighbors for KNN
 
 # Extract features and target variable
-X, Y = streamfs.prepare_data(credit_data, 23, False)
+X, Y = pystreamfs.prepare_data(data, 0, False)
 Y[Y == 0] = -1  # change 0 to -1, required by ofs
 
-# Simulate feature selection on a data stream (for the given data, FS algorithm and number of features)
-w, stats = streamfs.simulate_stream(X, Y, 'ofs', param)
+# Data stream simulation
+stats = pystreamfs.simulate_stream(X, Y, algorithm, param)
 
-# Print resulting feature weights
-print('Feature weights:\n', w[stats['features'][-1]])
-print('Selected features: {}'.format(feature_names[stats['features'][-1]]))
-
-# Print params
-print('Statistics for one execution of OFS with a batch size of {}:'.format(param['batch_size']))
-
-# Print the average memory usage for one iteration of the FS algorithm
-# -> this uses psutil.Process(pid).memory_percent()
-print('Average memory usage: {}% (of total physical memory)'.format(stats['memory_avg'] * 100))
-
-# Print average computation time in milliseconds for one iteration of the FS algorithm
-print('Average computation time: {}ms'.format(stats['time_avg']))
-
-# Plot time and memory consumption
-streamfs.plot_stats(stats, feature_names).show()
-```
-
-### 4.2 FSDS example
-```python
-from streamfs import streamfs
-import numpy as np
-import pandas as pd
-
-# Load humane activity recognition
-har_data = pd.read_csv('../datasets/human_activity_recognition.csv')
-feature_names = np.array(har_data.columns)
-har_data = np.array(har_data)
-
-# Extract features and target variable
-X, Y = streamfs.prepare_data(har_data, 562, False)
-Y, clusters = pd.factorize(Y)
-X = np.array(X, dtype='float')  # data has to be provided as float for internal SVD
-Y = np.array(Y)
-
-# Define initial parameters for FSDS
-param = dict()
-param['b'] = []  # initial sketch matrix
-param['ell'] = 0  # initial sketch size
-param['k'] = clusters.size  # no. of singular values (equal to no. of clusters)
-param['batch_size'] = 1000  # batch size for one iteration
-param['num_features'] = 10
-
-# Simulate feature selection on a data stream (for the given data, FS algorithm and parameters)
-w, stats = streamfs.simulate_stream(X, Y, 'fsds', param)
-
-# Print resulting feature weights
-print('Feature weights:\n', w[stats['features'][-1]])
-print('Selected features: {}'.format(stats['features'][-1]))
-
-# Print params
-print('Statistics for one execution of FSDS with a batch size of {}:'.format(param['batch_size']))
-
-# Print the average memory usage for one iteration of the FS algorithm
-# -> this uses psutil.Process(pid).memory_percent()
-print('Average memory usage: {}% (of total physical memory)'.format(stats['memory_avg'] * 100))
-
-# Print average computation time in milliseconds for one iteration of the FS algorithm
-print('Average computation time: {}ms'.format(stats['time_avg']))
-
-# Plot time and memory consumption
-streamfs.plot_stats(stats, feature_names).show()
+# Plot statistics
+pystreamfs.plot_stats(stats, feature_names).show()
 ```
