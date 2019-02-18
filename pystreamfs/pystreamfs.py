@@ -26,7 +26,7 @@ def prepare_data(data, target, shuffle):
     return X, Y
 
 
-def simulate_stream(X, Y, ftr_selection, param):
+def simulate_stream(X, Y, fs_algorithm, model, param):
     """Feature selection on simulated data stream
 
     Stream simulation by batch-wise iteration over dataset.
@@ -34,7 +34,8 @@ def simulate_stream(X, Y, ftr_selection, param):
 
     :param numpy.ndarray X: dataset
     :param numpy.ndarray Y: target
-    :param function ftr_selection: feature selection algorithm
+    :param function fs_algorithm: feature selection algorithm
+    :param object model: Machine learning model for classification
     :param dict param: parameters
     :return: ftr_weights (selected features and their weights over time), stats (performance metrics over time)
     :rtype: numpy.ndarray, dict
@@ -44,7 +45,6 @@ def simulate_stream(X, Y, ftr_selection, param):
     warnings.filterwarnings("ignore")
 
     ftr_weights = np.zeros(X.shape[1], dtype=int)  # create empty feature weights array
-    classifier = None  # ML model
     stats = {'time_measures': [],
              'memory_measures': [],
              'acc_measures': [],
@@ -57,16 +57,16 @@ def simulate_stream(X, Y, ftr_selection, param):
 
     # Stream simulation
     for i in range(0, X.shape[0], param['batch_size']):
-        if ftr_selection is None:
-            print('Feature selection algorithm is not defined!')
+        if fs_algorithm is None or model is None:
+            print('Feature selection algorithm or ML model is not defined!')
             return ftr_weights, stats
 
         # Time taking
         start_t = time.perf_counter()
 
         # Perform feature selection
-        ftr_weights, param = ftr_selection(X=X[i:i+param['batch_size']], Y=Y[i:i+param['batch_size']],
-                                           w=ftr_weights, param=param)
+        ftr_weights, param = fs_algorithm(X=X[i:i + param['batch_size']], Y=Y[i:i + param['batch_size']],
+                                          w=ftr_weights, param=param)
         selected_ftr = np.argsort(abs(ftr_weights))[::-1][:param['num_features']]  # top m features
 
         # Memory and time taking
@@ -74,7 +74,7 @@ def simulate_stream(X, Y, ftr_selection, param):
         m = psutil.Process(os.getpid()).memory_full_info().uss
 
         # Classify samples
-        classifier, acc = classify(X, Y, i, selected_ftr, classifier, param)
+        model, acc = classify(X, Y, i, selected_ftr, model, param)
 
         # Save statistics
         stats['time_measures'].append(t)

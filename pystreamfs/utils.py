@@ -1,6 +1,3 @@
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 
 
@@ -46,22 +43,6 @@ def classify(X, Y, i, selected_ftr, model, param):
     else:
         x_train = X[0:i, selected_ftr]
         y_train = Y[0:i]
-
-    # Initialize ML model
-    if model is None and param['classifier'] == "knn":
-        model = KNeighborsClassifier(n_jobs=-1)
-    elif model is None and param['classifier'] == "tree":
-        model = DecisionTreeClassifier(random_state=0)
-    elif model is None and param['classifier'] == "svm":
-        model = SVC()
-
-    # n_neighbors for KNN
-    if type(model) is KNeighborsClassifier:
-        if x_train.shape[0] < param['neighbors']:
-            # adjust KNN neighbors if there are too less samples available yet
-            model.n_neighbors = x_train.shape[0]
-        else:
-            model.n_neighbors = param['neighbors']
 
     # Train model
     model.fit(x_train, y_train)

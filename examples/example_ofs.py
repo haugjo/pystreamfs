@@ -2,28 +2,30 @@ from pystreamfs import pystreamfs
 import numpy as np
 import pandas as pd
 from pystreamfs.algorithms import ofs
+from sklearn.neighbors import KNeighborsClassifier
 
 # Load a dataset
 data = pd.read_csv('../datasets/credit.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
+# Extract features and target variable
+X, Y = pystreamfs.prepare_data(data, 0, False)
+Y[Y == 0] = -1  # change 0 to -1, required by ofs
+
 # Load a FS algorithm
-algorithm = ofs.run_ofs
+fs_algorithm = ofs.run_ofs
 
 # Define parameters
 param = dict()
 param['num_features'] = 5  # number of features to return
 param['batch_size'] = 50  # batch size
-param['classifier'] = 'knn'  # classification algorithm: here KNN
-param['neighbors'] = 5  # n_neighbors for KNN
 
-# Extract features and target variable
-X, Y = pystreamfs.prepare_data(data, 0, False)
-Y[Y == 0] = -1  # change 0 to -1, required by ofs
+# Define ML model
+model = KNeighborsClassifier(n_jobs=-1, n_neighbors=5)
 
 # Data stream simulation
-stats = pystreamfs.simulate_stream(X, Y, algorithm, param)
+stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, param)
 
 # Plot statistics
 pystreamfs.plot_stats(stats, feature_names).show()

@@ -1,11 +1,12 @@
-# PyStreamFS
+![pystreamfs logo](./dist/logo.png)
+
 PyStreamFS allows for quick and simple comparison of feature selection algorithms on a simulated data stream.
 
 The user can simulate data streams with varying batch size on any dataset provided as a numpy array. 
 PyStreamFS applies a specified feature selection algorithm to every batch and computes performance metrics for the
 selected feature set at every time t. PyStreamFS can also be used to plot the performance metrics.
 
-The package currently includes 3 datasets, 4 feature selection algorithms and 3 classifiers for computation of the accuracy scores.
+The package currently includes 3 datasets and 4 feature selection algorithms.
 
 **Version:** 0.0.1<br>
 **Upcoming changes:**
@@ -43,18 +44,18 @@ Datasets are stored in ``datasets``.
     * **Output**:
         * ``X``: numpy.ndarray, features
         * ``Y``: numpy.ndarray, target variable
-* ``stats = simulate_stream(X, Y, algorithm, param)``
+* ``stats = simulate_stream(X, Y, fs_algorithm, model, param)``
     * **Description**: Iterate over all datapoints in the dataset to simulate a data stream. 
     Perform given feature selection algorithm and return performance statistics.
     * **Input**:
         * ``X``: numpy array, this is the ``X`` returned by ``prepare_data()``
         * ``Y``: numpy array, this is the ``Y`` returned by ``prepare_data()``
-        * ``algorithm``: function, feature selection algorithm
+        * ``fs_algorithm``: function, feature selection algorithm
+        * ``ml_model``: object, the machine learning model to use for the computation of the accuracy score 
+        (remark on KNN: number of neighbours has to be greater or equal to batch size)
         * ``param``: python dict(), includes:
             * ``num_features``: integer, the number of features you want returned
             * ``batch_size``: integer, number of instances processed in one iteration
-            * ``classifier``: string, the classifier to use for calculation of accuracy score, currently ``knn`` for K Nearest Neighbor,
-                ``tree`` for Decision Tree and ``svm`` for Support Vector Classifier
             * ... additional algorithm specific parameters
     * **Output**:
         * ``stats``: python dictionary
@@ -90,9 +91,6 @@ All datasets are cleaned and normalized. The target variable of all datasets is 
     We combined the 1722 samples of the original "WALKING" class with a random sample of 3000 instances from all other classes.
 * Usenet ([link](http://www.liaad.up.pt/kdus/products/datasets-for-concept-drift))
 
-### 2.4 Classifiers
-Currently there are a K Nearest Neighbor, Decision Tree and Support Vector Classifier included.
-
 
 ## 3. Example
 ```python
@@ -100,28 +98,30 @@ from pystreamfs import pystreamfs
 import numpy as np
 import pandas as pd
 from pystreamfs.algorithms import ofs
+from sklearn.neighbors import KNeighborsClassifier
 
 # Load a dataset
 data = pd.read_csv('../datasets/credit.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
+# Extract features and target variable
+X, Y = pystreamfs.prepare_data(data, 0, False)
+Y[Y == 0] = -1  # change 0 to -1, required by ofs
+
 # Load a FS algorithm
-algorithm = ofs.run_ofs
+fs_algorithm = ofs.run_ofs
 
 # Define parameters
 param = dict()
 param['num_features'] = 5  # number of features to return
 param['batch_size'] = 50  # batch size
-param['algorithm'] = 'knn'  # classification algorithm: here KNN
-param['neighbors'] = 5  # n_neighbors for KNN
 
-# Extract features and target variable
-X, Y = pystreamfs.prepare_data(data, 0, False)
-Y[Y == 0] = -1  # change 0 to -1, required by ofs
+# Define ML model
+model = KNeighborsClassifier(n_jobs=-1, n_neighbors=5)
 
 # Data stream simulation
-stats = pystreamfs.simulate_stream(X, Y, algorithm, param)
+stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, param)
 
 # Plot statistics
 pystreamfs.plot_stats(stats, feature_names).show()
