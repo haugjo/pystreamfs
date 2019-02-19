@@ -1,5 +1,7 @@
 <img src="./dist/logo.png" width="400" height="70"/>
 
+[![PyPI version](https://badge.fury.io/py/pystreamfs.svg)](https://badge.fury.io/py/pystreamfs)
+
 *pystreamfs* is an Open-Source Python package that allows for quick and simple comparison of feature selection algorithms on a simulated data stream.
 
 The user can simulate data streams with varying batch size on any dataset provided as a numpy.ndarray. 
