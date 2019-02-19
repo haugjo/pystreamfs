@@ -1,4 +1,4 @@
-<img src="./dist/logo.png" width="400" height="70"/>
+<img src="logo.png" width="400" height="70"/>
 
 *pystreamfs* is an Open-Source Python package that allows for quick and simple comparison of feature selection algorithms on a simulated data stream.
 
@@ -9,7 +9,7 @@ selected feature set at every time *t*. *pystreamfs* can also be used to plot th
 The package currently includes 3 datasets and 4 feature selection algorithms built in. 
 *pystreamfs* has a modular structure and is thus easily expandable.
 
-**Version:** 0.0.1<br>
+**License:** MIT License<br>
 **Upcoming changes:**
 * additional built in datasets, feature selection algorithms and classifiers
 * ability to simulate feature streams
@@ -26,9 +26,9 @@ The following Python modules need to be installed (older versions than indicated
 * ... any modules required by the feature selection algorithm 
 
 ### 1.2 How to get *pystreamfs*
-You can find the current distribution of *pystreamfs* for download in ``/dist``. 
-Download and unpack the .zip (Windows) or .tar.gz (Linux) file. Navigate to the unpacked folder and execute
-``python setup.py install`` to install the module.
+Using pip: ``pip install pystreamfs``<br>
+**OR** Download and unpack the .zip (Windows) or .tar.gz (Linux) file in ``/dist``. Navigate to the unpacked folder and execute
+``python setup.py install``.
  
 ## 2 The Package  
 ### 2.1 Files
