@@ -34,4 +34,4 @@ model = SVC()
 stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, param)
 
 # Plot statistics
-pystreamfs.plot_stats(stats, feature_names).show()
+pystreamfs.plot_stats(stats, feature_names, param, 'Micro Cluster Nearest Neighbor (MCNN)', 'Support Vector Classifier').show()

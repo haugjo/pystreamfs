@@ -19,7 +19,6 @@ fs_algorithm = cancelout.run_cancelout
 param = dict()
 param['num_features'] = 5  # number of features to return
 param['batch_size'] = 50  # batch size
-param['algorithm'] = 'svm'  # classification algorithm: here SVM
 
 # Define a ML model
 model = SVC()
@@ -28,4 +27,4 @@ model = SVC()
 stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, param)
 
 # Plot statistics
-pystreamfs.plot_stats(stats, feature_names).show()
+pystreamfs.plot_stats(stats, feature_names, param, 'CancelOut', 'Support Vector Classifier').show()

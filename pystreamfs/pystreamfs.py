@@ -100,21 +100,27 @@ def simulate_stream(X, Y, fs_algorithm, model, param):
     return stats
 
 
-def plot_stats(stats, ftr_names):
+def plot_stats(stats, ftr_names, param, fs_algorithm, ml_model):
     """Print statistics
 
     Prints performance metrics obtained during feature selection on simulated data stream
 
     :param dict stats: statistics
-    :param np.array ftr_names: names of original features
+    :param np.ndarray ftr_names: names of original features
+    :param dict param: parameters
+    :param string fs_algorithm: name of the fs algorithm
+    :param string ml_model: name of the ML model
     :return: chart
     :rtype: plt.figure
     """
 
     plot_data = dict()
 
-    # Feature names
+    # Feature names & parameters
     plot_data['ftr_names'] = ftr_names
+    plot_data['param'] = param
+    plot_data['fs_algorithm'] = fs_algorithm
+    plot_data['ml_model'] = ml_model
 
     # Time in ms
     plot_data['x_time'] = np.array(range(0, len(stats['time_measures'])))

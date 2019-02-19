@@ -28,4 +28,4 @@ model = KNeighborsClassifier(n_jobs=-1, n_neighbors=5)
 stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, param)
 
 # Plot statistics
-pystreamfs.plot_stats(stats, feature_names).show()
+pystreamfs.plot_stats(stats, feature_names, param, 'Online feature selection (OFS)', 'K Nearest Neighbor').show()

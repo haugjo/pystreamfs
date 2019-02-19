@@ -6,29 +6,34 @@ import matplotlib.gridspec as gridspec
 def plot(data):
     """Plot statistics
 
-    :param data: statistics prepared for plotting
+    :param dict data: statistics prepared for plotting
     :return: plt
     :rtype: plt.figure
     """
 
-    plt.figure(figsize=(20, 25))
-    gs1 = gridspec.GridSpec(5, 2)
+    fig = plt.figure(figsize=(20, 25))
+    fig.canvas.set_window_title('pystreamfs')
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
+    gs1 = gridspec.GridSpec(6, 2)
     gs1.update(wspace=0.2, hspace=0.8)
 
+    # Parameters
+    _plot_parameters(plt.subplot(gs1[0, :]), data)
+
     # Time
-    _plot_one_chart(plt.subplot(gs1[0, 0]), data['x_time'], data['y_time'], data['avg_time'], None, None, data['x_ticks'],
+    _plot_one_chart(plt.subplot(gs1[1, 0]), data['x_time'], data['y_time'], data['avg_time'], None, None, data['x_ticks'],
                     't', 'time (ms)', 'Time consumption')
 
     # Memory
-    _plot_one_chart(plt.subplot(gs1[0, 1]), data['x_mem'], data['y_mem'], data['avg_mem'], None, None, data['x_ticks'],
+    _plot_one_chart(plt.subplot(gs1[1, 1]), data['x_mem'], data['y_mem'], data['avg_mem'], None, None, data['x_ticks'],
                     't', 'memory (kB)', 'Memory usage')
 
     # Accuracy
-    _plot_one_chart(plt.subplot(gs1[1, :]), data['x_acc'], data['y_acc'], data['avg_acc'], data['q1_acc'], data['q3_acc'],
+    _plot_one_chart(plt.subplot(gs1[2, :]), data['x_acc'], data['y_acc'], data['avg_acc'], data['q1_acc'], data['q3_acc'],
                     data['x_ticks'], 't', 'accuracy (%)', 'Accuracy')
 
     # Selected features
-    ax = plt.subplot(gs1[2:-1, :])
+    ax = plt.subplot(gs1[3:-1, :])
     ax.set_title('Selected features')
     ax.set_ylabel('feature')
     ax.set_xticks(np.arange(0, data['x_acc'].shape[0], 1))
@@ -45,14 +50,45 @@ def plot(data):
         ax.set_yticklabels(data['ftr_names'])
 
     # new grid specs
-    gs2 = gridspec.GridSpec(5, 2)
+    gs2 = gridspec.GridSpec(6, 2)
     gs2.update(hspace=0)
 
     # FSCR
-    _plot_one_chart(plt.subplot(gs2[4, :]), data['x_fscr'], data['y_fscr'], data['avg_fscr'], None, None,
+    _plot_one_chart(plt.subplot(gs2[5, :]), data['x_fscr'], data['y_fscr'], data['avg_fscr'], None, None,
                     data['x_ticks'], 't', 'fscr (%)', None, True)
 
     return plt
+
+
+def _plot_parameters(ax, data):
+    """Plot the header including all parameters
+
+    :param AxesSubplot ax: grid axis
+    :param dict data: data including the parameters
+    """
+    ax.axis('off')
+    ax.text(0, 1, 'pystreamfs -  Statistics Plot', size='18', weight='bold')
+
+    # Header (left)
+    ax.text(0, 0.6, 'Feature Selection algorithm:', weight='bold')
+    ax.text(0.15, 0.6, data['fs_algorithm'])
+    ax.text(0, 0.2, 'Machine Learning model: ', weight='bold')
+    ax.text(0.15, 0.2, data['ml_model'])
+
+    # Parameters (right)
+    y = 0.4  # starting coordinates
+    x = 0.4
+
+    ax.text(0.4, 0.6, 'Parameters:', weight='bold')
+
+    for key, value in data['param'].items():
+        if isinstance(value, (int, float, str)):  # only plot scalar values
+            ax.text(x, y, key + ' = ' + str(value))
+            y -= 0.2
+
+            if y < 0:
+                y = 0.4
+                x += 0.2
 
 
 def _plot_one_chart(ax, x, y, avg, q1, q3, x_ticks, x_label, y_label, title, starts_at_one=False):
@@ -60,17 +96,17 @@ def _plot_one_chart(ax, x, y, avg, q1, q3, x_ticks, x_label, y_label, title, sta
 
     Plots the measurements over time, the mean and optionally an interquartile range
 
-    :param ax: grid axis
-    :param x: x coordinates
-    :param y: y coordinates
-    :param avg: mean
-    :param q1: first quartile
-    :param q3: third quartile
-    :param x_ticks: ticks for x-axis
-    :param x_label: x labels
-    :param y_label: y labels
-    :param title: title
-    :param starts_at_one: indicates whether plot starts at t=1 (required for fscr score)
+    :param AxesSubplot ax: grid axis
+    :param np.ndarray x: x coordinates
+    :param np.ndarray y: y coordinates
+    :param float avg: mean
+    :param float q1: first quartile
+    :param float q3: third quartile
+    :param list x_ticks: ticks for x-axis
+    :param string x_label: x labels
+    :param string y_label: y labels
+    :param string title: title
+    :param boolean starts_at_one: indicates whether plot starts at t=1 (required for fscr score)
     """
     ax.plot(x, y)
 

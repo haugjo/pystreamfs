@@ -32,4 +32,4 @@ model = DecisionTreeClassifier(random_state=0)
 stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, param)
 
 # Plot statistics
-pystreamfs.plot_stats(stats, feature_names).show()
+pystreamfs.plot_stats(stats, feature_names, param, 'Feature Selection on Data Streams (FSDS)', 'Decision Tree').show()

@@ -69,11 +69,14 @@ Datasets are stored in ``datasets``.
             * ``fscr_avg``: float, average feature selection change rate (fscr) per time window. 
             The fscr is the percentage of selected features that changes in *t* with respect to *t-1* (fscr=0 if all selected features remain the same, fscr=1 if all selected features change)
             * ``fscr_measures`` list, fscr measures for every batch
-* ``plt = plot_stats(stats, ftr_names):``
+* ``plt = plot_stats(stats, ftr_names, param, fs_name, model_name):``
     * **Description**: Plot the statistics for time, memory, fscr and selected features over all time windows.
     * **Input**:
         * ``stats``: python dictionary (see ``stats`` of ``simulate_stream()``)
         * ``ftr_names``: numpy array, contains all feature names
+        * ``param``: python dict(), parameters
+        * ``fs_name``: string, name of FS algorithm
+        * ``model_name``: string, name of ML model
     * **Output**:
         * ``plt``: pyplot object: statistic plots
 
