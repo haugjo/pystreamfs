@@ -1,4 +1,4 @@
 include README.md
 recursive-include examples *.py
 recursive-include datasets *.csv
-recursive-include streamfs *.py
+recursive-include pystreamfs *.py
