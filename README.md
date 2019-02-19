@@ -1,4 +1,4 @@
-<img src="./dist/logo.png" width="400" height="100"/>
+<img src="./dist/logo.png" width="400" height="70"/>
 
 PyStreamFS allows for quick and simple comparison of feature selection algorithms on a simulated data stream.
 
