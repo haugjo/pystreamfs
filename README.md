@@ -9,7 +9,6 @@ selected feature set at every time *t*. *pystreamfs* can also be used to plot th
 The package currently includes 3 datasets and 4 feature selection algorithms built in. 
 *pystreamfs* has a modular structure and is thus easily expandable.
 
-**Version:** 0.1.0<br>
 **License:** MIT License<br>
 **Upcoming changes:**
 * additional built in datasets, feature selection algorithms and classifiers
