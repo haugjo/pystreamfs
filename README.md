@@ -1,4 +1,5 @@
 <img src="logo.png" width="400" height="70"/>
+[![PyPI version](https://badge.fury.io/py/pystreamfs.svg)](https://badge.fury.io/py/pystreamfs)
 
 *pystreamfs* is an Open-Source Python package that allows for quick and simple comparison of feature selection algorithms on a simulated data stream.
 
