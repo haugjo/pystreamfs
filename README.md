@@ -1,4 +1,4 @@
-![pystreamfs logo](./dist/logo.png)
+<img src="./dist/logo.png" width="400" height="100"/>
 
 PyStreamFS allows for quick and simple comparison of feature selection algorithms on a simulated data stream.
 
@@ -127,5 +127,5 @@ model = KNeighborsClassifier(n_jobs=-1, n_neighbors=5)
 stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, param)
 
 # Plot statistics
-pystreamfs.plot_stats(stats, feature_names).show()
+pystreamfs.plot_stats(stats, feature_names, param, 'Online feature selection (OFS)', 'K Nearest Neighbor').show()
 ```
