@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pystreamfs",
-    version="0.0.1",
+    version="0.1.0",
     author="Johannes Haug",
     author_email="johannes-christian.haug@uni-tuebingen.de",
     description="A Python package for feature selection on a simulated data stream",
@@ -17,5 +17,5 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-    ],
+    ]
 )
