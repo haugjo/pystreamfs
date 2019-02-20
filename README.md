@@ -1,4 +1,4 @@
-<img src="https://github.com/haugjo/pystreamfs_development/blob/master/logo.png" width="450" height="70"/>
+<img src="https://github.com/haugjo/pystreamfs_development/blob/master/logo.png?raw=true" width="450" height="70"/>
 
 [![PyPI version](https://badge.fury.io/py/pystreamfs.svg)](https://badge.fury.io/py/pystreamfs)
 
