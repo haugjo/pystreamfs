@@ -1,4 +1,4 @@
-<img src="logo.png" width="400" height="70"/>
+<img src="https://raw.githubusercontent.com/haugjo/pystreamfs/master/logo.png" width="450" height="70"/>
 
 [![PyPI version](https://badge.fury.io/py/pystreamfs.svg)](https://badge.fury.io/py/pystreamfs)
 
@@ -8,14 +8,14 @@ The user can simulate data streams with varying batch size on any dataset provid
 *pystreamfs* applies a specified feature selection algorithm to every batch and computes performance metrics for the
 selected feature set at every time *t*. *pystreamfs* can also be used to plot the performance metrics.
 
-The package currently includes 3 datasets and 4 feature selection algorithms built in. 
+*pystreamfs* comes with 4 built-in feature selection algorithms. Additionally, you can find 3 datasets ready for download on [Github](https://github.com/haugjo/pystreamfs). 
 *pystreamfs* has a modular structure and is thus easily expandable.
 
 **License:** MIT License<br>
 **Upcoming changes:**
-* additional built in datasets, feature selection algorithms and classifiers
 * ability to simulate feature streams
 * ability to generate artificial data streams
+* additional datasets and feature selection algorithms for download
 
 ## 1 Getting started
 ### 1.1 Prerequesites
@@ -29,18 +29,17 @@ The following Python modules need to be installed (older versions than indicated
 
 ### 1.2 How to get *pystreamfs*
 Using pip: ``pip install pystreamfs``<br>
-**OR** Download and unpack the .zip (Windows) or .tar.gz (Linux) file in ``/dist``. Navigate to the unpacked folder and execute
+**OR** Download and unpack the .tar.gz file in ``/dist``. Navigate to the unpacked folder and execute
 ``python setup.py install``.
  
 ## 2 The Package  
 ### 2.1 Files
-The main module is ``/pystreamfs/pystreamfs.py``. Feature selection algorithms are stored in ``/algorithms``. 
-Datasets are stored in ``/datasets``. Examples can be found in ``/examples``.
+The main module is ``/pystreamfs/pystreamfs.py``. Feature selection algorithms are stored in ``/algorithms``.
  
 ### 2.2 Main module: ``pystreamfs.py``
 ``pystreamfs.py`` provides the following functions:
 * ``X, Y = prepare_data(data, target, shuffle)``
-    * **Description**: Prepare the data set for the simulation of a data stream: randomly sort the rows of a the data matrix and extract the target variable ``Y`` and the features ``X``
+    * **Description**: Prepare the data set for the simulation of a data stream: randomly sort the rows of a data matrix and extract the target variable ``Y`` and the features ``X``
     * **Input**:
         * ``data``: numpy.ndarray, data set
         * ``target``: int, index of the target variable
@@ -52,18 +51,18 @@ Datasets are stored in ``/datasets``. Examples can be found in ``/examples``.
     * **Description**: Iterate over all datapoints in the dataset to simulate a data stream. 
     Perform given feature selection algorithm and return performance statistics.
     * **Input**:
-        * ``X``: numpy array, this is the ``X`` returned by ``prepare_data()``
-        * ``Y``: numpy array, this is the ``Y`` returned by ``prepare_data()``
+        * ``X``: numpy.ndarray, this is the ``X`` returned by ``prepare_data()``
+        * ``Y``: numpy.ndarray, this is the ``Y`` returned by ``prepare_data()``
         * ``fs_algorithm``: function, feature selection algorithm
         * ``ml_model``: object, the machine learning model to use for the computation of the accuracy score 
         (remark on KNN: number of neighbours has to be greater or equal to batch size)
-        * ``param``: python dict(), includes:
+        * ``param``: dict, includes:
             * ``num_features``: integer, the number of features you want returned
-            * ``batch_size``: integer, number of instances processed in one iteration
+            * ``batch_size``: integer, the number of instances processed in one iteration
             * ... additional algorithm specific parameters
     * **Output**:
-        * ``stats``: python dictionary
-            * ``features``: set of selected features for every batch
+        * ``stats``: dict
+            * ``features``: list of lists, set of selected features for every batch
             * ``time_avg``: float, average computation time for one execution of the feature selection
             * ``time_measures``: list, time measures for every batch
             * ``memory_avg``: float, average memory usage after one execution of the feature selection, uses ``psutil.Process(os.getpid()).memory_full_info().uss``
@@ -76,11 +75,11 @@ Datasets are stored in ``/datasets``. Examples can be found in ``/examples``.
 * ``plt = plot_stats(stats, ftr_names, param, fs_name, model_name):``
     * **Description**: Plot the statistics for time, memory, fscr and selected features over all time windows.
     * **Input**:
-        * ``stats``: python dictionary (see ``stats`` of ``simulate_stream()``)
-        * ``ftr_names``: numpy array, contains all feature names
-        * ``param``: python dict(), parameters
-        * ``fs_name``: string, name of FS algorithm
-        * ``model_name``: string, name of ML model
+        * ``stats``: dict (see ``stats`` of ``simulate_stream()``)
+        * ``ftr_names``: numpy.ndarray, contains all feature names
+        * ``param``: dict, parameters
+        * ``fs_name``: string, name of feature selection algorithm
+        * ``model_name``: string, name of machine learning model
     * **Output**:
         * ``plt``: pyplot object: statistic plots
 
@@ -88,9 +87,9 @@ Datasets are stored in ``/datasets``. Examples can be found in ``/examples``.
 * Online Feature Selection (OFS) by Wang et al. ([paper](https://ink.library.smu.edu.sg/cgi/viewcontent.cgi?article=3277&context=sis_research))
 * Unsupervised Feature Selection on Data Streams (FSDS) by Huang et al.([paper](http://www.shivakasiviswanathan.com/CIKM15.pdf))
 * Feature Selection based on Micro Cluster Nearest Neighbors by Hamoodi et al. ([paper](https://www.researchgate.net/profile/Mahmood_Shakir2/publication/326949948_Real-Time_Feature_Selection_Technique_with_Concept_Drift_Detection_using_Adaptive_Micro-Clusters_for_Data_Stream_Mining/links/5b89149e4585151fd13e1b1a/Real-Time-Feature-Selection-Technique-with-Concept-Drift-Detection-using-Adaptive-Micro-Clusters-for-Data-Stream-Mining.pdf))
-* CancelOut Feature Selection based on a Neural Network by Vadim Borisov (*more information will be included*)
+* CancelOut Feature Selection based on a Neural Network by Vadim Borisov ([Github](https://github.com/unnir/CancelOut))
     
-### 2.4 Built-in datasets
+### 2.4 Downloadable datasets
 All datasets are cleaned and normalized. The target variable of all datasets is moved to the first column.
 * German Credit Score ([link](https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit+data)))
 * Binary version of Human Activity Recognition ([link](https://archive.ics.uci.edu/ml/datasets/Human+Activity+Recognition+Using+Smartphones)).
