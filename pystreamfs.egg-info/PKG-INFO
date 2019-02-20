@@ -1,12 +1,12 @@
 Metadata-Version: 2.1
 Name: pystreamfs
-Version: 0.0.2
+Version: 0.0.4
 Summary: A Python package for feature selection on a simulated data stream
 Home-page: https://github.com/haugjo/pystreamfs
 Author: Johannes Haug
 Author-email: johannes-christian.haug@uni-tuebingen.de
 License: UNKNOWN
-Description: <img src="https://github.com/haugjo/pystreamfs_development/blob/master/logo.png" width="450" height="70"/>
+Description: <img src="https://raw.githubusercontent.com/haugjo/pystreamfs_development/master/logo.png?token=ASkhjiKLpoLMcnmEJ1QnauUSuryxXoLqks5cdmElwA%3D%3D" width="450" height="70"/>
         
         [![PyPI version](https://badge.fury.io/py/pystreamfs.svg)](https://badge.fury.io/py/pystreamfs)
         
