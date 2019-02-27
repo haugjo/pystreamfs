@@ -12,7 +12,6 @@ selected feature set at every time *t*. *pystreamfs* can also be used to plot th
 *pystreamfs* has a modular structure and is thus easily expandable (see Section 2.5 for more information).
 
 **License:** MIT License<br>
-**Changes in 0.0.4:** added EFS algorithm by Carvalho et al.<br>
 **Upcoming changes:**
 * ability to simulate feature streams
 * ability to generate artificial data streams

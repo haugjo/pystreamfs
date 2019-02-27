@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: pystreamfs
-Version: 0.0.4
+Version: 0.0.5
 Summary: A Python package for feature selection on a simulated data stream
 Home-page: https://github.com/haugjo/pystreamfs
 Author: Johannes Haug
@@ -20,7 +20,6 @@ Description: <img src="https://raw.githubusercontent.com/haugjo/pystreamfs/maste
         *pystreamfs* has a modular structure and is thus easily expandable (see Section 2.5 for more information).
         
         **License:** MIT License<br>
-        **Changes in 0.1.0:** added EFS algorithm by Carvalho et al.<br>
         **Upcoming changes:**
         * ability to simulate feature streams
         * ability to generate artificial data streams
