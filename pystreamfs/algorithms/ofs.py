@@ -16,13 +16,22 @@ def run_ofs(X, Y, w, param):
     :return: w (feature weights), param
     :rtype numpy.ndarray, dict
 
-    .. warning: Y must be -1 or 1
+
+
+
+
     """
 
     eta = 0.2
     lamb = 0.01
 
     for x, y in zip(X, Y):  # perform feature selection for each instance in batch
+
+
+        # Convert label to -1 and 1
+        y = -1 if y == 0 else 1
+
+
         f = np.dot(w, x)  # prediction
 
         if y * f <= 1:  # update classifier w
