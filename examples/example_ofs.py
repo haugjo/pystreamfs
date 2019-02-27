@@ -11,7 +11,6 @@ data = np.array(data)
 
 # Extract features and target variable
 X, Y = pystreamfs.prepare_data(data, 0, False)
-Y[Y == 0] = -1  # change 0 to -1, required by ofs
 
 # Load a FS algorithm
 fs_algorithm = ofs.run_ofs
