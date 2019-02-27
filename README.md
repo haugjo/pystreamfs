@@ -8,14 +8,15 @@ The user can simulate data streams with varying batch size on any dataset provid
 *pystreamfs* applies a specified feature selection algorithm to every batch and computes performance metrics for the
 selected feature set at every time *t*. *pystreamfs* can also be used to plot the performance metrics.
 
-*pystreamfs* comes with 4 built-in feature selection algorithms. Additionally, you can find 3 datasets ready for download on [Github](https://github.com/haugjo/pystreamfs). 
-*pystreamfs* has a modular structure and is thus easily expandable.
+*pystreamfs* comes with 5 built-in feature selection algorithms for data streams. Additionally, you can find 3 datasets ready for download on [Github](https://github.com/haugjo/pystreamfs). 
+*pystreamfs* has a modular structure and is thus easily expandable (see Section 2.5 for more information).
 
 **License:** MIT License<br>
+**Changes in 0.0.4:** added EFS algorithm by Carvalho et al.<br>
 **Upcoming changes:**
 * ability to simulate feature streams
 * ability to generate artificial data streams
-* additional datasets and feature selection algorithms for download
+* ability to test multiple feature selection algorithms at once
 
 ## 1 Getting started
 ### 1.1 Prerequesites
@@ -84,9 +85,10 @@ The main module is ``/pystreamfs/pystreamfs.py``. Feature selection algorithms a
         * ``plt``: pyplot object: statistic plots
 
 ### 2.3 Built-in feature selection algorithms
-* Online Feature Selection (OFS) by Wang et al. ([paper](https://ink.library.smu.edu.sg/cgi/viewcontent.cgi?article=3277&context=sis_research))
-* Unsupervised Feature Selection on Data Streams (FSDS) by Huang et al.([paper](http://www.shivakasiviswanathan.com/CIKM15.pdf))
-* Feature Selection based on Micro Cluster Nearest Neighbors by Hamoodi et al. ([paper](https://www.researchgate.net/profile/Mahmood_Shakir2/publication/326949948_Real-Time_Feature_Selection_Technique_with_Concept_Drift_Detection_using_Adaptive_Micro-Clusters_for_Data_Stream_Mining/links/5b89149e4585151fd13e1b1a/Real-Time-Feature-Selection-Technique-with-Concept-Drift-Detection-using-Adaptive-Micro-Clusters-for-Data-Stream-Mining.pdf))
+* Online Feature Selection (OFS) based on the Perceptron algorithm by Wang et al. (2013) - [link to paper](https://ieeexplore.ieee.org/abstract/document/6522405)
+* Unsupervised Feature Selection on Data Streams (FSDS) using matrix sketching by Huang et al. (2015) - [link to paper](https://dl.acm.org/citation.cfm?id=2806521)
+* Feature Selection based on Micro Cluster Nearest Neighbors by Hamoodi et al. (2018) - [link to paper](https://www.sciencedirect.com/science/article/abs/pii/S0950705118304039)
+* Extremal Feature Selection based on a Modified Balanced Winnow classifier by Carvalho et al. (2006) - [link to paper](https://dl.acm.org/citation.cfm?id=1150466)
 * CancelOut Feature Selection based on a Neural Network by Vadim Borisov ([Github](https://github.com/unnir/CancelOut))
     
 ### 2.4 Downloadable datasets
@@ -97,6 +99,26 @@ All datasets are cleaned and normalized. The target variable of all datasets is 
     We combined the 1722 samples of the original "WALKING" class with a random sample of 3000 instances from all other classes.
 * Usenet ([link](http://www.liaad.up.pt/kdus/products/datasets-for-concept-drift))
 
+### 2.5 How to add a feature selection algorithm
+If you want to use *pystreamfs* to test your own feature selection algorithm, you have to encapsulate your algorithm in a function
+with the following format:
+```python
+def your_fs_algorithm(X, Y, w, param):
+    """Your feature selection algorithm
+    
+    :param numpy.nparray X: current data batch
+    :param numpy.nparray Y: labels of current batch
+    :param numpy.nparray w: feature weights
+    :param dict param: any parameters the algorithm requires
+    :return: w (updated feature weights), param
+    :rtype numpy.ndarray, dict
+    """
+
+    ...do feature selection...
+    
+    return w, param
+```
+Afterwards you can import and test your feature selection algorithm in the same way as for any built-in algorithm (see the example).
 
 ## 3. Example
 ```python
@@ -107,13 +129,12 @@ from pystreamfs.algorithms import ofs
 from sklearn.neighbors import KNeighborsClassifier
 
 # Load a dataset
-data = pd.read_csv('../datasets/credit.csv')
+data = pd.read_csv('../datasets/har.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
 # Extract features and target variable
 X, Y = pystreamfs.prepare_data(data, 0, False)
-Y[Y == 0] = -1  # change 0 to -1, required by ofs
 
 # Load a FS algorithm
 fs_algorithm = ofs.run_ofs

@@ -5,13 +5,12 @@ from pystreamfs.algorithms import ofs
 from sklearn.neighbors import KNeighborsClassifier
 
 # Load a dataset
-data = pd.read_csv('../datasets/credit.csv')
+data = pd.read_csv('../datasets/har.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
 # Extract features and target variable
 X, Y = pystreamfs.prepare_data(data, 0, False)
-Y[Y == 0] = -1  # change 0 to -1, required by ofs
 
 # Load a FS algorithm
 fs_algorithm = ofs.run_ofs
