@@ -28,15 +28,15 @@ def plot(data):
     _plot_one_chart(plt.subplot(gs1[1, 1]), data['x_mem'], data['y_mem'], data['avg_mem'], None, None, data['x_ticks'],
                     't', 'memory (kB)', 'Memory usage')
 
-    # Accuracy
-    _plot_one_chart(plt.subplot(gs1[2, :]), data['x_acc'], data['y_acc'], data['avg_acc'], data['q1_acc'], data['q3_acc'],
-                    data['x_ticks'], 't', 'accuracy (%)', 'Accuracy')
+    # Performance Score
+    _plot_one_chart(plt.subplot(gs1[2, :]), data['x_perf'], data['y_perf'], data['avg_perf'], data['q1_perf'], data['q3_perf'],
+                    data['x_ticks'], 't', data['metric'], 'Learning Performance')
 
     # Selected features
     ax = plt.subplot(gs1[3:-1, :])
     ax.set_title('Selected features')
     ax.set_ylabel('feature')
-    ax.set_xticks(np.arange(0, data['x_acc'].shape[0], 1))
+    ax.set_xticks(np.arange(0, data['x_perf'].shape[0], 1))
     ax.set_xticklabels([])
 
     # plot selected features for each execution

@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from pystreamfs.algorithms import cancelout
 from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
 
 # Load a dataset
 data = pd.read_csv('../datasets/credit.csv')
@@ -20,11 +21,12 @@ param = dict()
 param['num_features'] = 5  # number of features to return
 param['batch_size'] = 50  # batch size
 
-# Define a ML model
+# Define a ML model and a performance metric
 model = SVC()
+metric = accuracy_score
 
 # Data stream simulation
-stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, param)
+stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, metric, param)
 
 # Plot statistics
-pystreamfs.plot_stats(stats, feature_names, param, 'CancelOut', 'Support Vector Classifier').show()
+pystreamfs.plot_stats(stats, feature_names, 'CancelOut', type(model).__name__, metric.__name__, param).show()

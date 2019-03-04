@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from pystreamfs.algorithms import efs
 from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
 
 # Load a dataset
 data = pd.read_csv('../datasets/usenet.csv')
@@ -28,11 +29,12 @@ param['beta'] = 0.5  # demotion parameter
 param['threshold'] = 1  # threshold parameter
 param['M'] = 1  # margin
 
-# Define a ML model
+# Define a ML model and a performance metric
 model = SVC()
+metric = accuracy_score
 
 # Data stream simulation
-stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, param)
+stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, metric, param)
 
 # Plot statistics
-pystreamfs.plot_stats(stats, feature_names, param, 'Extremal Feature Selection (EFS)', 'Support Vector Classifier').show()
+pystreamfs.plot_stats(stats, feature_names, 'Extremal Feature Selection', type(model).__name__, metric.__name__, param).show()
