@@ -2,11 +2,11 @@
 
 [![PyPI version](https://badge.fury.io/py/pystreamfs.svg)](https://badge.fury.io/py/pystreamfs)
 
-**!!! DEVELOPMENT RELEASE !!!**
+<h1>!!! DEVELOPMENT RELEASE !!!</h1>
 
-*pystreamfs* is an Open-Source Python package that allows for quick and simple comparison of feature selection algorithms on a simulated data stream.
+*pystreamfs* is an Open-Source Python package that allows for quick and simple comparison of feature selection algorithms on a simulated data and feature stream.
 
-The user can simulate data streams with varying batch size on any dataset provided as a numpy.ndarray. 
+The user can simulate data/feature streams with varying batch size on any dataset provided as a numpy.ndarray. 
 *pystreamfs* applies a specified feature selection algorithm to every batch and computes performance metrics for the
 selected feature set at every time *t*. *pystreamfs* can also be used to plot the performance metrics.
 
@@ -14,9 +14,7 @@ selected feature set at every time *t*. *pystreamfs* can also be used to plot th
 *pystreamfs* has a modular structure and is thus easily expandable (see Section 2.5 for more information).
 
 **License:** MIT License<br>
-**Changes in 0.0.5:** added EFS algorithm by Carvalho et al.<br>
 **Upcoming changes:**
-* ability to simulate feature streams
 * ability to generate artificial data streams
 * ability to test multiple feature selection algorithms at once
 
@@ -63,6 +61,10 @@ The main module is ``/pystreamfs/pystreamfs.py``. Feature selection algorithms a
             * ``num_features``: integer, the number of features you want returned
             * ``batch_size``: integer, the number of instances processed in one iteration
             * ... additional algorithm specific parameters
+            * **optional**: ``feature_stream``: dict, key/value-pairs. Add an entry for every *t* where you want a change of available features:
+                * key: time *t*
+                * value: list, feature indices available at time *t*<br>
+                **!!!Note: feature stream needs further testing and development!!!** 
     * **Output**:
         * ``stats``: dict
             * ``features``: list of lists, set of selected features for every batch
