@@ -55,7 +55,7 @@ def plot(data):
 
     # FSCR
     _plot_one_chart(plt.subplot(gs2[5, :]), data['x_fscr'], data['y_fscr'], data['avg_fscr'], None, None,
-                    data['x_ticks'], 't', 'fscr (%)', None, True)
+                    data['x_ticks'], 't', 'ftr. index change (%)', None, True)
 
     return plt
 

@@ -75,7 +75,7 @@ The main module is ``/pystreamfs/pystreamfs.py``. Feature selection algorithms a
             * ``acc_avg``: float, average accuracy for classification with the selected feature set
             * ``acc_measures``: list, accuracy measures for every batch
             * ``fscr_avg``: float, average feature selection change rate (fscr) per time window. 
-            The fscr is the percentage of selected features that changes in *t* with respect to *t-1* (fscr=0 if all selected features remain the same, fscr=1 if all selected features change)
+            The fscr is the percentage of selected feature indices that changes in *t* with respect to *t-1* (fscr=0 if all selected features remain the same, fscr=1 if all selected features change)
             * ``fscr_measures`` list, fscr measures for every batch
 * ``plt = plot_stats(stats, ftr_names, param, fs_name, model_name):``
     * **Description**: Plot the statistics for time, memory, fscr and selected features over all time windows.
