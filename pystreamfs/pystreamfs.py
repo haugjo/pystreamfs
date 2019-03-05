@@ -62,7 +62,7 @@ def simulate_stream(X, Y, fs_algorithm, model, metric, param):
 
         if 'feature_stream' in param and t in param['feature_stream']:  # feature stream
             ftr_indices = param['feature_stream'][t]
-        else:
+        elif 'feature_stream' not in param:
             ftr_indices = np.arange(0, X.shape[1])  # all features are available
 
         # Time taking
