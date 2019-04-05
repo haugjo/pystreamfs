@@ -13,7 +13,7 @@ def plot(data):
 
     fig = plt.figure(figsize=(20, 25))
     fig.canvas.set_window_title('pystreamfs')
-    plt.rcParams.update({'font.size': 12})
+    plt.rcParams.update({'font.size': 12 * data['font_scale']})
     plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
     gs1 = gridspec.GridSpec(6, 2)
     gs1.update(wspace=0.2, hspace=0.8)
@@ -67,10 +67,11 @@ def _plot_parameters(ax, data):
     :param AxesSubplot ax: grid axis
     :param dict data: data including the parameters
     """
-    f_size = '14'
+    f_size = str(14 * data['font_scale'])
+    header_size = str(24 * data['font_scale'])
 
     ax.axis('off')
-    ax.text(0, 1, 'pystreamfs -  Statistics Plot', size='24', weight='bold')
+    ax.text(0, 1, 'pystreamfs -  Statistics Plot', size=header_size, weight='bold')
 
     # Header (left)
     ax.text(0, 0.6, 'Feature Selection algorithm:', size=f_size, weight='bold')

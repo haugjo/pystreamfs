@@ -85,6 +85,8 @@ The main module is ``/pystreamfs/pystreamfs.py``. Feature selection algorithms a
         * ``param``: dict, parameters
         * ``fs_name``: string, name of feature selection algorithm
         * ``model_name``: string, name of machine learning model
+        * ``font_scale``: float, factor by which the standard font size for text is scaled
+        (default = 1)
     * **Output**:
         * ``plt``: pyplot object: statistic plots
 

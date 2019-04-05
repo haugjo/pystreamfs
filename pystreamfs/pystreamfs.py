@@ -103,7 +103,7 @@ def simulate_stream(X, Y, fs_algorithm, model, metric, param):
     return stats
 
 
-def plot_stats(stats, ftr_names, fs_algorithm, ml_model, metric, param):
+def plot_stats(stats, ftr_names, fs_algorithm, ml_model, metric, param, font_scale=1):
     """Print statistics
 
     Prints performance metrics obtained during feature selection on simulated data stream
@@ -114,6 +114,7 @@ def plot_stats(stats, ftr_names, fs_algorithm, ml_model, metric, param):
     :param string fs_algorithm: name of the fs algorithm
     :param string ml_model: name of the ML model
     :param string metric: name of the performance metric
+    :param float font_scale: factor by which the standard font size for text is scaled
     :return: chart
     :rtype: plt.figure
     """
@@ -126,6 +127,7 @@ def plot_stats(stats, ftr_names, fs_algorithm, ml_model, metric, param):
     plot_data['fs_algorithm'] = fs_algorithm
     plot_data['ml_model'] = ml_model
     plot_data['metric'] = metric
+    plot_data['font_scale'] = font_scale
 
     # Time in ms
     plot_data['x_time'] = np.array(range(0, len(stats['time_measures'])))
