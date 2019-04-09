@@ -21,19 +21,21 @@ def run_rfs(X, Y, param, **kw):
 
     np.random.seed(42)
 
-    # number of features
-    m = X.shape[1]
-
     # initialize uncertainty parameters for distribution of feature weights theta
-    my = np.zeros(m)
-    sigma = np.ones(m)
-    # bias = np.asarray([0, 1])  # normal distributed bias (constant) -> Todo: update bias as well
+    if 'mu' not in param and 'sigma' not in param:
+        m = X.shape[1]  # number of features
+        param['mu'] = np.zeros(m)
+        param['sigma'] = np.ones(m)
+        # bias = np.asarray([0, 1])  # normal distributed bias (constant) -> Todo: update bias as well
+
+    old_mu = param['mu'].copy()
+    old_sigma = param['sigma'].copy()
+    mu = old_mu.copy()
+    sigma = old_sigma.copy()
 
     for epoch in range(param['epochs']):
         # sort X randomly
         np.random.shuffle(X)
-
-        batch_start = 0
 
         for i in range(0, X.shape[0], param['mini_batch_size']):
             # Load mini batch
@@ -41,8 +43,8 @@ def run_rfs(X, Y, param, **kw):
             y = Y[i:i+param['mini_batch_size']]
 
             # helper functions
-            # dot product x . my
-            dot_x_my = np.dot(x, my)
+            # dot product x . mu
+            dot_x_mu = np.dot(x, mu)
 
             # dot product x^2 . sigma^2
             dot_x_sigma = np.dot(x ** 2, sigma ** 2)
@@ -53,20 +55,22 @@ def run_rfs(X, Y, param, **kw):
 
             # calculate partial derivatives -> Eq. 15 + 16
             # for 1 sample: del_delmy = norm.pdf(dot_my_x/np.sqrt(1+dot_x_sigma)) * (-1)**(1-y) * (x/np.sqrt(1+dot_x_sigma))
-            del_delmy = norm.pdf(dot_x_my / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y) * (x.T / np.sqrt(1 + dot_x_sigma))
+            nabla_mu = norm.pdf(dot_x_mu / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y) * (x.T / np.sqrt(1 + dot_x_sigma))
 
             # for 1 sample: del_delsigma = norm.pdf((-1)**(1-y) * dot_my_x/np.sqrt(1+dot_x_sigma)) * (-1)**(1-y) * (2*x**2*sigma * dot_my_x)/(-2 * np.sqrt(1+dot_x_sigma)**3)
-            del_delsigma = norm.pdf((-1) ** (1 - y) * dot_x_my / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y) * ((2 * x ** 2 * sigma).T * dot_x_my) / (-2 * np.sqrt(1 + dot_x_sigma) ** 3)
+            nabla_sigma = norm.pdf((-1) ** (1 - y) * dot_x_mu / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y) * ((2 * x ** 2 * sigma).T * dot_x_mu) / (-2 * np.sqrt(1 + dot_x_sigma) ** 3)
 
             # update parameters
-            my -= param['lr_my'] * np.mean(del_delmy, axis=1)
-            sigma -= param['lr_sigma'] * np.mean(del_delsigma, axis=1)
+            mu -= param['lr_mu'] * np.mean(nabla_mu, axis=1)
+            sigma -= param['lr_sigma'] * np.mean(nabla_sigma, axis=1)
 
-            # update batch start
-            batch_start += param['mini_batch_size']
+    # update param
+    param['mu'] = mu
+    param['sigma'] = sigma
 
-    # Todo: select weights according to robustness (standard deviation of the feature distribution)
-    # set my as feature weights
-    w = my
+    # compute feature weights
+    del_sigma_old = sigma - old_sigma  # penalize increase of uncertainty
+    del_sigma_1 = sigma - np.ones(sigma.shape[0])  # penalize absolute uncertainty, relative to standard normal dist.
+    w = mu - param['alpha'] * del_sigma_old - param['beta'] * del_sigma_1   # Todo: rethink if rather np.abs(mu)
 
     return w, param
