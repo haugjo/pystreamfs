@@ -71,7 +71,7 @@ def simulate_stream(X, Y, fs_algorithm, model, metric, param):
         # Perform feature selection
         ftr_weights, param = fs_algorithm(X=X[i:i + param['batch_size'], ftr_indices], Y=Y[i:i + param['batch_size']],
                                           w=ftr_weights, param=param)
-        selected_ftr = np.argsort(abs(ftr_weights))[::-1][:param['num_features']]  # top m features Todo: should I take actual values instead of absolutes?
+        selected_ftr = np.argsort(abs(ftr_weights))[::-1][:param['num_features']]  # top m absolute weights (features with highest influence)
 
         # Memory and time taking
         tim = time.perf_counter() - start_tim

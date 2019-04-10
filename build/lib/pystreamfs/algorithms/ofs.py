@@ -20,6 +20,9 @@ def run_ofs(X, Y, w, param):
     eta = 0.2
     lamb = 0.01
 
+    # extension to original code: initially define w
+    w = np.zeros(X.shape[1]) if len(w) == 0 else w
+
     for x, y in zip(X, Y):  # perform feature selection for each instance in batch
         # Convert label to -1 and 1
         y = -1 if y == 0 else 1

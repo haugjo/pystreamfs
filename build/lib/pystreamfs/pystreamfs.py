@@ -26,7 +26,7 @@ def prepare_data(data, target, shuffle):
     return X, Y
 
 
-def simulate_stream(X, Y, fs_algorithm, model, param):
+def simulate_stream(X, Y, fs_algorithm, model, metric, param):
     """Feature selection on simulated data stream
 
     Stream simulation by batch-wise iteration over dataset.
@@ -36,6 +36,7 @@ def simulate_stream(X, Y, fs_algorithm, model, param):
     :param numpy.ndarray Y: target
     :param function fs_algorithm: feature selection algorithm
     :param object model: Machine learning model for classification
+    :param function metric: performance metric
     :param dict param: parameters
     :return: ftr_weights (selected features and their weights over time), stats (performance metrics over time)
     :rtype: numpy.ndarray, dict
@@ -44,47 +45,49 @@ def simulate_stream(X, Y, fs_algorithm, model, param):
     # Do not display warnings in the console
     warnings.filterwarnings("ignore")
 
-    ftr_weights = np.zeros(X.shape[1], dtype=int)  # create empty feature weights array
+    ftr_weights = []  # empty feature weights array
     stats = {'time_measures': [],
              'memory_measures': [],
-             'acc_measures': [],
+             'perf_measures': [],
              'features': [],
              'fscr_measures': [],
              'time_avg': 0,
              'memory_avg': 0,
-             'acc_avg': 0,
+             'perf_avg': 0,
              'fscr_avg': 0}
 
     # Stream simulation
-    for i in range(0, X.shape[0], param['batch_size']):
-        if fs_algorithm is None or model is None:
-            print('Feature selection algorithm or ML model is not defined!')
-            return ftr_weights, stats
+    for i in range(0, X.shape[0], param['batch_size']):  # data stream
+        t = i / param['batch_size']  # time window
+
+        if 'feature_stream' in param and t in param['feature_stream']:  # feature stream
+            ftr_indices = param['feature_stream'][t]
+        elif 'feature_stream' not in param:
+            ftr_indices = np.arange(0, X.shape[1])  # all features are available
 
         # Time taking
-        start_t = time.perf_counter()
+        start_tim = time.perf_counter()
 
         # Perform feature selection
-        ftr_weights, param = fs_algorithm(X=X[i:i + param['batch_size']], Y=Y[i:i + param['batch_size']],
+        ftr_weights, param = fs_algorithm(X=X[i:i + param['batch_size'], ftr_indices], Y=Y[i:i + param['batch_size']],
                                           w=ftr_weights, param=param)
-        selected_ftr = np.argsort(abs(ftr_weights))[::-1][:param['num_features']]  # top m features
+        selected_ftr = np.argsort(abs(ftr_weights))[::-1][:param['num_features']]  # top m absolute weights (features with highest influence)
 
         # Memory and time taking
-        t = time.perf_counter() - start_t
-        m = psutil.Process(os.getpid()).memory_full_info().uss
+        tim = time.perf_counter() - start_tim
+        mem = psutil.Process(os.getpid()).memory_full_info().uss
 
         # Classify samples
-        model, acc = classify(X, Y, i, selected_ftr, model, param)
+        model, perf_score = classify(X, Y, i, selected_ftr, model, metric, param)
 
         # Save statistics
-        stats['time_measures'].append(t)
-        stats['memory_measures'].append(m)
+        stats['time_measures'].append(tim)
+        stats['memory_measures'].append(mem)
 
         stats['features'].append(selected_ftr.tolist())
-        stats['acc_measures'].append(acc)
+        stats['perf_measures'].append(perf_score)
 
         # fscr for t >=1
-        t = i / param['batch_size']
         if t >= 1:
             fscr = fscr_score(stats['features'][-2], selected_ftr, param['num_features'])
             stats['fscr_measures'].append(fscr)
@@ -94,13 +97,13 @@ def simulate_stream(X, Y, fs_algorithm, model, param):
     # Compute average statistics
     stats['time_avg'] = np.mean(stats['time_measures'])  # average time in seconds
     stats['memory_avg'] = np.mean(stats['memory_measures'])  # average memory usage in Byte
-    stats['acc_avg'] = np.mean(stats['acc_measures'])  # average accuracy score
+    stats['perf_avg'] = np.mean(stats['perf_measures'])  # average performance metric
     stats['fscr_avg'] = np.mean(stats['fscr_measures'])  # average feature selection change rate
 
     return stats
 
 
-def plot_stats(stats, ftr_names, param, fs_algorithm, ml_model):
+def plot_stats(stats, ftr_names, fs_algorithm, ml_model, metric, param, font_scale=1):
     """Print statistics
 
     Prints performance metrics obtained during feature selection on simulated data stream
@@ -110,6 +113,8 @@ def plot_stats(stats, ftr_names, param, fs_algorithm, ml_model):
     :param dict param: parameters
     :param string fs_algorithm: name of the fs algorithm
     :param string ml_model: name of the ML model
+    :param string metric: name of the performance metric
+    :param float font_scale: factor by which the standard font size for text is scaled
     :return: chart
     :rtype: plt.figure
     """
@@ -121,6 +126,8 @@ def plot_stats(stats, ftr_names, param, fs_algorithm, ml_model):
     plot_data['param'] = param
     plot_data['fs_algorithm'] = fs_algorithm
     plot_data['ml_model'] = ml_model
+    plot_data['metric'] = metric
+    plot_data['font_scale'] = font_scale
 
     # Time in ms
     plot_data['x_time'] = np.array(range(0, len(stats['time_measures'])))
@@ -132,12 +139,12 @@ def plot_stats(stats, ftr_names, param, fs_algorithm, ml_model):
     plot_data['y_mem'] = np.array(stats['memory_measures']) / 1000
     plot_data['avg_mem'] = stats['memory_avg'] / 1000
 
-    # Accuracy in %
-    plot_data['x_acc'] = np.array(range(0, len(stats['acc_measures'])))
-    plot_data['y_acc'] = np.array(stats['acc_measures']) * 100
-    plot_data['avg_acc'] = stats['acc_avg'] * 100
-    plot_data['q1_acc'] = np.percentile(stats['acc_measures'], 25, axis=0) * 100
-    plot_data['q3_acc'] = np.percentile(stats['acc_measures'], 75, axis=0) * 100
+    # Performance score
+    plot_data['x_perf'] = np.array(range(0, len(stats['perf_measures'])))
+    plot_data['y_perf'] = np.array(stats['perf_measures'])
+    plot_data['avg_perf'] = stats['perf_avg']
+    plot_data['q1_perf'] = np.percentile(stats['perf_measures'], 25, axis=0)
+    plot_data['q3_perf'] = np.percentile(stats['perf_measures'], 75, axis=0)
 
     # Selected features
     plot_data['selected_ftr'] = stats['features']

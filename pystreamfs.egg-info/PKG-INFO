@@ -1,14 +1,6 @@
 Metadata-Version: 2.1
 Name: pystreamfs
-
-
-
-
-
-
-
-Version: 0.0.6
-
+Version: 0.1.2
 Summary: A Python package for feature selection on a simulated data stream
 Home-page: https://github.com/haugjo/pystreamfs
 Author: Johannes Haug
@@ -18,9 +10,11 @@ Description: <img src="https://raw.githubusercontent.com/haugjo/pystreamfs/maste
         
         [![PyPI version](https://badge.fury.io/py/pystreamfs.svg)](https://badge.fury.io/py/pystreamfs)
         
-        *pystreamfs* is an Open-Source Python package that allows for quick and simple comparison of feature selection algorithms on a simulated data stream.
+        <h1>!!! DEVELOPMENT RELEASE !!!</h1>
         
-        The user can simulate data streams with varying batch size on any dataset provided as a numpy.ndarray. 
+        *pystreamfs* is an Open-Source Python package that allows for quick and simple comparison of feature selection algorithms on a simulated data and feature stream.
+        
+        The user can simulate data/feature streams with varying batch size on any dataset provided as a numpy.ndarray. 
         *pystreamfs* applies a specified feature selection algorithm to every batch and computes performance metrics for the
         selected feature set at every time *t*. *pystreamfs* can also be used to plot the performance metrics.
         
@@ -28,9 +22,7 @@ Description: <img src="https://raw.githubusercontent.com/haugjo/pystreamfs/maste
         *pystreamfs* has a modular structure and is thus easily expandable (see Section 2.5 for more information).
         
         **License:** MIT License<br>
-        **Changes in 0.1.0:** added EFS algorithm by Carvalho et al.<br>
         **Upcoming changes:**
-        * ability to simulate feature streams
         * ability to generate artificial data streams
         * ability to test multiple feature selection algorithms at once
         
@@ -77,6 +69,10 @@ Description: <img src="https://raw.githubusercontent.com/haugjo/pystreamfs/maste
                     * ``num_features``: integer, the number of features you want returned
                     * ``batch_size``: integer, the number of instances processed in one iteration
                     * ... additional algorithm specific parameters
+                    * **optional**: ``feature_stream``: dict, key/value-pairs. Add an entry for every *t* where you want a change of available features:
+                        * key: time *t*
+                        * value: list, feature indices available at time *t*<br>
+                        **!!!Note: feature stream needs further testing and development!!!** 
             * **Output**:
                 * ``stats``: dict
                     * ``features``: list of lists, set of selected features for every batch
@@ -87,7 +83,7 @@ Description: <img src="https://raw.githubusercontent.com/haugjo/pystreamfs/maste
                     * ``acc_avg``: float, average accuracy for classification with the selected feature set
                     * ``acc_measures``: list, accuracy measures for every batch
                     * ``fscr_avg``: float, average feature selection change rate (fscr) per time window. 
-                    The fscr is the percentage of selected features that changes in *t* with respect to *t-1* (fscr=0 if all selected features remain the same, fscr=1 if all selected features change)
+                    The fscr is the percentage of selected feature indices that changes in *t* with respect to *t-1* (fscr=0 if all selected features remain the same, fscr=1 if all selected features change)
                     * ``fscr_measures`` list, fscr measures for every batch
         * ``plt = plot_stats(stats, ftr_names, param, fs_name, model_name):``
             * **Description**: Plot the statistics for time, memory, fscr and selected features over all time windows.
@@ -97,6 +93,8 @@ Description: <img src="https://raw.githubusercontent.com/haugjo/pystreamfs/maste
                 * ``param``: dict, parameters
                 * ``fs_name``: string, name of feature selection algorithm
                 * ``model_name``: string, name of machine learning model
+                * ``font_scale``: float, factor by which the standard font size for text is scaled
+                (default = 1)
             * **Output**:
                 * ``plt``: pyplot object: statistic plots
         
@@ -106,6 +104,7 @@ Description: <img src="https://raw.githubusercontent.com/haugjo/pystreamfs/maste
         * Feature Selection based on Micro Cluster Nearest Neighbors by Hamoodi et al. (2018) - [link to paper](https://www.sciencedirect.com/science/article/abs/pii/S0950705118304039)
         * Extremal Feature Selection based on a Modified Balanced Winnow classifier by Carvalho et al. (2006) - [link to paper](https://dl.acm.org/citation.cfm?id=1150466)
         * CancelOut Feature Selection based on a Neural Network by Vadim Borisov ([Github](https://github.com/unnir/CancelOut))
+        * An experimental approach for robust feature selection based on model uncertainty parameters by Johannes Haug (reference will follow) 
             
         ### 2.4 Downloadable datasets
         All datasets are cleaned and normalized. The target variable of all datasets is moved to the first column.

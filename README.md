@@ -96,6 +96,7 @@ The main module is ``/pystreamfs/pystreamfs.py``. Feature selection algorithms a
 * Feature Selection based on Micro Cluster Nearest Neighbors by Hamoodi et al. (2018) - [link to paper](https://www.sciencedirect.com/science/article/abs/pii/S0950705118304039)
 * Extremal Feature Selection based on a Modified Balanced Winnow classifier by Carvalho et al. (2006) - [link to paper](https://dl.acm.org/citation.cfm?id=1150466)
 * CancelOut Feature Selection based on a Neural Network by Vadim Borisov ([Github](https://github.com/unnir/CancelOut))
+* An experimental approach for robust feature selection based on model uncertainty parameters by Johannes Haug (reference will follow) 
     
 ### 2.4 Downloadable datasets
 All datasets are cleaned and normalized. The target variable of all datasets is moved to the first column.

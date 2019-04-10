@@ -16,6 +16,7 @@ pystreamfs/plots.py
 pystreamfs/pystreamfs.py
 pystreamfs/utils.py
 pystreamfs.egg-info/PKG-INFO
+pystreamfs.egg-info/PKG-INFO.orig
 pystreamfs.egg-info/SOURCES.txt
 pystreamfs.egg-info/dependency_links.txt
 pystreamfs.egg-info/top_level.txt
@@ -25,3 +26,4 @@ pystreamfs/algorithms/efs.py
 pystreamfs/algorithms/fsds.py
 pystreamfs/algorithms/mcnn.py
 pystreamfs/algorithms/ofs.py
+pystreamfs/algorithms/rfs.py

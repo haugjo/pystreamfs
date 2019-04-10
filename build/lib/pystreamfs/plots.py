@@ -13,6 +13,7 @@ def plot(data):
 
     fig = plt.figure(figsize=(20, 25))
     fig.canvas.set_window_title('pystreamfs')
+    plt.rcParams.update({'font.size': 12 * data['font_scale']})
     plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
     gs1 = gridspec.GridSpec(6, 2)
     gs1.update(wspace=0.2, hspace=0.8)
@@ -28,15 +29,15 @@ def plot(data):
     _plot_one_chart(plt.subplot(gs1[1, 1]), data['x_mem'], data['y_mem'], data['avg_mem'], None, None, data['x_ticks'],
                     't', 'memory (kB)', 'Memory usage')
 
-    # Accuracy
-    _plot_one_chart(plt.subplot(gs1[2, :]), data['x_acc'], data['y_acc'], data['avg_acc'], data['q1_acc'], data['q3_acc'],
-                    data['x_ticks'], 't', 'accuracy (%)', 'Accuracy')
+    # Performance Score
+    _plot_one_chart(plt.subplot(gs1[2, :]), data['x_perf'], data['y_perf'], data['avg_perf'], data['q1_perf'], data['q3_perf'],
+                    data['x_ticks'], 't', data['metric'], 'Learning Performance')
 
     # Selected features
     ax = plt.subplot(gs1[3:-1, :])
     ax.set_title('Selected features')
     ax.set_ylabel('feature')
-    ax.set_xticks(np.arange(0, data['x_acc'].shape[0], 1))
+    ax.set_xticks(np.arange(0, data['x_perf'].shape[0], 1))
     ax.set_xticklabels([])
 
     # plot selected features for each execution
@@ -55,7 +56,7 @@ def plot(data):
 
     # FSCR
     _plot_one_chart(plt.subplot(gs2[5, :]), data['x_fscr'], data['y_fscr'], data['avg_fscr'], None, None,
-                    data['x_ticks'], 't', 'fscr (%)', None, True)
+                    data['x_ticks'], 't', 'ftr. index change (%)', None, True)
 
     return plt
 
@@ -66,24 +67,27 @@ def _plot_parameters(ax, data):
     :param AxesSubplot ax: grid axis
     :param dict data: data including the parameters
     """
+    f_size = str(14 * data['font_scale'])
+    header_size = str(24 * data['font_scale'])
+
     ax.axis('off')
-    ax.text(0, 1, 'pystreamfs -  Statistics Plot', size='18', weight='bold')
+    ax.text(0, 1, 'pystreamfs -  Statistics Plot', size=header_size, weight='bold')
 
     # Header (left)
-    ax.text(0, 0.6, 'Feature Selection algorithm:', weight='bold')
-    ax.text(0.15, 0.6, data['fs_algorithm'])
-    ax.text(0, 0.2, 'Machine Learning model: ', weight='bold')
-    ax.text(0.15, 0.2, data['ml_model'])
+    ax.text(0, 0.6, 'Feature Selection algorithm:', size=f_size, weight='bold')
+    ax.text(0.2, 0.6, data['fs_algorithm'], size=f_size)
+    ax.text(0, 0.2, 'Machine Learning model: ', size=f_size, weight='bold')
+    ax.text(0.2, 0.2, data['ml_model'], size=f_size)
 
     # Parameters (right)
     y = 0.4  # starting coordinates
     x = 0.4
 
-    ax.text(0.4, 0.6, 'Parameters:', weight='bold')
+    ax.text(0.4, 0.6, 'Parameters:', size=f_size, weight='bold')
 
     for key, value in data['param'].items():
         if isinstance(value, (int, float, str)):  # only plot scalar values
-            ax.text(x, y, key + ' = ' + str(value))
+            ax.text(x, y, key + ' = ' + str(value), size=f_size)
             y -= 0.2
 
             if y < 0:

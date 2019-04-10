@@ -1,6 +1,3 @@
-from sklearn.metrics import accuracy_score
-
-
 def fscr_score(ftr_t_1, ftr_t, n):
     """Feature Selection Change Rate
 
@@ -18,7 +15,7 @@ def fscr_score(ftr_t_1, ftr_t, n):
     return fscr
 
 
-def classify(X, Y, i, selected_ftr, model, param):
+def classify(X, Y, i, selected_ftr, model, metric, param):
     """Classify the samples of this batch
 
     :param numpy.ndarray X: dataset
@@ -26,8 +23,9 @@ def classify(X, Y, i, selected_ftr, model, param):
     :param int i: current stream index (start of current batch)
     :param numpy.ndarray selected_ftr: indices of currently selected features
     :param object model: ML model
+    :param object metric: performance metric
     :param dict param: parameters
-    :return: model (ML model), acc(accuracy score)
+    :return: model (ML model), perf_score(performance score)
     :rtype: object, float
     """
 
@@ -49,6 +47,6 @@ def classify(X, Y, i, selected_ftr, model, param):
 
     # Predict test set
     y_pred = model.predict(x_test)
-    acc = accuracy_score(y_test, y_pred)
+    perf_score = metric(y_test, y_pred)
 
-    return model, acc
+    return model, perf_score

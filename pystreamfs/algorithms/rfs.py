@@ -71,6 +71,6 @@ def run_rfs(X, Y, param, **kw):
     # compute feature weights
     del_sigma_old = sigma - old_sigma  # penalize increase of uncertainty
     del_sigma_1 = sigma - np.ones(sigma.shape[0])  # penalize absolute uncertainty, relative to standard normal dist.
-    w = mu - param['alpha'] * del_sigma_old - param['beta'] * del_sigma_1   # Todo: rethink if rather np.abs(mu)
+    w = np.abs(mu) - param['alpha'] * del_sigma_old - param['beta'] * del_sigma_1
 
     return w, param
