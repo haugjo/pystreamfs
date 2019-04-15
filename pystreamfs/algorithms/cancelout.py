@@ -58,7 +58,7 @@ class CancelOut(nn.Module):
         :param x: input
         :return: x * sigmoid(Weight)
         '''
-        return x * torch.sigmoid(self.weights.float())
+        return x * torch.sigmoid(self.weights.float()+2)
 
 class myDataset(Dataset):
     '''
@@ -118,17 +118,20 @@ def train_ann(X, y, num_epochs):
 
     model = NeuralNet(X.shape[1], X.shape[1]+1, 2)
 
+    n_features = X.shape[1]
     mydataset = myDataset(X, y)
-    batch_size = 32
-    learning_rate = 0.01
+    batch_size = int(n_features/5)
 
     train_loader = torch.utils.data.DataLoader(dataset=mydataset,
                                                batch_size=batch_size,
                                                shuffle=True)
     criterion = nn.CrossEntropyLoss()
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=0)
-
+    optimizer = torch.optim.Adam([
+        {"params": model.CancelOut.parameters(), "lr": 0.01},
+        {"params": model.fc1.parameters(), "lr": 0.003},
+        {"params": model.fc2.parameters(), "lr": 0.003},
+                                ])
     patience = 3
 
     early_stopping = EarlyStopping(patience=patience, verbose=False)
@@ -140,7 +143,12 @@ def train_ann(X, y, num_epochs):
         for i, (sample, labels) in enumerate(train_loader):
             # Forward pass
             outputs = model(sample.float())
-            loss = criterion(outputs, labels.long())
+
+            weights_co = list(model.CancelOut.parameters())[0]
+            reg = torch.var(weights_co)
+            nrm = torch.norm(weights_co, 1)  # torch.sum(torch.abs(weights_co))
+
+            loss = criterion(outputs, labels.long()) - 0.001*(reg / n_features) + 0.0001*(nrm / n_features)
             train_losses.append(loss.item())
 
             # Backward and optimize
@@ -189,6 +197,6 @@ def run_cancelout(X, Y, param, **kw):
     #
     # print('shape ->', X_all.shape)
 
-    w = train_ann(X, Y, 20)
+    w = train_ann(X, Y, 50)
 
     return w, param
