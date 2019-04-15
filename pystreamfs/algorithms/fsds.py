@@ -20,7 +20,7 @@ def run_fsds(X, param, **kw):
     .. warning: features are represented as rows in Yt
     .. warning: Yt has to contain only floats
     """
-
+    print('Hello')
     Yt = X.T  # algorithm assumes rows to represent features
 
     if param['ell'] < 1:
