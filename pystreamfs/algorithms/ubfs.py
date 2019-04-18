@@ -2,9 +2,9 @@ import numpy as np
 from scipy.stats import norm
 
 
-def run_rfs(X, Y, param, **kw):
+def run_ubfs(X, Y, param, **kw):
     """
-    Robust feature selection (working title) based on the calculations by Klaus Broelemann and Gjergji Kasneci
+    Uncertainty Based Feature Selection
 
     :param numpy.nparray X: current data batch
     :param numpy.nparray Y: labels of current batch
@@ -76,7 +76,7 @@ def run_rfs(X, Y, param, **kw):
     # w = np.abs(mu) - param['alpha'] * del_sigma_old - param['beta'] * del_sigma_1
 
     # NEW penalty term based on  metric distance MD
-    del_sigma_1 = sigma - np.ones(sigma.shape[0])  # penalize absolute uncertainty, relative to standard normal dist.
+    del_sigma = sigma - np.ones(sigma.shape[0])  # penalize absolute uncertainty, relative to standard normal dist.
 
     mdist = np.sqrt((mu - old_mu) ** 2 + (sigma - old_sigma) ** 2) / old_mu
     mdist[np.isinf(mdist)] = 0  # replace inf with 0
@@ -92,7 +92,7 @@ def run_rfs(X, Y, param, **kw):
 
 
     # Compute initial w
-    w = np.maximum(np.abs(mu) - param['alpha'] * del_sigma_1, np.zeros(mu.shape))
+    w = np.maximum(np.abs(mu) - param['alpha'] * del_sigma, np.zeros(mu.shape))
 
     # set all w to 0 that violate the soft stability property
     if len(param['mdist']) == param['mdist_window']:

@@ -1,7 +1,7 @@
 from pystreamfs import pystreamfs
 import numpy as np
 import pandas as pd
-from pystreamfs.algorithms import rfs
+from pystreamfs.algorithms import ubfs
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import MinMaxScaler
@@ -18,18 +18,18 @@ X, Y = pystreamfs.prepare_data(data, 0, False)
 X = MinMaxScaler().fit_transform(X)
 
 # Load a FS algorithm
-fs_algorithm = rfs.run_rfs
+fs_algorithm = ubfs.run_ubfs
 
 # Define parameters
 param = dict()
 param['batch_size'] = 30
 param['num_features'] = 15
-param['epochs'] = 15  # iterations over current batch during one execution of rfs
+param['epochs'] = 5  # iterations over current batch during one execution of rfs
 param['mini_batch_size'] = 10  # must be smaller than batch_size
 param['lr_mu'] = 0.01  # learning rate for mean
 param['lr_sigma'] = 0.01  # learning rate for standard deviation
-param['alpha'] = 0  # uncertainty penalty factor for change in uncertainty
-param['beta'] = 2  # threshold for soft stability property
+param['alpha'] = 10  # uncertainty penalty factor for change in uncertainty
+param['beta'] = 1.5  # threshold for soft stability property
 param['mdist_window'] = 5  # window for soft stability property
 
 # Define a ML model and a performance metric
