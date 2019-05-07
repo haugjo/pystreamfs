@@ -101,6 +101,11 @@ def simulate_stream(X, Y, fs_algorithm, model, metric, param):
     stats['perf_avg'] = np.mean(stats['perf_measures'])  # average performance metric
     stats['stab_avg'] = np.mean(stats['stab_measures'])  # average feature selection change rate
 
+    # Add detections of concept drift
+    # Todo: plot drifts + remove temporal parameters before ploting
+    if 'check_drift' in param:
+        stats['drifts'] = param['drifts']
+
     return stats
 
 

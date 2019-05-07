@@ -6,12 +6,12 @@ def run_ubfs(X, Y, param, **kw):
     """
     Uncertainty Based Feature Selection
 
-    :param numpy.nparray X: current data batch
-    :param numpy.nparray Y: labels of current batch
+    :param numpy.ndarray X: current data batch
+    :param numpy.ndarray Y: labels of current batch
     :param dict param: parameters, this includes...
         int epochs: number of epochs (iterations over X)
         int mini_batch_size: no. of samples per mini_batch
-        float lr_my: learning rate for the update of mean
+        float lr_mu: learning rate for the update of mean
         float lr_sigma: learning rate for the update of standard deviation
     :return: w (feature weights), param
     :rtype numpy.ndarray, dict
@@ -66,38 +66,66 @@ def run_ubfs(X, Y, param, **kw):
     w = np.maximum(np.abs(mu) - param['alpha'] * r, np.zeros(mu.shape))
 
     # concept drift detection
-    _check_concept_drift(mu, sigma, X, Y, param)
+    if 'check_drift' in param:
+        param = _check_concept_drift(mu, sigma, X, Y, param)
 
     return w, param
 
 
 def _check_concept_drift(mu, sigma, X, Y, param):
+    """
+    Check for concept drift in the data based on a combined threshold
+    on loss difference and average change in mu
+
+    :param np.ndarray mu: current mu for all features
+    :param np.ndarray sigma: current sigma for all features
+    :param np.ndarray X: data batch
+    :param np.ndarray Y: labels for data batch
+    :param dict param: parameters
+    :return: param
+    :rtype dict
+    """
     if 'drift_score' not in param:
         param['drift_score'] = 0
+        param['drifts'] = []  # list of times t where drift was detected
 
     if 'old_mu' in param:
-        # Calculate loss with current and prior model parameters
-        loss = _compute_loss(X, Y, mu, sigma)  # loss with current parameters
-        old_loss = _compute_loss(X, Y, param['old_mu'], param['old_sigma'])  # los with prior parameters
+        # Calculate error with current and prior model parameters
+        error = _compute_error(X, Y, mu, sigma)  # error with current parameters
+        old_error = _compute_error(X, Y, param['old_mu'], param['old_sigma'])  # los with prior parameters
 
         # Compute difference of expected values with last t
         change_mu = np.abs(np.mean(param['old_mu']) - np.mean(mu))
 
-        if np.abs(loss-old_loss) > 0.025 and change_mu > 0.002:
+        if np.abs(error-old_error) > param['drift_error_thr'] and change_mu > param['drift_mu_thr']:
             param['drift_score'] += 1
         else:
-            param['drift_score'] = max(param['drift_score'] - 1, 0)
+            param['drift_score'] = 0  # max(param['drift_score'] - 1, 0)
 
     param['old_mu'] = mu
     param['old_sigma'] = mu
 
     # Drift
-    if param['drift_score'] == 3:
+    if param['drift_score'] == param['drift_count']:
         param['drift_score'] = 0  # set drift score back to 0
-        print('drift at ' + str(param['t']))
+        param['drifts'].append(param['t'])
+
+    return param
 
 
-def _compute_loss(X, Y, mu, sigma):
+def _compute_error(X, Y, mu, sigma):
+    """
+    Compute the mean squared error (MSE) for the given data and feature parameters,
+    using the marginal distribution function for computing y_hat.
+
+    :param np.ndarray X: data batch
+    :param np.ndarray Y: labels for data batch
+    :param np.ndarray mu: current mu for all features
+    :param np.ndarray sigma: current sigma for all features
+    :return: MSE
+    :rtype float
+    """
+
     # dot product x . mu
     dot_x_mu = np.dot(X, mu)
 

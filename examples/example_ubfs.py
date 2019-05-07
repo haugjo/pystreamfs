@@ -30,6 +30,12 @@ param['lr_mu'] = 0.01  # learning rate for mean
 param['lr_sigma'] = 0.01  # learning rate for standard deviation
 param['alpha'] = 10**0  # regularization scaling factor
 
+# Parameters for concept drift detection
+param['check_drift'] = True  # indicator whether to check drift or not
+param['drift_error_thr'] = 0.025  # error threshold
+param['drift_mu_thr'] = 0.002  # change in mu threshold
+param['drift_count'] = 5  # thresholds have to be violated x consecutive times for drift
+
 # Define a ML model and a performance metric
 model = SVC()
 metric = accuracy_score
