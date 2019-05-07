@@ -28,10 +28,8 @@ def run_ubfs(X, Y, param, **kw):
         param['sigma'] = np.ones(m)
         # bias = np.asarray([0, 1])  # normal distributed bias (constant) -> Todo: update bias as well
 
-    old_mu = param['mu'].copy()
-    old_sigma = param['sigma'].copy()
-    mu = old_mu.copy()
-    sigma = old_sigma.copy()
+    mu = param['mu'].copy()
+    sigma = param['sigma'].copy()
 
     for epoch in range(param['epochs']):
         # sort X randomly
@@ -68,36 +66,10 @@ def run_ubfs(X, Y, param, **kw):
     param['mu'] = mu
     param['sigma'] = sigma
 
-    # compute feature weights
+    # compute regularizer
+    r = (sigma - 1)/(param['t'] + 1)  # + 1 because t starts with 0
 
-    # OLD penalty terms
-    # del_sigma_old = sigma - old_sigma  # penalize increase of uncertainty
-    # del_sigma_1 = sigma - np.ones(sigma.shape[0])  # penalize absolute uncertainty, relative to standard normal dist.
-    # w = np.abs(mu) - param['alpha'] * del_sigma_old - param['beta'] * del_sigma_1
-
-    # NEW penalty term based on  metric distance MD
-    del_sigma = sigma - np.ones(sigma.shape[0])  # penalize absolute uncertainty, relative to standard normal dist.
-
-    mdist = np.sqrt((mu - old_mu) ** 2 + (sigma - old_sigma) ** 2) / old_mu
-    mdist[np.isinf(mdist)] = 0  # replace inf with 0
-    mdist = np.nan_to_num(mdist)  # replace nan with 0
-
-    if 'mdist' not in param:
-        param['mdist'] = mdist  # initialize mdist
-    else:
-        if len(param['mdist']) == param['mdist_window']:
-            param['mdist'] = np.delete(param['mdist'], 0, 0)  # remove the oldest entry
-
-        param['mdist'] = np.vstack([param['mdist'], mdist])  # add new entry
-
-
-    # Compute initial w
-    w = np.maximum(np.abs(mu) - param['alpha'] * del_sigma, np.zeros(mu.shape))
-
-    # set all w to 0 that violate the soft stability property
-    if len(param['mdist']) == param['mdist_window']:
-        max_mdist = np.amax(param['mdist'], axis=0)
-        w[max_mdist >= param['beta']] = 0  # Todo: consider not to measure md in the first 2-3 windows, as there is much change in that time
-
+    # Compute weights
+    w = np.maximum(np.abs(mu) - param['alpha'] * r, np.zeros(mu.shape))
 
     return w, param

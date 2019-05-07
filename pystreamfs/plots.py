@@ -54,9 +54,9 @@ def plot(data):
     gs2 = gridspec.GridSpec(6, 2)
     gs2.update(hspace=0)
 
-    # FSCR
-    _plot_one_chart(plt.subplot(gs2[5, :]), data['x_fscr'], data['y_fscr'], data['avg_fscr'], None, None,
-                    data['x_ticks'], 't', 'ftr. index change (%)', None, True)
+    # Stability
+    _plot_one_chart(plt.subplot(gs2[5, :]), data['x_stab'], data['y_stab'], data['avg_stab'], None, None,
+                    data['x_ticks'], 't', 'Stability', None, True)
 
     return plt
 

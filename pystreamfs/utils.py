@@ -1,18 +1,40 @@
-def fscr_score(ftr_t_1, ftr_t, n):
-    """Feature Selection Change Rate
+import numpy as np
 
-    The percentage of selected features that changed with respect to the previous time window
 
-    :param ftr_t_1: selected features in t-1
-    :param ftr_t: selected features in t (current time window)
-    :param n: number of selected features
-    :return: fscr
-    :rtype: float
+def nogueira_stability(feature_space, selected_features):
     """
-    c = len(set(ftr_t_1).difference(set(ftr_t)))
-    fscr = c/n
+    Computation of stability score by Nogueira et al.
+    (https://github.com/nogueirs/JMLR2018/tree/master/python)
 
-    return fscr
+    :param int feature space: number of original features
+    :param list selected_features: selected features for all t <= current t
+    :return: stability measure
+    :rtype: float
+
+    ..Todo.. Update README
+    """
+    # Construct Z
+    Z = np.zeros([len(selected_features), feature_space])
+    for row, col in enumerate(selected_features):
+        Z[row, col] = 1
+
+    '''
+    ORIGINAL CODE:
+    Let us assume we have M>1 feature sets and d>0 features in total.
+    This function computes the stability estimate as given in Definition 4 in  [1].
+
+    INPUT: A BINARY matrix Z (given as a list or as a numpy.ndarray of size M*d).
+           Each row of the binary matrix represents a feature set, where a 1 at the f^th position
+           means the f^th feature has been selected and a 0 means it has not been selected.
+
+    OUTPUT: The stability of the feature selection procedure
+    '''
+
+    M, d = Z.shape
+    hatPF = np.mean(Z, axis=0)
+    kbar = np.sum(hatPF)
+    denom = (kbar / d) * (1 - kbar / d)
+    return 1 - (M / (M - 1)) * np.mean(np.multiply(hatPF, 1 - hatPF)) / denom
 
 
 def classify(X, Y, i, selected_ftr, model, metric, param):

@@ -3,7 +3,7 @@ import psutil
 import os
 import warnings
 import time
-from pystreamfs.utils import fscr_score, classify
+from pystreamfs.utils import nogueira_stability, classify
 from pystreamfs.plots import plot
 
 
@@ -50,15 +50,16 @@ def simulate_stream(X, Y, fs_algorithm, model, metric, param):
              'memory_measures': [],
              'perf_measures': [],
              'features': [],
-             'fscr_measures': [],
+             'stab_measures': [],
              'time_avg': 0,
              'memory_avg': 0,
              'perf_avg': 0,
-             'fscr_avg': 0}
+             'stab_avg': 0}
 
     # Stream simulation
     for i in range(0, X.shape[0], param['batch_size']):  # data stream
         t = i / param['batch_size']  # time window
+        param['t'] = t
 
         if 'feature_stream' in param and t in param['feature_stream']:  # feature stream
             ftr_indices = param['feature_stream'][t]
@@ -87,10 +88,10 @@ def simulate_stream(X, Y, fs_algorithm, model, metric, param):
         stats['features'].append(selected_ftr.tolist())
         stats['perf_measures'].append(perf_score)
 
-        # fscr for t >=1
+        # stability measure for t >=1
         if t >= 1:
-            fscr = fscr_score(stats['features'][-2], selected_ftr, param['num_features'])
-            stats['fscr_measures'].append(fscr)
+            stability = nogueira_stability(X.shape[1], stats['features'])
+            stats['stab_measures'].append(stability)
 
     # end of stream simulation
 
@@ -98,7 +99,7 @@ def simulate_stream(X, Y, fs_algorithm, model, metric, param):
     stats['time_avg'] = np.mean(stats['time_measures'])  # average time in seconds
     stats['memory_avg'] = np.mean(stats['memory_measures'])  # average memory usage in Byte
     stats['perf_avg'] = np.mean(stats['perf_measures'])  # average performance metric
-    stats['fscr_avg'] = np.mean(stats['fscr_measures'])  # average feature selection change rate
+    stats['stab_avg'] = np.mean(stats['stab_measures'])  # average feature selection change rate
 
     return stats
 
@@ -149,10 +150,10 @@ def plot_stats(stats, ftr_names, fs_algorithm, ml_model, metric, param, font_sca
     # Selected features
     plot_data['selected_ftr'] = stats['features']
 
-    # FSCR in %
-    plot_data['x_fscr'] = np.array(range(1, len(stats['fscr_measures']) + 1))
-    plot_data['y_fscr'] = np.array(stats['fscr_measures'])
-    plot_data['avg_fscr'] = stats['fscr_avg']
+    # Stability
+    plot_data['x_stab'] = np.array(range(1, len(stats['stab_measures']) + 1))
+    plot_data['y_stab'] = np.array(stats['stab_measures'])
+    plot_data['avg_stab'] = stats['stab_avg']
 
     # Set ticks
     # X ticks
