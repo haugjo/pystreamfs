@@ -7,7 +7,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import MinMaxScaler
 
 # Load a dataset
-data = pd.read_csv('../datasets/drift.csv')
+data = pd.read_csv('../datasets/moa.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
@@ -28,10 +28,10 @@ param['epochs'] = 5  # iterations over current batch during one execution of ubf
 param['mini_batch_size'] = 25  # must be smaller than batch_size
 param['lr_mu'] = 0.01  # learning rate for mean
 param['lr_sigma'] = 0.01  # learning rate for standard deviation
-param['alpha'] = 10**0  # regularization scaling factor
+param['alpha'] = 10**1  # regularization scaling factor
 
 # Parameters for concept drift detection
-param['check_drift'] = True  # indicator whether to check drift or not
+param['check_drift'] = False  # indicator whether to check drift or not
 param['drift_error_thr'] = 0.025  # error threshold
 param['drift_mu_thr'] = 0.002  # change in mu threshold
 param['drift_count'] = 5  # thresholds have to be violated x consecutive times for drift

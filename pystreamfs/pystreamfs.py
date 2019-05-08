@@ -103,7 +103,7 @@ def simulate_stream(X, Y, fs_algorithm, model, metric, param):
 
     # Add detections of concept drift
     # Todo: plot drifts + remove temporal parameters before ploting
-    if 'check_drift' in param:
+    if param['check_drift'] is True:
         stats['drifts'] = param['drifts']
 
     return stats

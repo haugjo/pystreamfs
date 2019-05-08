@@ -66,7 +66,7 @@ def run_ubfs(X, Y, param, **kw):
     w = np.maximum(np.abs(mu) - param['alpha'] * r, np.zeros(mu.shape))
 
     # concept drift detection
-    if 'check_drift' in param:
+    if param['check_drift'] is True:
         param = _check_concept_drift(mu, sigma, X, Y, param)
 
     return w, param
