@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.stats import norm
-from sklearn.metrics import log_loss, mean_squared_error
+from sklearn.metrics import mean_squared_error
 
-def run_ubfs(X, Y, param, **kw):
+def run_ubfs(X, Y, w, param):
     """
     Uncertainty Based Feature Selection
 
@@ -25,7 +25,7 @@ def run_ubfs(X, Y, param, **kw):
     if 'mu' not in param and 'sigma' not in param:
         m = X.shape[1]  # number of features
         param['mu'] = np.zeros(m)
-        param['sigma'] = np.ones(m)
+        param['sigma'] = np.ones(m) * 10
         # bias = np.asarray([0, 1])  # normal distributed bias (constant) -> Todo: update bias as well
 
     mu = param['mu'].copy()
@@ -59,11 +59,8 @@ def run_ubfs(X, Y, param, **kw):
     param['mu'] = mu
     param['sigma'] = sigma
 
-    # compute regularizer
-    r = (sigma - 1)/(param['t'] + 1)  # + 1 because t starts with 0
-
-    # Compute weights
-    w = np.maximum(np.abs(mu) - param['alpha'] * r, np.zeros(mu.shape))
+    # Update weights
+    w, param = _update_weights(w, mu, sigma, param, X.shape[1])
 
     # concept drift detection
     if param['check_drift'] is True:
@@ -136,3 +133,22 @@ def _compute_error(X, Y, mu, sigma):
     prob_y = norm.cdf(dot_x_mu / np.sqrt(1 + dot_x_sigma))  # prob(y=1)
 
     return mean_squared_error(Y, prob_y)  # log_loss(Y, prob_y)  # Log loss
+
+
+def _update_weights(w, mu, sigma, param, feature_dim):
+    if 'alpha' not in param:
+        param['alpha'] = 0  # initialize parameters
+        param['lambda'] = 0
+        w = np.zeros(feature_dim)
+
+    alpha = param['alpha']
+    lamb = param['lambda']
+
+    alpha = alpha - np.sum(w)
+    lamb = lamb - 0.5 * np.dot(w**2, sigma**2)
+    w = w + mu - lamb * w * sigma**2 - alpha
+
+    param['alpha'] = alpha
+    param['lambda'] = lamb
+
+    return w, param

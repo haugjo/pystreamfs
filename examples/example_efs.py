@@ -6,7 +6,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 
 # Load a dataset
-data = pd.read_csv('../datasets/usenet.csv')
+data = pd.read_csv('../datasets/kdd.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
@@ -18,8 +18,8 @@ fs_algorithm = efs.run_efs
 
 # Define parameters
 param = dict()
-param['batch_size'] = 50  # batch size for one iteration, must be at least the same size than the no. of clusters!!
-param['num_features'] = 5
+param['batch_size'] = 100  # batch size for one iteration, must be at least the same size than the no. of clusters!!
+param['num_features'] = 10
 
 # all parameters are set according to Carvalho et al.
 param['u'] = np.ones(X[0].shape) * 2  # initial positive model with weights 2
@@ -37,4 +37,4 @@ metric = accuracy_score
 stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, metric, param)
 
 # Plot statistics
-pystreamfs.plot_stats(stats, feature_names, 'Extremal Feature Selection', type(model).__name__, metric.__name__, param).show()
+pystreamfs.plot_stats(stats, feature_names, 'Extremal Feature Selection', type(model).__name__, metric.__name__, param, 0.8).show()
