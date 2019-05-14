@@ -7,7 +7,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 
 # Load a dataset
-data = pd.read_csv('../datasets/kdd.csv')
+data = pd.read_csv('../datasets/har.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 

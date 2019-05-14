@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.stats import norm
 from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import MinMaxScaler
 
 def run_ubfs(X, Y, w, param):
     """
@@ -52,8 +53,8 @@ def run_ubfs(X, Y, w, param):
             nabla_sigma = norm.pdf((-1) ** (1 - y) * dot_x_mu / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y) * ((2 * x ** 2 * sigma).T * dot_x_mu) / (-2 * np.sqrt(1 + dot_x_sigma) ** 3)
 
             # update parameters
-            mu -= param['lr_mu'] * np.mean(nabla_mu, axis=1)
-            sigma -= param['lr_sigma'] * np.mean(nabla_sigma, axis=1)
+            mu += param['lr_mu'] * np.mean(nabla_mu, axis=1)
+            sigma += param['lr_sigma'] * np.mean(nabla_sigma, axis=1)
 
     # update param
     param['mu'] = mu
@@ -137,18 +138,25 @@ def _compute_error(X, Y, mu, sigma):
 
 def _update_weights(w, mu, sigma, param, feature_dim):
     if 'alpha' not in param:
-        param['alpha'] = 0  # initialize parameters
-        param['lambda'] = 0
+        param['alpha'] = 1  # initialize parameters
+        param['lambda'] = 1
         w = np.zeros(feature_dim)
 
     alpha = param['alpha']
     lamb = param['lambda']
 
-    alpha = alpha - np.sum(w)
-    lamb = lamb - 0.5 * np.dot(w**2, sigma**2)
-    w = w + mu - lamb * w * sigma**2 - alpha
+    l1_w = np.sum(np.abs(w))
+    # l1_mu = np.sum(np.abs(mu))
+    # l1_sigma2 = np.sum(np.abs(sigma**2))
+
+    alpha = alpha - l1_w  # /(l1_mu + l1_sigma2)
+    lamb = lamb - 0.5 * np.dot(w**2, sigma**2)  # /(l1_mu + l1_sigma2)
+    w = w + (mu - lamb * w * sigma**2 - alpha)  # /(l1_mu + l1_sigma2)
 
     param['alpha'] = alpha
     param['lambda'] = lamb
+
+    # normalize w Todo check if necessary
+    w = MinMaxScaler().fit_transform(w.reshape(-1, 1))
 
     return w, param

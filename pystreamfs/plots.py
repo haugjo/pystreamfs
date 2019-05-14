@@ -80,18 +80,18 @@ def _plot_parameters(ax, data):
     ax.text(0.2, 0.2, data['ml_model'], size=f_size)
 
     # Parameters (right)
-    y = 0.4  # starting coordinates
+    y = 0.6  # starting coordinates
     x = 0.4
 
-    ax.text(0.4, 0.6, 'Parameters:', size=f_size, weight='bold')
+    ax.text(0.4, 0.9, 'Parameters:', size=f_size, weight='bold')
 
     for key, value in data['param'].items():
         if isinstance(value, (int, float, str)):  # only plot scalar values
             ax.text(x, y, key + ' = ' + str(value), size=f_size)
             y -= 0.2
 
-            if y < 0:
-                y = 0.4
+            if y < -0.1:
+                y = 0.6
                 x += 0.2
 
 

@@ -4,18 +4,14 @@ import pandas as pd
 from pystreamfs.algorithms import ubfs
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
-from sklearn.preprocessing import MinMaxScaler
 
 # Load a dataset
-data = pd.read_csv('../datasets/kdd.csv')
+data = pd.read_csv('../datasets/har.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
 # Extract features and target variable
 X, Y = pystreamfs.prepare_data(data, 0, False)
-
-# Normalize data
-X = MinMaxScaler().fit_transform(X)
 
 # Load a FS algorithm
 fs_algorithm = ubfs.run_ubfs
@@ -25,9 +21,9 @@ param = dict()
 param['batch_size'] = 100
 param['num_features'] = 10
 param['epochs'] = 5  # iterations over current batch during one execution of ubfs
-param['mini_batch_size'] = 25  # must be smaller than batch_size
-param['lr_mu'] = 0.01  # learning rate for mean
-param['lr_sigma'] = 10  # learning rate for standard deviation
+param['mini_batch_size'] = 30  # must be smaller than batch_size
+param['lr_mu'] = 0.1  # learning rate for mean
+param['lr_sigma'] = 0.1  # learning rate for standard deviation
 
 # Parameters for concept drift detection
 param['check_drift'] = False  # indicator whether to check drift or not
