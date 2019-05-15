@@ -3,7 +3,8 @@ from scipy.stats import norm
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 
-def run_ubfs(X, Y, w, param):
+
+def run_ubfs(X, Y, param, **kw):
     """
     Uncertainty Based Feature Selection
 
@@ -27,7 +28,6 @@ def run_ubfs(X, Y, w, param):
         m = X.shape[1]  # number of features
         param['mu'] = np.zeros(m)
         param['sigma'] = np.ones(m) * 10
-        # bias = np.asarray([0, 1])  # normal distributed bias (constant) -> Todo: update bias as well
 
     mu = param['mu'].copy()
     sigma = param['sigma'].copy()
@@ -46,11 +46,11 @@ def run_ubfs(X, Y, w, param):
             dot_x_sigma = np.dot(x ** 2, sigma ** 2)  # dot product x^2 . sigma^2
 
             # calculate partial derivatives -> Eq. 15 + 16
-            # for 1 sample: del_delmy = norm.pdf(dot_my_x/np.sqrt(1+dot_x_sigma)) * (-1)**(1-y) * (x/np.sqrt(1+dot_x_sigma))
-            nabla_mu = norm.pdf(dot_x_mu / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y) * (x.T / np.sqrt(1 + dot_x_sigma))
+            nabla_mu = norm.pdf(dot_x_mu / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y) * (
+                        x.T / np.sqrt(1 + dot_x_sigma))
 
-            # for 1 sample: del_delsigma = norm.pdf((-1)**(1-y) * dot_my_x/np.sqrt(1+dot_x_sigma)) * (-1)**(1-y) * (2*x**2*sigma * dot_my_x)/(-2 * np.sqrt(1+dot_x_sigma)**3)
-            nabla_sigma = norm.pdf((-1) ** (1 - y) * dot_x_mu / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y) * ((2 * x ** 2 * sigma).T * dot_x_mu) / (-2 * np.sqrt(1 + dot_x_sigma) ** 3)
+            nabla_sigma = norm.pdf((-1) ** (1 - y) * dot_x_mu / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y) * (
+                        (2 * x ** 2 * sigma).T * dot_x_mu) / (-2 * np.sqrt(1 + dot_x_sigma) ** 3)
 
             # update parameters
             mu += param['lr_mu'] * np.mean(nabla_mu, axis=1)
@@ -61,11 +61,46 @@ def run_ubfs(X, Y, w, param):
     param['sigma'] = sigma
 
     # Update weights
-    w, param = _update_weights(w, mu, sigma, param, X.shape[1])
+    w_unscaled, param = _update_weights(mu, sigma, param, X.shape[1])
+
+    # scale weights to [0,1] because pystreamfs considers absolute weights for feature selection
+    w = MinMaxScaler().fit_transform(w_unscaled.reshape(-1, 1)).flatten()
 
     # concept drift detection
     if param['check_drift'] is True:
         param = _check_concept_drift(mu, sigma, X, Y, param)
+
+    return w, param
+
+
+def _update_weights(mu, sigma, param, feature_dim):
+    """
+    Compute feature weights as a measure of expected importance and uncertainty
+
+    :param np.ndarray mu: current mu for all features
+    :param np.ndarray sigma: current sigma for all features
+    :param dict param: parameters
+    :param int feature_dim: dimension of the feature space
+    :return: w (updated weights), param
+    :rtype: np.ndarray, dict
+    """
+    if 'lambda' not in param:
+        param['lambda'] = 1
+        param['w'] = np.zeros(feature_dim)
+
+    lamb = param['lambda']
+    w = param['w']
+
+    l1_norm = np.sum(np.abs(mu - lamb * sigma**2))
+
+    # compute weights
+    w = w + (mu - lamb * sigma**2)/l1_norm
+    param['w'] = w
+
+    # update lambda
+    lamb = (l1_norm * np.dot(w, sigma ** 2) - np.sum(np.abs(sigma ** 2)) * (
+            np.dot(w, mu) - lamb * np.dot(w, sigma ** 2))) / l1_norm ** 2
+    param['lambda'] = lamb
 
     return w, param
 
@@ -134,29 +169,3 @@ def _compute_error(X, Y, mu, sigma):
     prob_y = norm.cdf(dot_x_mu / np.sqrt(1 + dot_x_sigma))  # prob(y=1)
 
     return mean_squared_error(Y, prob_y)  # log_loss(Y, prob_y)  # Log loss
-
-
-def _update_weights(w, mu, sigma, param, feature_dim):
-    if 'alpha' not in param:
-        param['alpha'] = 1  # initialize parameters
-        param['lambda'] = 1
-        w = np.zeros(feature_dim)
-
-    alpha = param['alpha']
-    lamb = param['lambda']
-
-    l1_w = np.sum(np.abs(w))
-    # l1_mu = np.sum(np.abs(mu))
-    # l1_sigma2 = np.sum(np.abs(sigma**2))
-
-    alpha = alpha - l1_w  # /(l1_mu + l1_sigma2)
-    lamb = lamb - 0.5 * np.dot(w**2, sigma**2)  # /(l1_mu + l1_sigma2)
-    w = w + (mu - lamb * w * sigma**2 - alpha)  # /(l1_mu + l1_sigma2)
-
-    param['alpha'] = alpha
-    param['lambda'] = lamb
-
-    # normalize w Todo check if necessary
-    w = MinMaxScaler().fit_transform(w.reshape(-1, 1))
-
-    return w, param
