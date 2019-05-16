@@ -6,7 +6,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 
 # Load a dataset
-data = pd.read_csv('../datasets/credit.csv')
+data = pd.read_csv('../datasets/drift.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
@@ -18,8 +18,9 @@ fs_algorithm = mcnn.run_mcnn
 
 # Define parameters
 param = dict()
-param['num_features'] = 5  # number of features to return
-param['batch_size'] = 50  # batch size
+param['num_features'] = 10  # number of features to return
+param['batch_size'] = 100  # batch size
+param['r'] = 20  # shifting window range for computation of stability
 
 # Original parameters from paper
 param['max_n'] = 100  # maximum number of saved instances per cluster

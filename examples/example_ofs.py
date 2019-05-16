@@ -7,7 +7,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 
 # Load a dataset
-data = pd.read_csv('../datasets/har.csv')
+data = pd.read_csv('../datasets/spambase.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
@@ -21,6 +21,7 @@ fs_algorithm = ofs.run_ofs
 param = dict()
 param['num_features'] = 10  # number of features to return
 param['batch_size'] = 100  # batch size
+param['r'] = 20  # shifting window range for computation of stability
 
 # Define a ML model and a performance metric
 model = SVC()  # KNeighborsClassifier(n_jobs=-1, n_neighbors=5)

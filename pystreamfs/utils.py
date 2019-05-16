@@ -1,21 +1,22 @@
 import numpy as np
 
 
-def nogueira_stability(feature_space, selected_features):
+def nogueira_stability(feature_space, selected_features, r):
     """
     Computation of stability score by Nogueira et al.
     (https://github.com/nogueirs/JMLR2018/tree/master/python)
 
     :param int feature space: number of original features
     :param list selected_features: selected features for all t <= current t
+    :param int r: range of the shifting window
     :return: stability measure
     :rtype: float
 
     ..Todo.. Update README
     """
     # Construct Z
-    Z = np.zeros([len(selected_features), feature_space])
-    for row, col in enumerate(selected_features):
+    Z = np.zeros([min(len(selected_features), r), feature_space])
+    for row, col in enumerate(selected_features[-r:]):
         Z[row, col] = 1
 
     '''

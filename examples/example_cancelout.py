@@ -20,6 +20,7 @@ fs_algorithm = cancelout.run_cancelout
 param = dict()
 param['num_features'] = 5  # number of features to return
 param['batch_size'] = 50  # batch size
+param['r'] = 20  # shifting window range for computation of stability
 
 # Define a ML model and a performance metric
 model = SVC()

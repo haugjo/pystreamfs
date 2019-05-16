@@ -6,7 +6,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 
 # Load a dataset
-data = pd.read_csv('../datasets/har.csv')
+data = pd.read_csv('../datasets/spambase.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
@@ -20,6 +20,7 @@ fs_algorithm = ubfs.run_ubfs
 param = dict()
 param['batch_size'] = 100
 param['num_features'] = 10
+param['r'] = 20  # shifting window range for computation of stability
 param['epochs'] = 5  # iterations over current batch during one execution of ubfs
 param['mini_batch_size'] = 30  # must be smaller than batch_size
 param['lr_mu'] = 0.1  # learning rate for mean

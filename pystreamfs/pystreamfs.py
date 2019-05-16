@@ -90,7 +90,7 @@ def simulate_stream(X, Y, fs_algorithm, model, metric, param):
 
         # stability measure for t >=1
         if t >= 1:
-            stability = nogueira_stability(X.shape[1], stats['features'])
+            stability = nogueira_stability(X.shape[1], stats['features'], param['r'])
             stats['stab_measures'].append(stability)
 
     # end of stream simulation
