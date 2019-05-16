@@ -70,6 +70,10 @@ def classify(X, Y, i, selected_ftr, model, metric, param):
 
     # Predict test set
     y_pred = model.predict(x_test)
-    perf_score = metric(y_test, y_pred)
+
+    try:  # Todo: check if this makes sense
+        perf_score = metric(y_test, y_pred)
+    except ValueError:
+        perf_score = 0.5  # random performance
 
     return model, perf_score
