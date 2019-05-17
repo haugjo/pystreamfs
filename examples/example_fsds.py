@@ -2,12 +2,12 @@ from pystreamfs import pystreamfs
 import numpy as np
 import pandas as pd
 from pystreamfs.algorithms import fsds
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 
 # Load a dataset
-data = pd.read_csv('../datasets/spambase.csv')
+data = pd.read_csv('../datasets/har.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
@@ -29,7 +29,7 @@ param['k'] = 2  # no. of singular values (can be equal to no. of clusters/classe
 param['m'] = data.shape[1]-1  # no. of original features
 
 # Define a ML model and a performance metric
-model = SVC()  # DecisionTreeClassifier(random_state=0)
+model = RandomForestClassifier(random_state=0, n_estimators=10, max_depth=5, criterion='gini')
 metric = accuracy_score
 
 # Data stream simulation

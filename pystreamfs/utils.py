@@ -52,9 +52,13 @@ def classify(X, Y, i, selected_ftr, model, metric, param):
     :rtype: object, float
     """
 
-    # Test set = current batch
-    x_test = X[i:i + param['batch_size'], selected_ftr]
-    y_test = Y[i:i + param['batch_size']]
+    # Test set = current batch OR last b samples (when dataset comes to an end)
+    if i + param['batch_size'] > X.shape[0]:
+        x_test = X[-param['batch_size']:, selected_ftr]
+        y_test = Y[-param['batch_size']:]
+    else:
+        x_test = X[i:i + param['batch_size'], selected_ftr]
+        y_test = Y[i:i + param['batch_size']]
 
     # Training set = all samples except current batch
     if i == 0:
@@ -71,9 +75,10 @@ def classify(X, Y, i, selected_ftr, model, metric, param):
     # Predict test set
     y_pred = model.predict(x_test)
 
-    try:  # Todo: check if this makes sense
+    try:
         perf_score = metric(y_test, y_pred)
     except ValueError:
         perf_score = 0.5  # random performance
+        print('Value error during computation of prediction metric!')
 
     return model, perf_score
