@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, roc_auc_score
 
 # Load a dataset
-data = pd.read_csv('../datasets/spambase.csv')
+data = pd.read_csv('../datasets/moa.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
@@ -18,13 +18,13 @@ fs_algorithm = ubfs.run_ubfs
 
 # Define parameters
 param = dict()
-param['batch_size'] = 46
-param['num_features'] = 6
-param['r'] = 20  # shifting window range for computation of stability
+param['batch_size'] = 100
+param['num_features'] = 10
+param['r'] = 25  # shifting window range for computation of stability
 param['epochs'] = 5  # iterations over current batch during one execution of ubfs
 param['mini_batch_size'] = 30  # must be smaller than batch_size
-param['lr_mu'] = 0.05  # learning rate for mean
-param['lr_sigma'] = 0.05  # learning rate for standard deviation
+param['lr_mu'] = 10**5  # learning rate for mean
+param['lr_sigma'] = 10**2  # learning rate for standard deviation
 
 # Parameters for concept drift detection
 param['check_drift'] = False  # indicator whether to check drift or not
@@ -34,7 +34,7 @@ param['check_drift'] = False  # indicator whether to check drift or not
 
 # Define a ML model and a performance metric
 model = RandomForestClassifier(random_state=0, n_estimators=10, max_depth=5, criterion='gini')
-metric = accuracy_score
+metric = roc_auc_score
 
 # Data stream simulation
 stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, metric, param)

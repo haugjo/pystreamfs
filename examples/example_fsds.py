@@ -20,8 +20,8 @@ fs_algorithm = fsds.run_fsds
 # Define parameters
 param = dict()
 param['batch_size'] = 100  # batch size for one iteration, must be at least the same size than the no. of clusters!!
-param['num_features'] = 3
-param['r'] = 20  # shifting window range for computation of stability
+param['num_features'] = 10
+param['r'] = 25  # shifting window range for computation of stability
 
 param['B'] = []  # initial sketch matrix
 param['ell'] = 0  # initial sketch size

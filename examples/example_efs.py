@@ -6,7 +6,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 
 # Load a dataset
-data = pd.read_csv('../datasets/spambase.csv')
+data = pd.read_csv('../datasets/moa.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
@@ -20,7 +20,7 @@ fs_algorithm = efs.run_efs
 param = dict()
 param['batch_size'] = 100  # batch size for one iteration, must be at least the same size than the no. of clusters!!
 param['num_features'] = 10
-param['r'] = 20  # shifting window range for computation of stability
+param['r'] = 25  # shifting window range for computation of stability
 
 # all parameters are set according to Carvalho et al.
 param['u'] = np.ones(X[0].shape) * 2  # initial positive model with weights 2
