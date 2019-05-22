@@ -98,7 +98,7 @@ def _update_weights(mu, sigma, param, feature_dim):
     param['w'] = w
 
     # update lambda
-    lamb = (l1_norm * np.dot(w, sigma ** 2) - np.sum(np.abs(sigma ** 2)) * (
+    lamb = lamb + (-l1_norm * np.dot(w, sigma ** 2) - np.sum(np.abs(sigma ** 2)) * (
             np.dot(w, mu) - lamb * np.dot(w, sigma ** 2))) / l1_norm ** 2
     param['lambda'] = lamb
 
