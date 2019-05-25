@@ -105,6 +105,8 @@ def simulate_stream(X, Y, fs_algorithm, model, metric, param):
     # Todo: plot drifts + remove temporal parameters before ploting
     if 'check_drift' in param and param['check_drift'] is True:
         stats['drifts'] = param['drifts']
+        stats['mu_sigma_diff_measures'] = param['mu_sigma_diff_measures']
+        stats['mu_sigma_diff_individual'] = param['mu_sigma_diff_individual']
 
     return stats
 

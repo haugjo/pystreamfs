@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import norm
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
+import operator
 
 
 def run_ubfs(X, Y, param, **kw):
@@ -118,30 +119,38 @@ def _check_concept_drift(mu, sigma, X, Y, param):
     :return: param
     :rtype dict
     """
-    if 'drift_score' not in param:
-        param['drift_score'] = 0
+    if 'drifts' not in param:
+        param['mu_sigma_diff_measures'] = []  # for mean mu and sigma
+        param['mu_sigma_diff_individual'] = []  # for individual mu and sigma
         param['drifts'] = []  # list of times t where drift was detected
+        param['greater_than'] = True  # indicates current operator for comparison of mu_sigma difference
+        param['comp'] = operator.gt  # set operator
 
-    if 'old_mu' in param:
-        # Calculate error with current and prior model parameters
-        error = _compute_error(X, Y, mu, sigma)  # error with current parameters
-        old_error = _compute_error(X, Y, param['old_mu'], param['old_sigma'])  # los with prior parameters
+    # Compute difference of current uncertainty with mu
+    mu_sigma_diff = np.abs(np.mean(mu) - np.mean(sigma))  # np.abs(np.mean(param['old_mu']) - np.mean(sigma))
+    param['mu_sigma_diff_measures'].append(mu_sigma_diff)
 
-        # Compute difference of expected values with last t
-        change_mu = np.abs(np.mean(param['old_mu']) - np.mean(mu))
+    # Save mu_j - sigma_j for all features
+    param['mu_sigma_diff_individual'].append(np.abs(mu-sigma))
 
-        if np.abs(error-old_error) > param['drift_error_thr'] and change_mu > param['drift_mu_thr']:
-            param['drift_score'] += 1
-        else:
-            param['drift_score'] = 0  # max(param['drift_score'] - 1, 0)
+    if len(param['mu_sigma_diff_measures']) > param['range']:  # if enough measures
+        # indicator for whether any of the last x mu_sigma_diff full-fills comparison property
+        indicator = np.zeros(param['range'])
 
-    param['old_mu'] = mu
-    param['old_sigma'] = mu
+        for i in range(2, 2 + param['range']):
+            if param['comp'](param['mu_sigma_diff_measures'][-i+1], param['mu_sigma_diff_measures'][-i]):
+                indicator[i-2] = 1
 
-    # Drift
-    if param['drift_score'] == param['drift_count']:
-        param['drift_score'] = 0  # set drift score back to 0
-        param['drifts'].append(param['t'])
+        if all(indicator):  # Concept drift is detected!
+            param['drifts'].append(param['t'] - param['range'] + 1)
+
+            # update comparison operator
+            if param['greater_than']:
+                param['comp'] = operator.lt  # change comparison operator to <
+                param['greater_than'] = False
+            else:
+                param['comp'] = operator.gt  # change comparison operator to >
+                param['greater_than'] = True
 
     return param
 
