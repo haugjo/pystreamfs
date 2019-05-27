@@ -69,7 +69,7 @@ def run_ubfs(X, Y, param, **kw):
 
     # concept drift detection
     if param['check_drift'] is True:
-        param = _check_concept_drift(mu, sigma, X, Y, param)
+        param = _check_concept_drift(mu, sigma, param)
 
     return w, param
 
@@ -106,7 +106,7 @@ def _update_weights(mu, sigma, param, feature_dim):
     return w, param
 
 
-def _check_concept_drift(mu, sigma, X, Y, param):
+def _check_concept_drift(mu, sigma, param):
     """
     Check for concept drift in the data based on a combined threshold
     on loss difference and average change in mu
@@ -120,61 +120,48 @@ def _check_concept_drift(mu, sigma, X, Y, param):
     :rtype dict
     """
     if 'drifts' not in param:
-        param['mu_sigma_diff_measures'] = []  # for mean mu and sigma
-        param['mu_sigma_diff_individual'] = []  # for individual mu and sigma
-        param['drifts'] = []  # list of times t where drift was detected
-        param['greater_than'] = True  # indicates current operator for comparison of mu_sigma difference
-        param['comp'] = operator.gt  # set operator
+        param['drifts'] = []
+        param['drift_ind_mean'] = []
 
-    # Compute difference of current uncertainty with mu
-    mu_sigma_diff = np.abs(np.mean(mu) - np.mean(sigma))  # np.abs(np.mean(param['old_mu']) - np.mean(sigma))
-    param['mu_sigma_diff_measures'].append(mu_sigma_diff)
+        # Todo: needed only during experiments, can be removed afterwards
+        param['mu_measures'] = []
+        param['sigma_measures'] = []
 
-    # Save mu_j - sigma_j for all features
-    param['mu_sigma_diff_individual'].append(np.abs(mu-sigma))
+    if param['drift_basis'] == 'sigma':
+        ind_mean = np.mean(sigma)
+    else:
+        ind_mean = np.mean(mu)
 
-    if len(param['mu_sigma_diff_measures']) > param['range']:  # if enough measures
-        # indicator for whether any of the last x mu_sigma_diff full-fills comparison property
-        indicator = np.zeros(param['range'])
+    param['drift_ind_mean'].append(ind_mean)
 
-        for i in range(2, 2 + param['range']):
-            if param['comp'](param['mu_sigma_diff_measures'][-i+1], param['mu_sigma_diff_measures'][-i]):
-                indicator[i-2] = 1
+    # Todo: needed only during experiments, can be removed afterwards
+    param['mu_measures'].append(mu)
+    param['sigma_measures'].append(sigma)
 
-        if all(indicator):  # Concept drift is detected!
-            param['drifts'].append(param['t'] - param['range'] + 1)
+    if len(param['drift_ind_mean']) > param['range'] * 2:
+        center_t = param['drift_ind_mean'].index(param['drift_ind_mean'][-param['range'] - 1])  # center t = index of central measure for given range
 
-            # update comparison operator
-            if param['greater_than']:
-                param['comp'] = operator.lt  # change comparison operator to <
-                param['greater_than'] = False
-            else:
-                param['comp'] = operator.gt  # change comparison operator to >
-                param['greater_than'] = True
+        # indicators for maximum or minimum
+        min_indicator_left = np.zeros(param['range'])
+        min_indicator_right = np.zeros(param['range'])
+        max_indicator_left = np.zeros(param['range'])
+        max_indicator_right = np.zeros(param['range'])
+
+        for i in range(1, param['range'] + 1):
+            # left range
+            if param['drift_ind_mean'][center_t - i] > param['drift_ind_mean'][center_t - i + 1]:
+                min_indicator_left[i - 1] = True
+            elif param['drift_ind_mean'][center_t - i] < param['drift_ind_mean'][center_t - i + 1]:
+                max_indicator_left[i - 1] = True
+
+            # right range
+            if param['drift_ind_mean'][center_t + i - 1] < param['drift_ind_mean'][center_t + i]:
+                min_indicator_right[i - 1] = True
+            elif param['drift_ind_mean'][center_t + i - 1] > param['drift_ind_mean'][center_t + i]:
+                max_indicator_right[i - 1] = True
+
+        # check for local minima
+        if (all(min_indicator_left) and all(min_indicator_right)) or (all(max_indicator_left) and all(max_indicator_right)):
+            param['drifts'].append(center_t + 1)
 
     return param
-
-
-def _compute_error(X, Y, mu, sigma):
-    """
-    Compute the mean squared error (MSE) for the given data and feature parameters,
-    using the marginal distribution function for computing y_hat.
-
-    :param np.ndarray X: data batch
-    :param np.ndarray Y: labels for data batch
-    :param np.ndarray mu: current mu for all features
-    :param np.ndarray sigma: current sigma for all features
-    :return: MSE
-    :rtype float
-    """
-
-    # dot product x . mu
-    dot_x_mu = np.dot(X, mu)
-
-    # dot product x^2 . sigma^2
-    dot_x_sigma = np.dot(X ** 2, sigma ** 2)
-
-    # inference -> Eq. 14
-    prob_y = norm.cdf(dot_x_mu / np.sqrt(1 + dot_x_sigma))  # prob(y=1)
-
-    return mean_squared_error(Y, prob_y)  # log_loss(Y, prob_y)  # Log loss

@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, roc_auc_score
 
 # Load a dataset
-data = pd.read_csv('../datasets/usenet.csv')
+data = pd.read_csv('../datasets/drift.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
@@ -29,6 +29,7 @@ param['lr_sigma'] = 10**2  # learning rate for standard deviation
 # Parameters for concept drift detection
 param['check_drift'] = True  # indicator whether to check drift or not
 param['range'] = 2  # range of last t to check for drift
+param['drift_basis'] = 'mu'  # basis parameter on which we perform concept drift detection
 
 # Define a ML model and a performance metric
 model = RandomForestClassifier(random_state=0, n_estimators=10, max_depth=5, criterion='gini')
