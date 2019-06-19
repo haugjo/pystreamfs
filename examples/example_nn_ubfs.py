@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, roc_auc_score
 
 # Load a dataset
-data = pd.read_csv('../datasets/moa.csv')
+data = pd.read_csv('../datasets/credit.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
@@ -30,7 +30,7 @@ param['lr_w'] = 0.01  # learning rate for weights
 param['lr_lambda'] = 0.01  # learning rate for lambda
 
 param['L'] = 10  # samples for monte carlo simulation
-param['h'] = 50  # nodes of hidden layer
+param['h'] = 5  # nodes of hidden layer
 
 # Define a ML model and a performance metric
 model = RandomForestClassifier(random_state=0, n_estimators=10, max_depth=5, criterion='gini')

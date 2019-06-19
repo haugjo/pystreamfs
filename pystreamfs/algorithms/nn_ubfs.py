@@ -47,7 +47,7 @@ def run_nn_ubfs(X, Y, param, **kw):
 
     # Initialize Neural Net, loss function and optimizer
     model = _Net(x.size()[1], param['h'], y.size()[1])
-    criterion = torch.nn.MSELoss()  # Todo: does it make sense to use a loss?
+    criterion = torch.nn.BCELoss()  # Cross entropy loss for classification
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
     for l in range(param['L']):
@@ -118,8 +118,13 @@ def run_nn_ubfs(X, Y, param, **kw):
     param['sigma_2'] = sigma_2
 
     # Update weights
-    mu = np.mean(np.asarray(mu_1), axis=0)  # use theta of first layer for computation of feature weights
-    sigma = np.mean(np.asarray(sigma_1), axis=0)
+    mu_2_norm = torch.abs(mu_2)/torch.sum(torch.abs(mu_2))  # normalize weights of layer 2
+    sigma_2_norm = torch.abs(sigma_2)/torch.sum(torch.abs(sigma_2))
+
+    mu = mu_1 * mu_2_norm  # Todo check correct multiplication
+    mu = torch.sum(mu, dim=0)
+    sigma = sigma_1 * sigma_2_norm
+    sigma = torch.sum(sigma, dim=0)
 
     w_unscaled, param = update_w(mu, sigma, param, X.shape[1])
 
@@ -136,8 +141,10 @@ class _Net(torch.nn.Module):
         self.linear2 = torch.nn.Linear(h, d_out)  # define hidden to output layer
 
     def forward(self, x):
-        h_relu = self.linear1(x).clamp(min=0)
-        y_pred = self.linear2(h_relu)
+        h_linear = self.linear1(x)
+        h_relu = torch.nn.functional.relu(h_linear)
+        y_linear = self.linear2(h_relu)
+        y_pred = torch.nn.functional.sigmoid(y_linear)
         return y_pred
 
     def init_weights(self, w_1, w_2):
