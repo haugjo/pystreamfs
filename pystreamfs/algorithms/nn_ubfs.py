@@ -78,7 +78,7 @@ def run_nn_ubfs(X, Y, param, **kw):
                 loss = criterion(y_pred, y_b)
 
                 # Perform backpropagation and update weights
-                loss.backward()  # Todo: check why gradients are always zero
+                loss.backward()
                 optimizer.step()
 
                 # Add gradient of current mini batch
@@ -166,10 +166,11 @@ def _monte_carlo_sampling(in_size, out_size, mu_1, mu_2, sigma_1, sigma_2, param
     r_2 = dict()
 
     for l in range(param['L']):
-        r_1[l] = torch.distributions.normal.Normal(0, 1).sample((param['h'], in_size))  # sample from standard gaussian
+        # Sample from standard normal distribution
+        r_1[l] = torch.distributions.normal.Normal(0, 1).sample((param['h'], in_size))
         r_2[l] = torch.distributions.normal.Normal(0, 1).sample((out_size, param['h']))
 
-        theta_1[l] = sigma_1 + r_1[l] + mu_1
-        theta_2[l] = sigma_2 + r_2[l] + mu_2
+        theta_1[l] = sigma_1 * r_1[l] + mu_1
+        theta_2[l] = sigma_2 * r_2[l] + mu_2
 
     return theta_1, theta_2, r_1, r_2

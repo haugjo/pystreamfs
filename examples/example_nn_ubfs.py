@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, roc_auc_score
 
 # Load a dataset
-data = pd.read_csv('../datasets/credit.csv')
+data = pd.read_csv('../datasets/usenet.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
