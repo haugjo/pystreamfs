@@ -54,29 +54,42 @@ def classify(X, Y, i, selected_ftr, model, metric, param):
 
     # Test set = current batch OR last b samples (when dataset comes to an end)
     if i + param['batch_size'] > X.shape[0]:
-        x_test = X[-param['batch_size']:, selected_ftr]
-        y_test = Y[-param['batch_size']:]
+        x_b = X[-param['batch_size']:, selected_ftr]
+        y_b = Y[-param['batch_size']:]
     else:
-        x_test = X[i:i + param['batch_size'], selected_ftr]
-        y_test = Y[i:i + param['batch_size']]
+        x_b = X[i:i + param['batch_size'], selected_ftr]
+        y_b = Y[i:i + param['batch_size']]
 
-    # Training set = all samples except current batch
-    if i == 0:
-        # for first iteration st X_train = X_test
-        x_train = x_test
-        y_train = y_test
-    else:
-        x_train = X[0:i, selected_ftr]
-        y_train = Y[0:i]
+    # Train if batch model
+    if not hasattr(model, 'partial_fit'):  # model cannot be trained in online fashion
+        if i == 0:
+            x_train = x_b  # for first iteration st X_train = X_b
+            y_train = y_b
+        else:
+            x_train = X[0:i, selected_ftr]  # Training set = all samples except current batch
+            y_train = Y[0:i]
 
-    # Train model
-    model.fit(x_train, y_train)
+        model.fit(x_train, y_train)
 
-    # Predict test set
-    y_pred = model.predict(x_test)
+        # Predict current batch (test set)
+        y_pred = model.predict(x_b)
 
+    # Train if online model
+    elif hasattr(model, 'partial_fit'):  # model can be trained in online fashion
+        if i == 0:  # for first iteration train with all features to get initial weights
+            model.partial_fit(X[i:i + param['batch_size']], Y[i:i + param['batch_size']], classes=np.unique(Y))
+            y_pred = model.predict(X[i:i + param['batch_size']])  # training error
+        else:
+            x_b_reshaped = np.zeros((x_b.shape[0], X.shape[1]))
+            x_b_reshaped[:, selected_ftr] = x_b  # form train set where all but the selected features are zero
+            y_pred = model.predict(x_b_reshaped)  # predict current batch
+
+            # Train model
+            model.partial_fit(x_b_reshaped, y_b)  # train model with current batch
+
+    # Compute performance metric
     try:
-        perf_score = metric(y_test, y_pred)
+        perf_score = metric(y_b, y_pred)
     except ValueError:
         perf_score = 0.5  # random performance
         print('Value error during computation of prediction metric!')
