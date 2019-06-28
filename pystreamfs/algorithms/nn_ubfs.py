@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 import numpy as np
-from pystreamfs.algorithms.ubfs import _update_weights as update_w
 from sklearn.preprocessing import MinMaxScaler
 
 
@@ -34,10 +33,23 @@ def run_nn_ubfs(X, Y, param, **kw):
         param['sigma_1'] = torch.ones((param['h'], x.size()[1]))  # input to hidden layer weights
         param['sigma_2'] = torch.ones((y.size()[1], param['h']))  # hidden to output layer weights
 
+        param['d'] = x.size()[1]  # initial dimensionality of feature space
+
     mu_1 = param['mu_1'].clone()
     mu_2 = param['mu_2'].clone()
     sigma_1 = param['sigma_1'].clone()
     sigma_2 = param['sigma_2'].clone()
+
+    # Detect new features
+    new_feature = False
+
+    if x.size()[1] > param['d']:
+        # add input node
+        mu_1 = torch.cat((mu_1, torch.zeros((param['h'], 1))), 1)
+        sigma_1 = torch.cat((sigma_1, torch.ones((param['h'], 1))), 1)
+
+        param['d'] = x.size()[1]  # update feature dimensionality
+        new_feature = True
 
     # Sample theta with Monte Carlo
     theta_1, theta_2, r_1, r_2 = _monte_carlo_sampling(x.size()[1], y.size()[1], mu_1, mu_2, sigma_1, sigma_2, param)
@@ -129,7 +141,10 @@ def run_nn_ubfs(X, Y, param, **kw):
     sigma = sigma_1 * sigma_2_norm.t()
     sigma = torch.sum(sigma, dim=0).numpy()
 
-    w_unscaled, param = update_w(mu, sigma, param, X.shape[1])
+    if nabla_mu_1.sum().item() == 0:  # TODO: check why gradient can get zero, check why sigma can get < zero !!!!!!!
+        test = 1
+
+    w_unscaled, param = _update_weights(mu, sigma, param, X.shape[1], new_feature)
 
     # scale weights to [0,1] because pystreamfs considers absolute weights for feature selection
     w = MinMaxScaler().fit_transform(w_unscaled.reshape(-1, 1)).flatten()
@@ -140,9 +155,9 @@ def run_nn_ubfs(X, Y, param, **kw):
 class _Net(nn.Module):
     def __init__(self, d_in, h, d_out):
         super(_Net, self).__init__()
-        self.linear1 = nn.Linear(d_in, h)  # define input to hidden layer
+        self.linear1 = nn.Linear(d_in, h, bias=False)  # define input to hidden layer
         self.relu = nn.ReLU()
-        self.linear2 = nn.Linear(h, d_out)  # define hidden to output layer
+        self.linear2 = nn.Linear(h, d_out, bias=False)  # define hidden to output layer
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -156,7 +171,6 @@ class _Net(nn.Module):
         # initialize weights with sampled theta
         self.linear1.weight = nn.Parameter(w_1)
         self.linear2.weight = nn.Parameter(w_2)
-        # Todo: what about bias initialization?
 
 
 def _monte_carlo_sampling(in_size, out_size, mu_1, mu_2, sigma_1, sigma_2, param):
@@ -174,3 +188,39 @@ def _monte_carlo_sampling(in_size, out_size, mu_1, mu_2, sigma_1, sigma_2, param
         theta_2[l] = sigma_2 * r_2[l] + mu_2
 
     return theta_1, theta_2, r_1, r_2
+
+
+def _update_weights(mu, sigma, param, feature_dim, new_feature):
+    """
+    Compute feature weights as a measure of expected importance and uncertainty
+
+    :param np.ndarray mu: current mu for all features
+    :param np.ndarray sigma: current sigma for all features
+    :param dict param: parameters
+    :param int feature_dim: dimension of the feature space
+    :return: w (updated weights), param
+    :rtype: np.ndarray, dict
+    """
+    if 'lambda' not in param:  # initialize lambda and w
+        param['lambda'] = 1
+        param['w'] = np.zeros(feature_dim)
+
+    # Detect new features
+    if new_feature:
+        param['w'] = np.append(param['w'], 0)
+
+    lamb = param['lambda']
+    w = param['w']
+
+    l1_norm = np.sum(np.abs(mu - lamb * sigma**2))
+
+    # compute weights
+    w += param['lr_w'] * (mu - lamb * sigma ** 2) / l1_norm
+    param['w'] = w
+
+    # update lambda
+    lamb += param['lr_lambda'] * (-l1_norm * np.dot(w, sigma ** 2) - np.sum(np.abs(sigma ** 2)) * (
+            np.dot(w, mu) - lamb * np.dot(w, sigma ** 2))) / l1_norm ** 2
+    param['lambda'] = lamb
+
+    return w, param
