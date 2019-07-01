@@ -58,18 +58,16 @@ def run_nn_ubfs(X, Y, param, **kw):
     nabla_theta_1 = dict()
     nabla_theta_2 = dict()
 
-    # Initialize Neural Net, loss function and optimizer
-    model = _Net(x.size()[1], param['h'], y.size()[1])
-    criterion = nn.BCELoss()  # Cross entropy loss for classification
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-
     for l in range(param['L']):
         # Gradient of theta for l
         nabla_theta_1[l] = torch.zeros(theta_1[l].size())
         nabla_theta_2[l] = torch.zeros(theta_2[l].size())
 
-        # Set theta as weights of neural net
-        model.init_weights(theta_1[l], theta_2[l])
+        # Initialize Neural Net, loss function and optimizer
+        model = _Net(x.size()[1], param['h'], y.size()[1])
+        model.init_weights(theta_1[l].clone(), theta_2[l].clone())  # set weights with theta
+        criterion = nn.BCELoss()  # Cross entropy loss for classification
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)  # specify optimizer, here SGD
 
         for epoch in range(param['epochs']):
             # shuffle sample
@@ -92,6 +90,9 @@ def run_nn_ubfs(X, Y, param, **kw):
                 # Perform backpropagation and update weights
                 loss.backward()
                 optimizer.step()
+
+                if model.linear1.weight.grad.sum().item() == 0:  # TODO: delete when certain
+                    print('Gradient is zero at t={}'.format(param['t']))
 
                 # Add gradient of current mini batch
                 nabla_theta_1[l] += model.linear1.weight.grad
@@ -141,8 +142,9 @@ def run_nn_ubfs(X, Y, param, **kw):
     sigma = sigma_1 * sigma_2_norm.t()
     sigma = torch.sum(sigma, dim=0).numpy()
 
-    if nabla_mu_1.sum().item() == 0:  # TODO: check why gradient can get zero, check why sigma can get < zero !!!!!!!
-        test = 1
+    # TOdo: delete when certain
+    if (sigma < 0).any():
+        print('Sigma is negative at t={}'.format(param['t']))
 
     w_unscaled, param = _update_weights(mu, sigma, param, X.shape[1], new_feature)
 
@@ -156,14 +158,14 @@ class _Net(nn.Module):
     def __init__(self, d_in, h, d_out):
         super(_Net, self).__init__()
         self.linear1 = nn.Linear(d_in, h, bias=False)  # define input to hidden layer
-        self.relu = nn.ReLU()
+        self.softplus = nn.Softplus()
         self.linear2 = nn.Linear(h, d_out, bias=False)  # define hidden to output layer
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         h_linear = self.linear1(x)
-        h_relu = self.relu(h_linear)
-        out_linear = self.linear2(h_relu)
+        h_activation = self.softplus(h_linear)
+        out_linear = self.linear2(h_activation)
         y_pred = self.sigmoid(out_linear)
         return y_pred
 
@@ -180,9 +182,9 @@ def _monte_carlo_sampling(in_size, out_size, mu_1, mu_2, sigma_1, sigma_2, param
     r_2 = dict()
 
     for l in range(param['L']):
-        # Sample from standard normal distribution
-        r_1[l] = torch.distributions.normal.Normal(0, 1).sample((param['h'], in_size))
-        r_2[l] = torch.distributions.normal.Normal(0, 1).sample((out_size, param['h']))
+        # Xavier weight initialization TODO: check if correct!
+        r_1[l] = torch.distributions.normal.Normal(0, np.sqrt(2/(in_size + out_size))).sample((param['h'], in_size))
+        r_2[l] = torch.distributions.normal.Normal(0, np.sqrt(2/(in_size + out_size))).sample((out_size, param['h']))
 
         theta_1[l] = sigma_1 * r_1[l] + mu_1
         theta_2[l] = sigma_2 * r_2[l] + mu_2
