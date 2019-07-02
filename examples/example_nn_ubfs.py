@@ -20,7 +20,7 @@ fs_algorithm = nn_ubfs.run_nn_ubfs
 # Define parameters
 param = dict()
 param['batch_size'] = 100
-param['num_features'] = 25
+param['num_features'] = 5
 param['r'] = 25  # shifting window range for computation of stability
 param['epochs'] = 5  # iterations over current batch during one execution of ubfs
 param['mini_batch_size'] = 30  # must be smaller than batch_size
@@ -35,10 +35,10 @@ param['h'] = 50  # nodes of hidden layer
 
 # Define a feature stream
 feature_stream = dict()
-feature_stream[0] = range(0, 15)
-feature_stream[10] = range(0, 16)
-feature_stream[11] = range(0, 17)  # TODO allow for multiple new features
-# param['feature_stream'] = feature_stream
+feature_stream[0] = range(0, 10)
+feature_stream[25] = range(0, 15)
+feature_stream[50] = range(0, 20)
+param['feature_stream'] = feature_stream
 
 # Define a ML model and a performance metric
 model = Perceptron()  # RandomForestClassifier(random_state=0, n_estimators=10, max_depth=5, criterion='gini')

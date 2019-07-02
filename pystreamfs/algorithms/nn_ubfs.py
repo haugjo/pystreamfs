@@ -41,15 +41,10 @@ def run_nn_ubfs(X, Y, param, **kw):
     sigma_2 = param['sigma_2'].clone()
 
     # Detect new features
-    new_feature = False
+    new_features = 0
 
     if x.size()[1] > param['d']:
-        # add input node
-        mu_1 = torch.cat((mu_1, torch.zeros((param['h'], 1))), 1)
-        sigma_1 = torch.cat((sigma_1, torch.ones((param['h'], 1))), 1)
-
-        param['d'] = x.size()[1]  # update feature dimensionality
-        new_feature = True
+        mu_1, sigma_1, param, new_features = _new_input_dim(x.size()[1], mu_1, sigma_1, param)  # init new input nodes
 
     # Sample theta with Monte Carlo
     theta_1, theta_2, r_1, r_2 = _monte_carlo_sampling(x.size()[1], y.size()[1], mu_1, mu_2, sigma_1, sigma_2, param)
@@ -146,7 +141,7 @@ def run_nn_ubfs(X, Y, param, **kw):
     if (sigma < 0).any():
         print('Sigma is negative at t={}'.format(param['t']))
 
-    w_unscaled, param = _update_weights(mu, sigma, param, X.shape[1], new_feature)
+    w_unscaled, param = _update_weights(mu, sigma, param, X.shape[1], new_features)
 
     # scale weights to [0,1] because pystreamfs considers absolute weights for feature selection
     w = MinMaxScaler().fit_transform(w_unscaled.reshape(-1, 1)).flatten()
@@ -192,7 +187,27 @@ def _monte_carlo_sampling(in_size, out_size, mu_1, mu_2, sigma_1, sigma_2, param
     return theta_1, theta_2, r_1, r_2
 
 
-def _update_weights(mu, sigma, param, feature_dim, new_feature):
+def _new_input_dim(new_dim, mu_1, sigma_1, param):
+    # number of new features
+    dim = new_dim - param['d']
+
+    # current average of mu and sigma
+    avg_mu = torch.mean(mu_1, 1).view(-1, 1)
+    avg_sigma = torch.mean(sigma_1, 1).view(-1, 1)
+
+    cat_mu = torch.cat([avg_mu] * dim, 1)
+    cat_sigma = torch.cat([avg_sigma] * dim, 1)
+
+    # add input node
+    mu_1 = torch.cat((mu_1, cat_mu), 1)
+    sigma_1 = torch.cat((sigma_1, cat_sigma), 1)
+
+    param['d'] = new_dim  # update feature dimensionality
+
+    return mu_1, sigma_1, param, dim
+
+
+def _update_weights(mu, sigma, param, feature_dim, new_features):
     """
     Compute feature weights as a measure of expected importance and uncertainty
 
@@ -208,8 +223,8 @@ def _update_weights(mu, sigma, param, feature_dim, new_feature):
         param['w'] = np.zeros(feature_dim)
 
     # Detect new features
-    if new_feature:
-        param['w'] = np.append(param['w'], 0)
+    if new_features > 0:
+        param['w'] = np.append(param['w'], [np.mean(param['w'])] * new_features)
 
     lamb = param['lambda']
     w = param['w']
