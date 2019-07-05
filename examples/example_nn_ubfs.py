@@ -7,7 +7,7 @@ from sklearn.linear_model import Perceptron
 from sklearn.metrics import accuracy_score, roc_auc_score
 
 # Load a dataset
-data = pd.read_csv('../datasets/kdd.csv')
+data = pd.read_csv('../datasets/har_concept_evo.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
@@ -38,7 +38,7 @@ feature_stream = dict()
 feature_stream[0] = range(0, 10)
 feature_stream[25] = range(0, 15)
 feature_stream[50] = range(0, 20)
-param['feature_stream'] = feature_stream
+# param['feature_stream'] = feature_stream
 
 # Define a ML model and a performance metric
 model = Perceptron()  # RandomForestClassifier(random_state=0, n_estimators=10, max_depth=5, criterion='gini')

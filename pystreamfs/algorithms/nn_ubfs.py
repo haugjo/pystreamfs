@@ -27,13 +27,20 @@ def run_nn_ubfs(X, Y, param, **kw):
 
     # initialize uncertainty parameters for distribution of feature weights theta
     if 'mu_1' not in param and 'sigma_1' not in param:
+        # if binary classification -> 1 output node
+        if len(y.unique()) < 3:
+            output_dim = 1
+        else:
+            output_dim = len(y.unique())
+
         param['mu_1'] = torch.zeros((param['h'], x.size()[1]))  # input to hidden layer weights
-        param['mu_2'] = torch.zeros((y.size()[1], param['h']))  # hidden to output layer weights
+        param['mu_2'] = torch.zeros((output_dim, param['h']))  # hidden to output layer weights
 
         param['sigma_1'] = torch.ones((param['h'], x.size()[1]))  # input to hidden layer weights
-        param['sigma_2'] = torch.ones((y.size()[1], param['h']))  # hidden to output layer weights
+        param['sigma_2'] = torch.ones((output_dim, param['h']))  # hidden to output layer weights
 
         param['d'] = x.size()[1]  # initial dimensionality of feature space
+        param['classes'] = output_dim  # save all initial classes
 
     mu_1 = param['mu_1'].clone()
     mu_2 = param['mu_2'].clone()
@@ -45,6 +52,10 @@ def run_nn_ubfs(X, Y, param, **kw):
 
     if x.size()[1] > param['d']:
         mu_1, sigma_1, param, new_features = _new_input_dim(x.size()[1], mu_1, sigma_1, param)  # init new input nodes
+
+    # Detect new classes
+    if len(y.unique()) > param['classes'] and not len(y.unique()) == 2:
+        mu_2, sigma_2, param = _new_output_dim(len(y.unique()), mu_2, sigma_2, param)  # init new output nodes
 
     # Sample theta with Monte Carlo
     theta_1, theta_2, r_1, r_2 = _monte_carlo_sampling(x.size()[1], y.size()[1], mu_1, mu_2, sigma_1, sigma_2, param)
@@ -59,9 +70,15 @@ def run_nn_ubfs(X, Y, param, **kw):
         nabla_theta_2[l] = torch.zeros(theta_2[l].size())
 
         # Initialize Neural Net, loss function and optimizer
-        model = _Net(x.size()[1], param['h'], y.size()[1])
+        model = _Net(x.size()[1], param['h'], param['classes'])
         model.init_weights(theta_1[l].clone(), theta_2[l].clone())  # set weights with theta
-        criterion = nn.BCELoss()  # Cross entropy loss for classification
+
+        # Select appropriate loss function
+        if param['classes'] == 1:
+            criterion = nn.BCELoss()  # Binary Cross Entropy loss
+        else:
+            criterion = nn.NLLLoss()  # Negative Log Likelihood loss for multivariate classification
+
         optimizer = torch.optim.SGD(model.parameters(), lr=0.01)  # specify optimizer, here SGD
 
         for epoch in range(param['epochs']):
@@ -80,7 +97,7 @@ def run_nn_ubfs(X, Y, param, **kw):
 
                 # Forward pass of neural net
                 y_pred = model(x_b)
-                loss = criterion(y_pred, y_b)
+                loss = criterion(y_pred, y_b)  # Todo: change format for NLLLoss
 
                 # Perform backpropagation and update weights
                 loss.backward()
@@ -205,6 +222,26 @@ def _new_input_dim(new_dim, mu_1, sigma_1, param):
     param['d'] = new_dim  # update feature dimensionality
 
     return mu_1, sigma_1, param, dim
+
+
+def _new_output_dim(new_dim, mu_2, sigma_2, param):
+    # number of new classes
+    dim = new_dim - param['classes']
+
+    # current average of mu and sigma
+    avg_mu = torch.mean(mu_2, 1).view(-1, 1)
+    avg_sigma = torch.mean(sigma_2, 1).view(-1, 1)
+
+    cat_mu = torch.cat([avg_mu] * dim, 1)
+    cat_sigma = torch.cat([avg_sigma] * dim, 1)
+
+    # add input node
+    mu_2 = torch.cat((mu_2, cat_mu), 1)
+    sigma_2 = torch.cat((sigma_2, cat_sigma), 1)
+
+    param['classes'] = new_dim  # update number of classes
+
+    return mu_2, sigma_2, param
 
 
 def _update_weights(mu, sigma, param, feature_dim, new_features):
