@@ -21,18 +21,21 @@ def run_nn_ubfs(X, Y, param, **kw):
     ...Todo: add to README.md
     """
 
+    # Dimensionality of Y
+    output_dim = len(np.unique(Y))
+
+    # check classification type
+    if output_dim > 2:
+        multinomial = True
+    else:
+        multinomial = False
+
     # Format sample as tensor
     x = torch.from_numpy(X).float()  # format sample as tensor
-    y = torch.from_numpy(Y).view(-1, 1).float()
+    y = torch.from_numpy(Y).long()
 
     # initialize uncertainty parameters for distribution of feature weights theta
     if 'mu_1' not in param and 'sigma_1' not in param:
-        # if binary classification -> 1 output node
-        if len(y.unique()) < 3:
-            output_dim = 1
-        else:
-            output_dim = len(y.unique())
-
         param['mu_1'] = torch.zeros((param['h'], x.size()[1]))  # input to hidden layer weights
         param['mu_2'] = torch.zeros((output_dim, param['h']))  # hidden to output layer weights
 
@@ -49,22 +52,21 @@ def run_nn_ubfs(X, Y, param, **kw):
 
     # Detect new features
     new_features = 0
-
     if x.size()[1] > param['d']:
         mu_1, sigma_1, param, new_features = _new_input_dim(x.size()[1], mu_1, sigma_1, param)  # init new input nodes
 
     # Detect new classes
-    if len(y.unique()) > param['classes'] and not len(y.unique()) == 2:
+    if len(y.unique()) > param['classes'] and multinomial:
         mu_2, sigma_2, param = _new_output_dim(len(y.unique()), mu_2, sigma_2, param)  # init new output nodes
 
     # Sample theta with Monte Carlo
-    theta_1, theta_2, r_1, r_2 = _monte_carlo_sampling(x.size()[1], y.size()[1], mu_1, mu_2, sigma_1, sigma_2, param)
+    theta_1, theta_2, r_1, r_2 = _monte_carlo_sampling(x.size()[1], output_dim, mu_1, mu_2, sigma_1, sigma_2, param)
 
     # Gradient of theta
     nabla_theta_1 = dict()
     nabla_theta_2 = dict()
 
-    for l in range(param['L']):
+    for l in range(param['L']):  # For all samples L
         # Gradient of theta for l
         nabla_theta_1[l] = torch.zeros(theta_1[l].size())
         nabla_theta_2[l] = torch.zeros(theta_2[l].size())
@@ -73,11 +75,8 @@ def run_nn_ubfs(X, Y, param, **kw):
         model = _Net(x.size()[1], param['h'], param['classes'])
         model.init_weights(theta_1[l].clone(), theta_2[l].clone())  # set weights with theta
 
-        # Select appropriate loss function
-        if param['classes'] == 1:
-            criterion = nn.BCELoss()  # Binary Cross Entropy loss
-        else:
-            criterion = nn.NLLLoss()  # Negative Log Likelihood loss for multivariate classification
+        # Specify loss function
+        criterion = nn.NLLLoss()  # Negative Log Likelihood loss for classification
 
         optimizer = torch.optim.SGD(model.parameters(), lr=0.01)  # specify optimizer, here SGD
 
@@ -97,7 +96,7 @@ def run_nn_ubfs(X, Y, param, **kw):
 
                 # Forward pass of neural net
                 y_pred = model(x_b)
-                loss = criterion(y_pred, y_b)  # Todo: change format for NLLLoss
+                loss = criterion(y_pred, y_b)
 
                 # Perform backpropagation and update weights
                 loss.backward()
@@ -145,14 +144,16 @@ def run_nn_ubfs(X, Y, param, **kw):
     param['sigma_1'] = sigma_1
     param['sigma_2'] = sigma_2
 
-    # Update weights
-    mu_2_norm = torch.abs(mu_2)/torch.sum(torch.abs(mu_2))  # normalize weights of layer 2
-    sigma_2_norm = torch.abs(sigma_2)/torch.sum(torch.abs(sigma_2))
+    # Update weights  # Todo: update for multiple output nodes
+    mu_2_mean = torch.mean(mu_2, dim=0)
+    sigma_2_mean = torch.mean(sigma_2, 0)
+    mu_2_norm = torch.abs(mu_2_mean)/torch.sum(torch.abs(mu_2_mean))  # normalize weights of layer 2
+    sigma_2_norm = torch.abs(sigma_2_mean)/torch.sum(torch.abs(sigma_2_mean))
 
-    mu = mu_1 * mu_2_norm.t()  # average layer 1 weights relative to layer 2 weight
-    mu = torch.sum(mu, dim=0).numpy()
-    sigma = sigma_1 * sigma_2_norm.t()
-    sigma = torch.sum(sigma, dim=0).numpy()
+    mu = mu_1.t() * mu_2_norm  # average layer 1 weights relative to layer 2 weight
+    mu = torch.sum(mu, dim=1).numpy()
+    sigma = sigma_1.t() * sigma_2_norm
+    sigma = torch.sum(sigma, dim=1).numpy()
 
     # TOdo: delete when certain
     if (sigma < 0).any():
