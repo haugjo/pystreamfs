@@ -26,9 +26,10 @@ param['epochs'] = 5  # iterations over current batch during one execution of ubf
 param['mini_batch_size'] = 30  # must be smaller than batch_size
 param['lr_mu'] = 10  # learning rate for mean
 param['lr_sigma'] = 10  # learning rate for standard deviation
+param['lr_model'] = 0.01  # learning rate for SGD in neural net
 
 param['lr_w'] = 10  # learning rate for weights
-param['lr_lambda'] = 10  # learning rate for lambda
+param['lr_lambda'] = 10  # learning rate for lambda Todo: think of temporarily increasing the learning rate after detection of new feature/class
 
 param['L'] = 10  # samples for monte carlo simulation
 param['h'] = 50  # nodes of hidden layer
@@ -42,7 +43,7 @@ feature_stream[50] = range(0, 20)
 
 # Define a ML model and a performance metric
 model = Perceptron()  # RandomForestClassifier(random_state=0, n_estimators=10, max_depth=5, criterion='gini')
-metric = roc_auc_score
+metric = accuracy_score
 
 # Data stream simulation
 stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, metric, param)

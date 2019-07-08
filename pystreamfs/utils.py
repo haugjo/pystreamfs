@@ -77,7 +77,7 @@ def classify(X, Y, i, selected_ftr, model, metric, param):
     # Train if online model
     elif hasattr(model, 'partial_fit'):  # model can be trained in online fashion
         if i == 0:  # for first iteration train with all features to get initial weights
-            model.partial_fit(X[i:i + param['batch_size']], Y[i:i + param['batch_size']], classes=np.unique(Y))
+            model.partial_fit(X[i:i + param['batch_size']], y_b, classes=np.unique(Y))  # must specify all classes at initialization, no posterior update of classes
             y_pred = model.predict(X[i:i + param['batch_size']])  # training error
         else:
             x_b_reshaped = np.zeros((x_b.shape[0], X.shape[1]))

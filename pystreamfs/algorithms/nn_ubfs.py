@@ -54,10 +54,12 @@ def run_nn_ubfs(X, Y, param, **kw):
     new_features = 0  # number of new features
     if x.size()[1] > param['d']:
         mu_1, sigma_1, param, new_features = _new_input_dim(x.size()[1], mu_1, sigma_1, param)  # init new input nodes
+        print('New feature detected at t={}'.format(param['t']))
 
     # Detect new classes
     if len(y.unique()) > param['classes']:
-        mu_2, sigma_2, param = _new_output_dim(len(y.unique()), mu_2, sigma_2, param)  # init new output nodes
+        mu_2, sigma_2, param = _new_output_dim(output_dim, mu_2, sigma_2, param)  # init new output nodes
+        print("New class detected at t={}".format(param['t']))
 
     ########################################
     # 3. MONTE CARLO SAMPLING
@@ -79,7 +81,7 @@ def run_nn_ubfs(X, Y, param, **kw):
         model = _Net(x.size()[1], param['h'], param['classes'])
         model.init_weights(theta_1[l].clone(), theta_2[l].clone())  # set weights theta
         criterion = nn.NLLLoss()  # Negative Log Likelihood loss for classification
-        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)  # specify optimizer, here SGD
+        optimizer = torch.optim.SGD(model.parameters(), lr=param['lr_model'])  # specify optimizer, here SGD
 
         for epoch in range(param['epochs']):
             # shuffle sample
@@ -280,18 +282,18 @@ def _new_output_dim(new_dim, mu_2, sigma_2, param):
     :rtype: torch.tensor, torch.tensor, dict, int
     """
     # number of new classes
-    dim = new_dim - param['classes']
+    new_classes = new_dim - param['classes']
 
     # current average of mu and sigma
-    avg_mu = torch.mean(mu_2, 1).view(-1, 1)
-    avg_sigma = torch.mean(sigma_2, 1).view(-1, 1)
+    avg_mu = torch.mean(mu_2, 0)
+    avg_sigma = torch.mean(sigma_2, 0)
 
-    cat_mu = torch.cat([avg_mu] * dim, 1)
-    cat_sigma = torch.cat([avg_sigma] * dim, 1)
+    cat_mu = torch.unsqueeze(torch.cat([avg_mu] * new_classes, 0), 0)
+    cat_sigma = torch.unsqueeze(torch.cat([avg_sigma] * new_classes, 0), 0)
 
     # add input node
-    mu_2 = torch.cat((mu_2, cat_mu), 1)
-    sigma_2 = torch.cat((sigma_2, cat_sigma), 1)
+    mu_2 = torch.cat((mu_2, cat_mu), 0)
+    sigma_2 = torch.cat((sigma_2, cat_sigma), 0)
 
     param['classes'] = new_dim  # update number of classes
 
