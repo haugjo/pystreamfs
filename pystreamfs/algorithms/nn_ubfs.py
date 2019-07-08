@@ -21,14 +21,11 @@ def run_nn_ubfs(X, Y, param, **kw):
     ...Todo: add to README.md
     """
 
+    ########################################
+    # 1. DATA PREPARATION
+    ########################################
     # Dimensionality of Y
     output_dim = len(np.unique(Y))
-
-    # check classification type
-    if output_dim > 2:
-        multinomial = True
-    else:
-        multinomial = False
 
     # Format sample as tensor
     x = torch.from_numpy(X).float()  # format sample as tensor
@@ -50,34 +47,38 @@ def run_nn_ubfs(X, Y, param, **kw):
     sigma_1 = param['sigma_1'].clone()
     sigma_2 = param['sigma_2'].clone()
 
+    ########################################
+    # 2. CHANGING FEATURES AND/OR CLASSES
+    ########################################
     # Detect new features
-    new_features = 0
+    new_features = 0  # number of new features
     if x.size()[1] > param['d']:
         mu_1, sigma_1, param, new_features = _new_input_dim(x.size()[1], mu_1, sigma_1, param)  # init new input nodes
 
     # Detect new classes
-    if len(y.unique()) > param['classes'] and multinomial:
+    if len(y.unique()) > param['classes']:
         mu_2, sigma_2, param = _new_output_dim(len(y.unique()), mu_2, sigma_2, param)  # init new output nodes
 
-    # Sample theta with Monte Carlo
+    ########################################
+    # 3. MONTE CARLO SAMPLING
+    ########################################
     theta_1, theta_2, r_1, r_2 = _monte_carlo_sampling(x.size()[1], output_dim, mu_1, mu_2, sigma_1, sigma_2, param)
 
-    # Gradient of theta
+    ########################################
+    # 4. TRAINING THE NET
+    ########################################
     nabla_theta_1 = dict()
     nabla_theta_2 = dict()
 
     for l in range(param['L']):  # For all samples L
-        # Gradient of theta for l
+        # Initialize gradient of theta for current sample l
         nabla_theta_1[l] = torch.zeros(theta_1[l].size())
         nabla_theta_2[l] = torch.zeros(theta_2[l].size())
 
         # Initialize Neural Net, loss function and optimizer
         model = _Net(x.size()[1], param['h'], param['classes'])
-        model.init_weights(theta_1[l].clone(), theta_2[l].clone())  # set weights with theta
-
-        # Specify loss function
+        model.init_weights(theta_1[l].clone(), theta_2[l].clone())  # set weights theta
         criterion = nn.NLLLoss()  # Negative Log Likelihood loss for classification
-
         optimizer = torch.optim.SGD(model.parameters(), lr=0.01)  # specify optimizer, here SGD
 
         for epoch in range(param['epochs']):
@@ -113,7 +114,10 @@ def run_nn_ubfs(X, Y, param, **kw):
         nabla_theta_1[l] /= (param['epochs'] * param['mini_batch_size'])
         nabla_theta_2[l] /= (param['epochs'] * param['mini_batch_size'])
 
-    # Compute gradient on mu and sigma
+    ########################################
+    # 5. COMPUTE GRADIENT ON MU AND SIGMA
+    ########################################
+    # Initialize the gradients
     nabla_mu_1 = torch.zeros(nabla_theta_1[0].size())
     nabla_mu_2 = torch.zeros(nabla_theta_2[0].size())
 
@@ -121,6 +125,7 @@ def run_nn_ubfs(X, Y, param, **kw):
     nabla_sigma_2 = torch.zeros(nabla_theta_2[0].size())
 
     for l in range(param['L']):
+        # According to gradients in paper:
         nabla_mu_1 += nabla_theta_1[l]
         nabla_mu_2 += nabla_theta_2[l]
 
@@ -132,7 +137,9 @@ def run_nn_ubfs(X, Y, param, **kw):
     nabla_sigma_1 /= param['L']
     nabla_sigma_2 /= param['L']
 
-    # Update mu and sigma
+    ########################################
+    # 6. UPDATE MU AND SIGMA
+    ########################################
     mu_1 -= param['lr_mu'] * nabla_mu_1
     mu_2 -= param['lr_mu'] * nabla_mu_2
     sigma_1 -= param['lr_sigma'] * nabla_sigma_1
@@ -144,19 +151,22 @@ def run_nn_ubfs(X, Y, param, **kw):
     param['sigma_1'] = sigma_1
     param['sigma_2'] = sigma_2
 
-    # Update weights  # Todo: update for multiple output nodes
+    ########################################
+    # 7. COMPUTE FEATURE WEIGHTS
+    ########################################
+    # Average mu and sigma depending on all layers in the neural net
+    # Goal: Get mu_j and sigma_j for each feature j
     mu_2_mean = torch.mean(mu_2, dim=0)
     sigma_2_mean = torch.mean(sigma_2, 0)
     mu_2_norm = torch.abs(mu_2_mean)/torch.sum(torch.abs(mu_2_mean))  # normalize weights of layer 2
     sigma_2_norm = torch.abs(sigma_2_mean)/torch.sum(torch.abs(sigma_2_mean))
 
-    mu = mu_1.t() * mu_2_norm  # average layer 1 weights relative to layer 2 weight
-    mu = torch.sum(mu, dim=1).numpy()
+    mu = mu_1.t() * mu_2_norm  # average layer 1 mu relative to layer 2 mu
+    mu = torch.sum(mu, dim=1).numpy()  # sum up mu for all hidden nodes
     sigma = sigma_1.t() * sigma_2_norm
     sigma = torch.sum(sigma, dim=1).numpy()
 
-    # TOdo: delete when certain
-    if (sigma < 0).any():
+    if (sigma < 0).any():  # TODO: delete when certain
         print('Sigma is negative at t={}'.format(param['t']))
 
     w_unscaled, param = _update_weights(mu, sigma, param, X.shape[1], new_features)
@@ -168,18 +178,23 @@ def run_nn_ubfs(X, Y, param, **kw):
 
 
 class _Net(nn.Module):
+    """
+    3-layer neural net:
+    - with softplus activation of the hidden nodes
+    - with softmax activation of the output nodes
+    """
     def __init__(self, d_in, h, d_out):
         super(_Net, self).__init__()
         self.linear1 = nn.Linear(d_in, h, bias=False)  # define input to hidden layer
         self.softplus = nn.Softplus()
         self.linear2 = nn.Linear(h, d_out, bias=False)  # define hidden to output layer
-        self.sigmoid = nn.Sigmoid()
+        self.logsoftmax = nn.LogSoftmax()
 
     def forward(self, x):
         h_linear = self.linear1(x)
         h_activation = self.softplus(h_linear)
         out_linear = self.linear2(h_activation)
-        y_pred = self.sigmoid(out_linear)
+        y_pred = self.logsoftmax(out_linear)
         return y_pred
 
     def init_weights(self, w_1, w_2):
@@ -189,13 +204,27 @@ class _Net(nn.Module):
 
 
 def _monte_carlo_sampling(in_size, out_size, mu_1, mu_2, sigma_1, sigma_2, param):
+    """
+    Monte Carlo sampling of theta (weights of neural net) with reparameterization trick
+
+    :param int in_size: no. of input nodes
+    :param int out_size: no. of output nodes
+    :param torch.tensor mu_1: mu of first layer weights
+    :param torch.tensor mu_2: mu of second layer weights
+    :param torch.tensor sigma_1: sigma of first layer weights
+    :param torch.tensor sigma_2: sigma of second layer weights
+    :param dict param: parameters, includes:
+        - int h: no. of hidden nodes
+    :return: theta_1, theta_2 (sampled weights for each L), r_1, r_2 (reparameterization parameters for each L)
+    :rtype: dict, dict, dict, dict
+    """
     theta_1 = dict()
     theta_2 = dict()
     r_1 = dict()  # reparametrization parameter
     r_2 = dict()
 
     for l in range(param['L']):
-        # Xavier weight initialization TODO: check if correct!
+        # Xavier weight initialization
         r_1[l] = torch.distributions.normal.Normal(0, np.sqrt(2/(in_size + out_size))).sample((param['h'], in_size))
         r_2[l] = torch.distributions.normal.Normal(0, np.sqrt(2/(in_size + out_size))).sample((out_size, param['h']))
 
@@ -206,15 +235,27 @@ def _monte_carlo_sampling(in_size, out_size, mu_1, mu_2, sigma_1, sigma_2, param
 
 
 def _new_input_dim(new_dim, mu_1, sigma_1, param):
+    """
+    Adjust to new dimensionality of feature space (Feature Stream) by adding new input nodes.
+    Initialize new first layer weights.
+
+    :param int new_dim: new input dimensionality
+    :param torch.tensor mu_1: mu of first layer weights
+    :param torch.tensor sigma_1: sigma of first layer weights
+    :param dict param: parameters, includes:
+        - int d: prior input dimensionality
+    :return: mu_1, sigma_1 (including the new input nodes), param, new_features (no. of added input nodes/new features)
+    :rtype: torch.tensor, torch.tensor, dict, int
+    """
     # number of new features
-    dim = new_dim - param['d']
+    new_features = new_dim - param['d']
 
     # current average of mu and sigma
     avg_mu = torch.mean(mu_1, 1).view(-1, 1)
     avg_sigma = torch.mean(sigma_1, 1).view(-1, 1)
 
-    cat_mu = torch.cat([avg_mu] * dim, 1)
-    cat_sigma = torch.cat([avg_sigma] * dim, 1)
+    cat_mu = torch.cat([avg_mu] * new_features, 1)
+    cat_sigma = torch.cat([avg_sigma] * new_features, 1)
 
     # add input node
     mu_1 = torch.cat((mu_1, cat_mu), 1)
@@ -222,10 +263,22 @@ def _new_input_dim(new_dim, mu_1, sigma_1, param):
 
     param['d'] = new_dim  # update feature dimensionality
 
-    return mu_1, sigma_1, param, dim
+    return mu_1, sigma_1, param, new_features
 
 
 def _new_output_dim(new_dim, mu_2, sigma_2, param):
+    """
+    Adjust to newly appeared classes (Concept Evolution) by adding new output nodes.
+    Initialize new second layer weights.
+
+    :param int new_dim: new output dimensionality
+    :param torch.tensor mu_2: mu of second layer weights
+    :param torch.tensor sigma_2: sigma of second layer weights
+    :param dict param: parameters, includes:
+        - int classes: prior no. of classes
+    :return: mu_2, sigma_2 (including the new output nodes, param
+    :rtype: torch.tensor, torch.tensor, dict, int
+    """
     # number of new classes
     dim = new_dim - param['classes']
 
