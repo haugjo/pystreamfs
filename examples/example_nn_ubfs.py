@@ -7,7 +7,7 @@ from sklearn.linear_model import Perceptron
 from sklearn.metrics import accuracy_score, roc_auc_score
 
 # Load a dataset
-data = pd.read_csv('../datasets/har_concept_evo.csv')
+data = pd.read_csv('../datasets/kdd.csv')
 feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 

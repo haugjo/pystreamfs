@@ -147,6 +147,10 @@ def run_nn_ubfs(X, Y, param, **kw):
     sigma_1 -= param['lr_sigma'] * nabla_sigma_1
     sigma_2 -= param['lr_sigma'] * nabla_sigma_2
 
+    # minimal value of sigma is 0
+    sigma_1[sigma_1 < 0] = 0
+    sigma_2[sigma_2 < 0] = 0
+
     # Update param
     param['mu_1'] = mu_1
     param['mu_2'] = mu_2
@@ -156,20 +160,21 @@ def run_nn_ubfs(X, Y, param, **kw):
     ########################################
     # 7. COMPUTE FEATURE WEIGHTS
     ########################################
+    # Use numpy
+    mu_1 = mu_1.numpy()
+    mu_2 = mu_2.numpy()
+    sigma_1 = sigma_1.numpy()
+    sigma_2 = sigma_2.numpy()
+
     # Average mu and sigma depending on all layers in the neural net
     # Goal: Get mu_j and sigma_j for each feature j
-    mu_2_mean = torch.mean(mu_2, dim=0)
-    sigma_2_mean = torch.mean(sigma_2, 0)
-    mu_2_norm = torch.abs(mu_2_mean)/torch.sum(torch.abs(mu_2_mean))  # normalize weights of layer 2
-    sigma_2_norm = torch.abs(sigma_2_mean)/torch.sum(torch.abs(sigma_2_mean))
+    mu_h = np.mean(np.abs(mu_2), axis=0)
+    sigma_h = np.mean(sigma_2, axis=0)
+    mu_h_norm = mu_h/np.sum(mu_h)  # relative magnitude of weights in layer 2
+    sigma_h_norm = sigma_h/np.sum(sigma_h)
 
-    mu = mu_1.t() * mu_2_norm  # average layer 1 mu relative to layer 2 mu
-    mu = torch.sum(mu, dim=1).numpy()  # sum up mu for all hidden nodes
-    sigma = sigma_1.t() * sigma_2_norm
-    sigma = torch.sum(sigma, dim=1).numpy()
-
-    if (sigma < 0).any():  # TODO: delete when certain
-        print('Sigma is negative at t={}'.format(param['t']))
+    mu = np.dot(np.abs(mu_1).T, mu_h_norm)  # average layer 1 relative to layer 2
+    sigma = np.dot(sigma_1.T, sigma_h_norm)
 
     w_unscaled, param = _update_weights(mu, sigma, param, X.shape[1], new_features)
 
