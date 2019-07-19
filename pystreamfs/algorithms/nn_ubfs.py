@@ -327,15 +327,15 @@ def _update_weights(mu, sigma, param, feature_dim, new_features):
     lamb = param['lambda']
     w = param['w']
 
-    l1_norm = np.sum(np.abs(mu - lamb * sigma**2))
+    l1_norm = np.sum(np.abs(np.abs(mu) - lamb * sigma**2))
 
     # compute weights
-    w += param['lr_w'] * (mu - lamb * sigma ** 2) / l1_norm
+    w += param['lr_w'] * (np.abs(mu) - lamb * sigma ** 2) / l1_norm
     param['w'] = w
 
     # update lambda
     lamb += param['lr_lambda'] * (-l1_norm * np.dot(w, sigma ** 2) - np.sum(np.abs(sigma ** 2)) * (
-            np.dot(w, mu) - lamb * np.dot(w, sigma ** 2))) / l1_norm ** 2
+            np.dot(w, np.abs(mu)) - lamb * np.dot(w, sigma ** 2))) / l1_norm ** 2
     param['lambda'] = lamb
 
     return w, param
