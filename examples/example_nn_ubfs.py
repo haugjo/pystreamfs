@@ -30,6 +30,7 @@ param['lr_model'] = 0.01  # learning rate for SGD in neural net
 
 param['lr_w'] = 10  # learning rate for weights
 param['lr_lambda'] = 10  # learning rate for lambda Todo: think of temporarily increasing the learning rate after detection of new feature/class
+param['init_lambda'] = 1
 
 param['L'] = 10  # samples for monte carlo simulation
 param['h'] = 50  # nodes of hidden layer

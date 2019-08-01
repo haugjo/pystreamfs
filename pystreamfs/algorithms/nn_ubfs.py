@@ -317,7 +317,7 @@ def _update_weights(mu, sigma, param, feature_dim, new_features):
     :rtype: np.ndarray, dict
     """
     if 'lambda' not in param:  # initialize lambda and w
-        param['lambda'] = 1
+        param['lambda'] = param['init_lambda']
         param['w'] = np.zeros(feature_dim)
 
     # Detect new features
