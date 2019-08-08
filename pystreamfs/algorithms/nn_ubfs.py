@@ -338,4 +338,16 @@ def _update_weights(mu, sigma, param, feature_dim, new_features):
             np.dot(w, np.abs(mu)) - lamb * np.dot(w, sigma ** 2))) / l1_norm ** 2
     param['lambda'] = lamb
 
+    '''
+    ####################### Todo: remove
+    # Squared weights
+    l1_norm = np.sum(np.abs(np.abs(mu) - lamb * sigma**2))
+
+    w += param['lr_w'] * (np.abs(mu) - lamb * np.dot(2 * w, sigma**2)) / l1_norm
+    param['w'] = w
+
+    lamb += param['lr_lambda'] * -(np.dot(w**2, sigma**2) * l1_norm) - (np.sum(np.abs(sigma**2)) * (np.dot(w, np.abs(mu)) - lamb * np.dot(w**2, sigma**2))) / l1_norm**2
+    param['lambda'] = lamb
+    #######################
+    '''
     return w, param
