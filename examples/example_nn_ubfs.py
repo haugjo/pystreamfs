@@ -20,7 +20,7 @@ fs_algorithm = nn_ubfs.run_nn_ubfs
 # Define parameters
 param = dict()
 param['batch_size'] = 100
-param['num_features'] = 15
+param['num_features'] = 10
 param['r'] = 25  # shifting window range for computation of stability
 param['epochs'] = 5  # iterations over current batch during one execution of ubfs
 param['mini_batch_size'] = 30  # must be smaller than batch_size
