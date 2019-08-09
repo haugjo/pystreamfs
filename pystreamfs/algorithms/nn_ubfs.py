@@ -317,16 +317,18 @@ def _update_weights(mu, sigma, param, feature_dim, new_features):
     :rtype: np.ndarray, dict
     """
     if 'lambda' not in param:  # initialize lambda and w
-        param['lambda'] = param['init_lambda']
+        # param['lambda'] = param['init_lambda']
+        param['lambda'] = np.ones(feature_dim) * param['init_lambda']  # new computation Todo: remove
         param['w'] = np.zeros(feature_dim)
 
     # Detect new features
     if new_features > 0:
-        param['w'] = np.append(param['w'], [np.mean(param['w'])] * new_features)
+        param['w'] = np.append(param['w'], [np.mean(param['w'])] * new_features)  # Todo: change lamb vector if necessary
 
     lamb = param['lambda']
     w = param['w']
 
+    '''
     l1_norm = np.sum(np.abs(np.abs(mu) - lamb * sigma**2))
 
     # compute weights
@@ -337,17 +339,18 @@ def _update_weights(mu, sigma, param, feature_dim, new_features):
     lamb += param['lr_lambda'] * (-l1_norm * np.dot(w, sigma ** 2) - np.sum(np.abs(sigma ** 2)) * (
             np.dot(w, np.abs(mu)) - lamb * np.dot(w, sigma ** 2))) / l1_norm ** 2
     param['lambda'] = lamb
-
     '''
-    ####################### Todo: remove
-    # Squared weights
-    l1_norm = np.sum(np.abs(np.abs(mu) - lamb * sigma**2))
 
-    w += param['lr_w'] * (np.abs(mu) - lamb * np.dot(2 * w, sigma**2)) / l1_norm
+    ####################### Todo: remove
+    # New weight computation
+
+    w_update = np.abs(mu) - (lamb * 2 * w * sigma**2) - 2 * w
+    w += param['lr_w'] * w_update
     param['w'] = w
 
-    lamb += param['lr_lambda'] * -(np.dot(w**2, sigma**2) * l1_norm) - (np.sum(np.abs(sigma**2)) * (np.dot(w, np.abs(mu)) - lamb * np.dot(w**2, sigma**2))) / l1_norm**2
+    lamb_update = -w**2 * sigma**2 - 2 * lamb
+    lamb += param['lr_lambda'] * lamb_update
     param['lambda'] = lamb
     #######################
-    '''
+
     return w, param
