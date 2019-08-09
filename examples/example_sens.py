@@ -1,7 +1,7 @@
 from pystreamfs import pystreamfs
 import numpy as np
 import pandas as pd
-from pystreamfs.algorithms import nn_ubfs
+from pystreamfs.algorithms import sens
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import Perceptron
 from sklearn.metrics import accuracy_score, roc_auc_score
@@ -15,7 +15,7 @@ data = np.array(data)
 X, Y = pystreamfs.prepare_data(data, 0, False)
 
 # Load a FS algorithm
-fs_algorithm = nn_ubfs.run_nn_ubfs
+fs_algorithm = sens.run_sens
 
 # Define parameters
 param = dict()
@@ -50,4 +50,4 @@ metric = accuracy_score
 stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, metric, param)
 
 # Plot statistics
-pystreamfs.plot_stats(stats, feature_names, 'NN-UBFS', type(model).__name__, metric.__name__, param, 0.8).show()
+pystreamfs.plot_stats(stats, feature_names, 'SENS', type(model).__name__, metric.__name__, param, 0.8).show()

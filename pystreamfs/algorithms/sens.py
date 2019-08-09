@@ -4,9 +4,9 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
 
-def run_nn_ubfs(X, Y, param, **kw):
+def run_sens(X, Y, param, **kw):
     """
-    Uncertainty Based Feature Selection with Neural Net
+    Stability-Emphasized Nonlinear Selection of Features
 
     :param numpy.ndarray X: current data batch
     :param numpy.ndarray Y: labels of current batch
