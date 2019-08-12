@@ -85,22 +85,20 @@ def _update_weights(mu, sigma, param, feature_dim):
     :return: w (updated weights), param
     :rtype: np.ndarray, dict
     """
-    if 'lambda' not in param:
-        param['lambda'] = 1
+    if 'lambda' not in param:  # initialize lambda and w
+        param['lambda'] = param['init_lambda']
         param['w'] = np.zeros(feature_dim)
 
     lamb = param['lambda']
     w = param['w']
 
-    l1_norm = np.sum(np.abs(mu - lamb * sigma**2))
-
-    # compute weights
-    w += param['lr_w'] * (mu - lamb * sigma ** 2) / l1_norm
+    # weight computation
+    w_update = np.abs(mu) - lamb * (2 * w * sigma ** 2) - 2 * w
+    w += param['lr_w'] * w_update
     param['w'] = w
 
-    # update lambda
-    lamb += param['lr_lambda'] * (-l1_norm * np.dot(w, sigma ** 2) - np.sum(np.abs(sigma ** 2)) * (
-            np.dot(w, mu) - lamb * np.dot(w, sigma ** 2))) / l1_norm ** 2
+    lamb_update = np.dot(-w ** 2, sigma ** 2)
+    lamb += param['lr_lambda'] * lamb_update
     param['lambda'] = lamb
 
     return w, param
