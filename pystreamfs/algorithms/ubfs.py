@@ -91,13 +91,14 @@ def _update_weights(mu, sigma, param, feature_dim):
 
     lamb = param['lambda']
     w = param['w']
+    k = w.shape[0]
 
     # weight computation
-    w_update = np.abs(mu) - lamb * (2 * w * sigma ** 2) - 2 * w
+    w_update = np.abs(mu) - 2 * (lamb/k) * (w * sigma ** 2) - 2 * w
     w += param['lr_w'] * w_update
     param['w'] = w
 
-    lamb_update = np.dot(-w ** 2, sigma ** 2)
+    lamb_update = -1/k * np.dot(w ** 2, sigma ** 2)
     lamb += param['lr_lambda'] * lamb_update
     param['lambda'] = lamb
 
