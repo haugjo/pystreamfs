@@ -28,7 +28,7 @@ def run_ubfs(X, Y, param, **kw):
     if 'mu' not in param and 'sigma' not in param:
         m = X.shape[1]  # number of features
         param['mu'] = np.zeros(m)
-        param['sigma'] = np.ones(m) * 100
+        param['sigma'] = np.ones(m) * param['init_sigma']
 
     mu = param['mu'].copy()
     sigma = param['sigma'].copy()
