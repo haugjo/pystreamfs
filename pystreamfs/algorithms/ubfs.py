@@ -1,8 +1,6 @@
 import numpy as np
 from scipy.stats import norm
-from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
-import operator
 
 
 def run_ubfs(X, Y, param, **kw):
@@ -92,9 +90,9 @@ def _update_weights(mu, sigma, param, feature_dim):
     lamb = param['lambda']
     w = param['w']
 
-    # rescaling of mu and sigma
-    mu /= np.sum(mu)
-    sigma /= np.sum(sigma)
+    # relative mu and sigma
+    mu /= np.sum(np.abs(mu))
+    sigma /= np.sum(np.abs(sigma))
 
     # weight computation
     w_update = np.abs(mu) - 2 * lamb * (w * sigma ** 2) - 2 * w
@@ -104,6 +102,9 @@ def _update_weights(mu, sigma, param, feature_dim):
     lamb_update = -np.dot(w ** 2, sigma ** 2)
     lamb += param['lr_lambda'] * lamb_update
     param['lambda'] = lamb
+
+    # relative w
+    w /= np.sum(np.abs(w))
 
     return w, param
 
