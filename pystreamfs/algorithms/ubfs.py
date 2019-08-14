@@ -62,7 +62,7 @@ def run_ubfs(X, Y, param, **kw):
     param['sigma'] = sigma
 
     # Update weights
-    w_unscaled, param = _update_weights(mu, sigma, param, X.shape[1])
+    w_unscaled, param = _update_weights(mu.copy(), sigma.copy(), param, X.shape[1])
 
     # scale weights to [0,1] because pystreamfs considers absolute weights for feature selection
     w = MinMaxScaler().fit_transform(w_unscaled.reshape(-1, 1)).flatten()
@@ -91,14 +91,17 @@ def _update_weights(mu, sigma, param, feature_dim):
 
     lamb = param['lambda']
     w = param['w']
-    k = w.shape[0]
+
+    # rescaling of mu and sigma
+    mu /= np.sum(mu)
+    sigma /= np.sum(sigma)
 
     # weight computation
-    w_update = np.abs(mu) - 2 * (lamb/k) * (w * sigma ** 2) - 2 * w
+    w_update = np.abs(mu) - 2 * lamb * (w * sigma ** 2) - 2 * w
     w += param['lr_w'] * w_update
     param['w'] = w
 
-    lamb_update = -1/k * np.dot(w ** 2, sigma ** 2)
+    lamb_update = -np.dot(w ** 2, sigma ** 2)
     lamb += param['lr_lambda'] * lamb_update
     param['lambda'] = lamb
 
