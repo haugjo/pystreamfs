@@ -50,6 +50,7 @@ def simulate_stream(X, Y, fs_algorithm, model, metric, param):
              'memory_measures': [],
              'perf_measures': [],
              'features': [],
+             'weights': [],
              'stab_measures': [],
              'time_avg': 0,
              'memory_avg': 0,
@@ -86,6 +87,7 @@ def simulate_stream(X, Y, fs_algorithm, model, metric, param):
         stats['memory_measures'].append(mem)
 
         stats['features'].append(selected_ftr.tolist())
+        stats['weights'].append(ftr_weights.tolist())
         stats['perf_measures'].append(perf_score)
 
         # stability measure for t >=1
