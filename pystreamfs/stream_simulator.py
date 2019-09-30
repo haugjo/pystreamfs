@@ -22,10 +22,12 @@ def prepare_data(data, target, shuffle):
     Y = data[:, target]
     X = np.delete(data, target, 1)
 
-    return X, Y
+    feature_names = np.zeros(X.shape[1])  # Todo: extract feature names
+
+    return X, Y, feature_names
 
 
-def simulate_stream(X, Y, fs_algorithm, model, metric, param):
+def simulate_stream(X, Y, feature_selector, model, metric, param):
     """Feature selection on simulated data stream
 
     Stream simulation by batch-wise iteration over dataset.
@@ -33,7 +35,7 @@ def simulate_stream(X, Y, fs_algorithm, model, metric, param):
 
     :param numpy.ndarray X: dataset
     :param numpy.ndarray Y: target
-    :param function fs_algorithm: feature selection algorithm
+    :param function feature_selector: feature selection algorithm
     :param object model: Machine learning model for classification
     :param function metric: performance metric
     :param dict param: parameters
@@ -70,8 +72,7 @@ def simulate_stream(X, Y, fs_algorithm, model, metric, param):
         start_tim = time.perf_counter()
 
         # Perform feature selection
-        ftr_weights, param = fs_algorithm(X=X[i:i + param['batch_size'], ftr_indices], Y=Y[i:i + param['batch_size']],
-                                          w=ftr_weights, param=param)
+        ftr_weights, feature_selector.prop = feature_selector.algorithm(X=X[i:i + param['batch_size'], ftr_indices], Y=Y[i:i + param['batch_size']], w=ftr_weights, fs_param=feature_selector.prop)
         selected_ftr = np.argsort(abs(ftr_weights))[::-1][:param['num_features']]  # top m absolute weights (features with highest influence)
 
         # Memory and time taking

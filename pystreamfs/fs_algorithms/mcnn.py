@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.feature_selection import mutual_info_classif
 
 
-def run_mcnn(X, Y, param, **kw):
+def run_mcnn(X, Y, fs_param, **kw):
     """Feature selection based on the Micro Clusters Nearest Neighbor
 
     This code is based on the descriptions, formulas and pseudo code snippets from the paper by Hammodi et al.
@@ -20,6 +20,7 @@ def run_mcnn(X, Y, param, **kw):
     :return: w (feature weights), param (with updated window and clusters)
     :rtype numpy.ndarray, dict
     """
+    param = fs_param.copy()
 
     # set window and clusters object
     if 'window' not in param:

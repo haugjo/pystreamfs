@@ -170,7 +170,7 @@ def train_ann(X, y, num_epochs):
 First_run = True
 X_all, y_all = None, None
 
-def run_cancelout(X, Y, param, **kw):
+def run_cancelout(X, Y, fs_param, **kw):
     """Cancel Out
 
     FS using Deep Learning. An approach by Vadim Borisov (Todo: add reference)
@@ -199,4 +199,4 @@ def run_cancelout(X, Y, param, **kw):
 
     w = train_ann(X, Y, 50)
 
-    return w, param
+    return w, fs_param

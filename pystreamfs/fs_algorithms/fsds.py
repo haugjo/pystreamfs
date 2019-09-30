@@ -2,7 +2,7 @@ import numpy as np
 import numpy.linalg as ln
 
 
-def run_fsds(X, param, **kw):
+def run_fsds(X, fs_param, **kw):
     """Feature Selection on Data Streams
 
     Based on a paper by Huang et al. (2015). Feature Selection for unsupervised Learning.
@@ -20,6 +20,8 @@ def run_fsds(X, param, **kw):
     .. warning: features are represented as rows in Yt
     .. warning: Yt has to contain only floats
     """
+    param = fs_param.copy()
+
     Yt = X.T  # algorithm assumes rows to represent features
 
     if param['ell'] < 1:

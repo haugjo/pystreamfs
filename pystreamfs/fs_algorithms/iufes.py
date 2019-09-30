@@ -3,7 +3,7 @@ from scipy.stats import norm
 from sklearn.preprocessing import MinMaxScaler
 
 
-def run_iufes(X, Y, param, **kw):
+def run_iufes(X, Y, fs_param, **kw):
     """
     Importance and Uncertainty Based Feature Evaluation and Selection for Stable Online Predictions
 
@@ -19,6 +19,7 @@ def run_iufes(X, Y, param, **kw):
 
     ...Todo: add to README.md
     """
+    param = fs_param.copy()
 
     np.random.seed(42)
 

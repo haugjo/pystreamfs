@@ -2,7 +2,7 @@ import numpy as np
 import math
 
 
-def run_ofs(X, Y, w, param):
+def run_ofs(X, Y, w, fs_param):
     """Online Feature Selection
 
     Based on a paper by Wang et al. 2014. Feature Selection for binary classification.
@@ -16,6 +16,7 @@ def run_ofs(X, Y, w, param):
     :return: w (feature weights), param
     :rtype numpy.ndarray, dict
     """
+    param = fs_param.copy()
 
     eta = 0.2
     lamb = 0.01

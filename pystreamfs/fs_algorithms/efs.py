@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
 
-def run_efs(X, Y, param, **kw):
+def run_efs(X, Y, fs_param, **kw):
     """Extremal Feature Selection
 
     Based on a paper by Carvalho et al. 2005. This Feature Selection algorithm is based on the weights of a
@@ -20,6 +20,7 @@ def run_efs(X, Y, param, **kw):
     :return: w (feature weights), param
     :rtype numpy.ndarray, dict
     """
+    param = fs_param.copy()
     
     # iterate over all elements in batch
     for x, y in zip(X, Y):

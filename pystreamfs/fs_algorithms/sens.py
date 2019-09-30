@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
 
-def run_sens(X, Y, param, **kw):
+def run_sens(X, Y, fs_param, **kw):
     """
     Stability-Emphasized Nonlinear Selection of Features
 
@@ -20,6 +20,7 @@ def run_sens(X, Y, param, **kw):
 
     ...Todo: add to README.md
     """
+    param = fs_param.copy()
 
     ########################################
     # 1. DATA PREPARATION
