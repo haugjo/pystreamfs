@@ -3,9 +3,9 @@ from scipy.stats import norm
 from sklearn.preprocessing import MinMaxScaler
 
 
-def run_ubfs(X, Y, param, **kw):
+def run_iufes(X, Y, param, **kw):
     """
-    Uncertainty Based Feature Selection
+    Importance and Uncertainty Based Feature Evaluation and Selection for Stable Online Predictions
 
     :param numpy.ndarray X: current data batch
     :param numpy.ndarray Y: labels of current batch

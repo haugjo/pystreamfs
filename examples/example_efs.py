@@ -1,7 +1,7 @@
-from pystreamfs import pystreamfs
+from pystreamfs import stream_simulator
 import numpy as np
 import pandas as pd
-from pystreamfs.algorithms import efs
+from pystreamfs.fs_algorithms import efs
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 
@@ -11,7 +11,7 @@ feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
 # Extract features and target variable
-X, Y = pystreamfs.prepare_data(data, 0, False)
+X, Y = stream_simulator.prepare_data(data, 0, False)
 
 # Load a FS algorithm
 fs_algorithm = efs.run_efs
@@ -35,7 +35,7 @@ model = SVC()
 metric = accuracy_score
 
 # Data stream simulation
-stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, metric, param)
+stats = stream_simulator.simulate_stream(X, Y, fs_algorithm, model, metric, param)
 
 # Plot statistics
-pystreamfs.plot_stats(stats, feature_names, 'Extremal Feature Selection', type(model).__name__, metric.__name__, param, 0.8).show()
+stream_simulator.plot_stats(stats, feature_names, 'Extremal Feature Selection', type(model).__name__, metric.__name__, param, 0.8).show()

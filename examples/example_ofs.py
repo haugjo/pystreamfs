@@ -1,7 +1,7 @@
-from pystreamfs import pystreamfs
+from pystreamfs import stream_simulator
 import numpy as np
 import pandas as pd
-from pystreamfs.algorithms import ofs
+from pystreamfs.fs_algorithms import ofs
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import roc_auc_score
@@ -12,7 +12,7 @@ feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
 # Extract features and target variable
-X, Y = pystreamfs.prepare_data(data, 0, False)
+X, Y = stream_simulator.prepare_data(data, 0, False)
 
 # Load a FS algorithm
 fs_algorithm = ofs.run_ofs
@@ -28,7 +28,7 @@ model = RandomForestClassifier(random_state=0, n_estimators=10, max_depth=5, cri
 metric = roc_auc_score
 
 # Data stream simulation
-stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, metric, param)
+stats = stream_simulator.simulate_stream(X, Y, fs_algorithm, model, metric, param)
 
 # Plot statistics
-pystreamfs.plot_stats(stats, feature_names, 'Online feature selection (OFS)', type(model).__name__, metric.__name__, param, 0.8).show()
+stream_simulator.plot_stats(stats, feature_names, 'Online feature selection (OFS)', type(model).__name__, metric.__name__, param, 0.8).show()

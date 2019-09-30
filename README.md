@@ -129,10 +129,10 @@ Afterwards you can import and test your feature selection algorithm in the same 
 
 ## 3. Example
 ```python
-from pystreamfs import pystreamfs
+from pystreamfs import stream_simulator
 import numpy as np
 import pandas as pd
-from pystreamfs.algorithms import ofs
+from pystreamfs.fs_algorithms import ofs
 from sklearn.neighbors import KNeighborsClassifier
 
 # Load a dataset
@@ -141,7 +141,7 @@ feature_names = np.array(data.drop('target', 1).columns)
 data = np.array(data)
 
 # Extract features and target variable
-X, Y = pystreamfs.prepare_data(data, 0, False)
+X, Y = stream_simulator.prepare_data(data, 0, False)
 
 # Load a FS algorithm
 fs_algorithm = ofs.run_ofs
@@ -155,8 +155,8 @@ param['batch_size'] = 50  # batch size
 model = KNeighborsClassifier(n_jobs=-1, n_neighbors=5)
 
 # Data stream simulation
-stats = pystreamfs.simulate_stream(X, Y, fs_algorithm, model, param)
+stats = stream_simulator.simulate_stream(X, Y, fs_algorithm, model, param)
 
 # Plot statistics
-pystreamfs.plot_stats(stats, feature_names, param, 'Online feature selection (OFS)', 'K Nearest Neighbor').show()
+stream_simulator.plot_stats(stats, feature_names, param, 'Online feature selection (OFS)', 'K Nearest Neighbor').show()
 ```
