@@ -5,6 +5,7 @@ from sklearn.metrics import accuracy_score
 
 from pystreamfs.pipeline import Pipeline
 from pystreamfs.feature_selector import FeatureSelector
+from pystreamfs.data_generator import DataGenerator
 
 # Parameters
 param = dict()
@@ -15,6 +16,9 @@ feature_names = np.array(data.drop('target', 1).columns)  # Todo: move to stream
 dataset = np.array(data)
 param['label_idx'] = 0
 param['shuffle_data'] = False
+
+# Generate data
+generator = DataGenerator('agrawal')
 
 # Select FS algorithm
 fs_prop = dict()  # FS Algorithm properties
@@ -38,10 +42,11 @@ fs_algorithm = FeatureSelector('iufes', fs_prop)
 # Generate Pipeline
 param['live_visual'] = False  # Todo: implement live visualization
 param['batch_size'] = 100
-param['num_features'] = 100
+param['num_features'] = 5
+param['max_timesteps'] = 1000
 param['r'] = 25  # shifting window range for computation of stability
 
-pipe = Pipeline(dataset, None, fs_algorithm, Perceptron(), accuracy_score, param)
+pipe = Pipeline(dataset, generator, fs_algorithm, Perceptron(), accuracy_score, param)
 
 # Start Pipeline
 pipe.start()

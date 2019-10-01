@@ -15,7 +15,7 @@ class Pipeline:
 
     def start(self):
         X, Y, self.feature_names = prepare_data(self.realData, self.param['label_idx'], self.param['shuffle_data'])
-        self.stats = simulate_stream(X, Y, self.feature_selector, self.predictor, self.metric, self.param)
+        self.stats = simulate_stream(X, Y, self.generator, self.feature_selector, self.predictor, self.metric, self.param)
 
         return self.stats
 
