@@ -1,3 +1,4 @@
+PySimpleGUI
 python >= 3.7.1
 numpy >= 1.15.4
 psutil >= 5.4.7
