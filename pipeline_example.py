@@ -42,6 +42,7 @@ param['live_visual'] = False  # Todo: implement live visualization
 param['batch_size'] = 100
 param['num_features'] = 5
 param['max_timesteps'] = 10
+param['font_scale'] = 0.8
 param['r'] = 25  # shifting window range for computation of stability
 
 pipe = Pipeline(None, generator, fs_algorithm, Perceptron(), accuracy_score, param)

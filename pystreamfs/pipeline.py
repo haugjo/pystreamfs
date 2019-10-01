@@ -27,6 +27,5 @@ class Pipeline:
         return self.stats
 
     def plot(self):
-        visual = Visualizer()
-        visual.plot_all_stats(self.stats, self.feature_names, self.feature_selector.name, type(self.predictor).__name__,
-                   self.metric.__name__, self.param, 0.8).show()
+        visual = Visualizer(self.param['live_visual'])
+        visual.plot_all_stats(self).show()
