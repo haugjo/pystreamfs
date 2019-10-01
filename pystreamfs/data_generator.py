@@ -18,3 +18,8 @@ class DataGenerator:
 
         self.multiflow_alg = switcher.get(name)
         self.multiflow_alg.prepare_for_use()
+
+    def create_sample(self, n):
+        X, Y = self.multiflow_alg.next_sample(n)
+
+        return X, Y

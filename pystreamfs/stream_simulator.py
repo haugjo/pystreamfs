@@ -28,22 +28,6 @@ def prepare_data(data, target, shuffle):
     return X, Y, feature_names
 
 
-def create_data(n_samples, generator):
-    """Generate the datasamples with the generator
-
-    :param int : Generator you want to use,
-    :return: generator
-    :rtype: generator
-    """
-
-    X, y = generator.next_sample(n_samples)
-
-    # Check if the stream has more data
-    # generator.has_more_samples()
-
-    return X, y
-
-
 def simulate_stream(X, Y, generator, feature_selector, model, metric, param):
     """Feature selection on simulated data stream
 
@@ -81,7 +65,7 @@ def simulate_stream(X, Y, generator, feature_selector, model, metric, param):
         t = i / param['batch_size']  # time window
         param['t'] = t
 
-        X, Y = create_data(param['batch_size'], generator.multiflow_alg)
+        X, Y = generator.create_sample(param['batch_size'])
         # Normalize
         min_max_scaler = preprocessing.MinMaxScaler()
         X = min_max_scaler.fit_transform(X)
