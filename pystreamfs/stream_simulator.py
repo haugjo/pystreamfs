@@ -3,7 +3,6 @@ import psutil
 import os
 import warnings
 import time
-from pystreamfs.plots import plot
 
 
 def prepare_data(data, target, shuffle):
@@ -129,71 +128,6 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
         stats['sigma_measures'] = param['sigma_measures']
 
     return stats
-
-
-def plot_stats(stats, ftr_names, fs_algorithm, ml_model, metric, param, font_scale=1):  # Todo move to Pipeline or different file
-    """Print statistics
-
-    Prints performance metrics obtained during feature selection on simulated data stream
-
-    :param dict stats: statistics
-    :param np.ndarray ftr_names: names of original features
-    :param dict param: parameters
-    :param string fs_algorithm: name of the fs algorithm
-    :param string ml_model: name of the ML model
-    :param string metric: name of the performance metric
-    :param float font_scale: factor by which the standard font size for text is scaled
-    :return: chart
-    :rtype: plt.figure
-    """
-
-    plot_data = dict()
-
-    # Feature names & parameters
-    plot_data['ftr_names'] = ftr_names
-    plot_data['param'] = param
-    plot_data['fs_algorithm'] = fs_algorithm
-    plot_data['ml_model'] = ml_model
-    plot_data['metric'] = metric
-    plot_data['font_scale'] = font_scale
-
-    # Time in ms
-    plot_data['x_time'] = np.array(range(0, len(stats['time_measures'])))
-    plot_data['y_time'] = np.array(stats['time_measures']) * 1000
-    plot_data['avg_time'] = stats['time_avg'] * 1000
-
-    # Memory in kB
-    plot_data['x_mem'] = np.array(range(0, len(stats['memory_measures'])))
-    plot_data['y_mem'] = np.array(stats['memory_measures']) / 1000
-    plot_data['avg_mem'] = stats['memory_avg'] / 1000
-
-    # Performance score
-    plot_data['x_perf'] = np.array(range(0, len(stats['perf_measures'])))
-    plot_data['y_perf'] = np.array(stats['perf_measures'])
-    plot_data['avg_perf'] = stats['perf_avg']
-    plot_data['q1_perf'] = np.percentile(stats['perf_measures'], 25, axis=0)
-    plot_data['q3_perf'] = np.percentile(stats['perf_measures'], 75, axis=0)
-
-    # Selected features
-    plot_data['selected_ftr'] = stats['features']
-
-    # Stability
-    plot_data['x_stab'] = np.array(range(1, len(stats['stab_measures']) + 1))
-    plot_data['y_stab'] = np.array(stats['stab_measures'])
-    plot_data['avg_stab'] = stats['stab_avg']
-
-    # Set ticks
-    # X ticks
-    plot_data['x_ticks'] = np.arange(0, plot_data['x_time'].shape[0], 1)
-    if plot_data['x_time'].shape[0] > 30:  # plot every 5th x tick
-        plot_data['x_ticks'] = ['' if i % 5 != 0 else b for i, b in enumerate(plot_data['x_ticks'])]
-
-    # Y ticks for selected features
-    plot_data['y_ticks_ftr'] = range(0, len(plot_data['ftr_names']))
-
-    chart = plot(plot_data)
-
-    return chart
 
 
 def nogueira_stability(feature_space, selected_features, r):
