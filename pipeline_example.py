@@ -11,9 +11,7 @@ from pystreamfs.data_generator import DataGenerator
 param = dict()
 
 # Load a dataset
-data = pd.read_csv('./datasets/har_binary.csv')
-feature_names = np.array(data.drop('target', 1).columns)  # Todo: move to stream_simulator
-dataset = np.array(data)
+dataset = pd.read_csv('./datasets/har_binary.csv')
 param['label_idx'] = 0
 param['shuffle_data'] = False
 
@@ -43,10 +41,10 @@ fs_algorithm = FeatureSelector('iufes', fs_prop)
 param['live_visual'] = False  # Todo: implement live visualization
 param['batch_size'] = 100
 param['num_features'] = 5
-param['max_timesteps'] = 1000
+param['max_timesteps'] = 10
 param['r'] = 25  # shifting window range for computation of stability
 
-pipe = Pipeline(dataset, generator, fs_algorithm, Perceptron(), accuracy_score, param)
+pipe = Pipeline(None, generator, fs_algorithm, Perceptron(), accuracy_score, param)
 
 # Start Pipeline
 pipe.start()

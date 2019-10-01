@@ -18,6 +18,8 @@ class Pipeline:
         if self.providedData is not None:
             X, Y, self.feature_names = prepare_data(self.providedData, self.param['label_idx'], self.param['shuffle_data'])
             self.dataset = {'X': X, 'Y': Y}
+        else:  # if generator is defined
+            self.feature_names = np.arange(0, self.generator.no_features)
 
         self.stats = simulate_stream(self.dataset, self.generator, self.feature_selector, self.predictor, self.metric, self.param)
 

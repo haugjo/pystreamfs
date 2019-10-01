@@ -15,14 +15,14 @@ def prepare_data(data, target, shuffle):
     :return: X (containing the features), Y (containing the target variable)
     :rtype: numpy.nparray, numpy.nparray
     """
+    feature_names = list(data.drop(data.columns[target], axis=1).columns)
+    data = np.array(data)
 
     if shuffle:
         np.random.shuffle(data)
 
     Y = data[:, target]
     X = np.delete(data, target, 1)
-
-    feature_names = np.zeros(X.shape[1])  # Todo: extract feature names
 
     return X, Y, feature_names
 

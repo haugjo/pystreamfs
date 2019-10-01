@@ -20,6 +20,10 @@ class DataGenerator:
         self.multiflow_alg = switcher.get(name)
         self.multiflow_alg.prepare_for_use()
 
+        # save number of generated features
+        X, _ = self.multiflow_alg.next_sample(1)
+        self.no_features = X.shape[1]
+
     def create_sample(self, n):
         X, Y = self.multiflow_alg.next_sample(n)
 
