@@ -10,7 +10,7 @@ from pystreamfs.feature_selector import FeatureSelector
 param = dict()
 
 # Load a dataset
-data = pd.read_csv('../datasets/har_binary.csv')
+data = pd.read_csv('./datasets/har_binary.csv')
 feature_names = np.array(data.drop('target', 1).columns)  # Todo: move to stream_simulator
 dataset = np.array(data)
 param['label_idx'] = 0
