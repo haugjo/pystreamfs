@@ -4,7 +4,6 @@ import os
 import warnings
 import time
 from pystreamfs.plots import plot
-from sklearn import preprocessing
 
 
 def prepare_data(data, target, shuffle):
@@ -28,7 +27,7 @@ def prepare_data(data, target, shuffle):
     return X, Y, feature_names
 
 
-def simulate_stream(X, Y, generator, feature_selector, model, metric, param):
+def simulate_stream(dataset, generator, feature_selector, model, metric, param):
     """Feature selection on simulated data stream
 
     Stream simulation by batch-wise iteration over dataset.
@@ -60,15 +59,22 @@ def simulate_stream(X, Y, generator, feature_selector, model, metric, param):
              'stab_avg': 0}
 
     # Stream simulation
-    # for i in range(0, X.shape[0], param['batch_size']):  # data stream Todo: switch between batch and generated data
-    for i in range(0, param['max_timesteps'] * param['batch_size'], param['batch_size']):  # for generated data
+    if dataset is not None:
+        total_samples = dataset['X'].shape[0]
+    else:  # if generator is defined
+        total_samples = param['max_timesteps'] * param['batch_size']
+
+    for i in range(0, total_samples, param['batch_size']):  # for generated data
         t = i / param['batch_size']  # time window
         param['t'] = t
 
-        X, Y = generator.create_sample(param['batch_size'])
-        # Normalize
-        min_max_scaler = preprocessing.MinMaxScaler()
-        X = min_max_scaler.fit_transform(X)
+        if dataset is not None:
+            X = dataset['X']
+            Y = dataset['Y']
+            starting_idx = i
+        else:  # if generator is defined
+            X, Y = generator.create_sample(param['batch_size'])
+            starting_idx = 0
 
         if 'feature_stream' in param and t in param['feature_stream']:  # feature stream
             ftr_indices = param['feature_stream'][t]
@@ -79,10 +85,7 @@ def simulate_stream(X, Y, generator, feature_selector, model, metric, param):
         start_tim = time.perf_counter()
 
         # Perform feature selection
-
-        # Todo: switch between batch and generator
-        # ftr_weights, feature_selector.prop = feature_selector.algorithm(X=X[i:i + param['batch_size'], ftr_indices], Y=Y[i:i + param['batch_size']], w=ftr_weights, fs_param=feature_selector.prop)
-        ftr_weights, feature_selector.prop = feature_selector.algorithm(X=X[0:param['batch_size'], ftr_indices], Y=Y[0:param['batch_size']],
+        ftr_weights, feature_selector.prop = feature_selector.algorithm(X=X[starting_idx:starting_idx + param['batch_size'], ftr_indices], Y=Y[starting_idx:starting_idx + param['batch_size']],
                                           w=ftr_weights, fs_param=feature_selector.prop)
 
         selected_ftr = np.argsort(abs(ftr_weights))[::-1][:param['num_features']]  # top m absolute weights (features with highest influence)

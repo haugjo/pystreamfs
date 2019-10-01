@@ -4,7 +4,8 @@ from pystreamfs.stream_simulator import prepare_data, simulate_stream, plot_stat
 
 class Pipeline:
     def __init__(self, dataset, generator, feature_selector, predictor, metric, param):
-        self.realData = dataset
+        self.providedData = dataset
+        self.dataset = None
         self.feature_names = np.ndarray([])
         self.generator = generator
         self.feature_selector = feature_selector
@@ -14,8 +15,11 @@ class Pipeline:
         self.stats = dict()
 
     def start(self):
-        X, Y, self.feature_names = prepare_data(self.realData, self.param['label_idx'], self.param['shuffle_data'])
-        self.stats = simulate_stream(X, Y, self.generator, self.feature_selector, self.predictor, self.metric, self.param)
+        if self.providedData is not None:
+            X, Y, self.feature_names = prepare_data(self.providedData, self.param['label_idx'], self.param['shuffle_data'])
+            self.dataset = {'X': X, 'Y': Y}
+
+        self.stats = simulate_stream(self.dataset, self.generator, self.feature_selector, self.predictor, self.metric, self.param)
 
         return self.stats
 
