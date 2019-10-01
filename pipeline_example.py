@@ -1,11 +1,11 @@
 import pandas as pd
-import numpy as np
 from sklearn.linear_model import Perceptron
 from sklearn.metrics import accuracy_score
 
 from pystreamfs.pipeline import Pipeline
 from pystreamfs.feature_selector import FeatureSelector
 from pystreamfs.data_generator import DataGenerator
+from pystreamfs.visualizer import Visualizer
 
 # Parameters
 param = dict()
@@ -37,6 +37,9 @@ fs_prop['drift_basis'] = 'mu'  # basis parameter on which we perform concept dri
 
 fs_algorithm = FeatureSelector('iufes', fs_prop)
 
+# Generate Visualizer
+visual = Visualizer(live=False)
+
 # Generate Pipeline
 param['live_visual'] = False  # Todo: implement live visualization
 param['batch_size'] = 100
@@ -45,7 +48,7 @@ param['max_timesteps'] = 10
 param['font_scale'] = 0.8
 param['r'] = 25  # shifting window range for computation of stability
 
-pipe = Pipeline(None, generator, fs_algorithm, Perceptron(), accuracy_score, param)
+pipe = Pipeline(None, generator, fs_algorithm, visual, Perceptron(), accuracy_score, param)
 
 # Start Pipeline
 pipe.start()

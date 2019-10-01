@@ -1,15 +1,15 @@
 import numpy as np
 from pystreamfs.stream_simulator import prepare_data, simulate_stream
-from pystreamfs.visualizer import Visualizer
 
 
 class Pipeline:
-    def __init__(self, dataset, generator, feature_selector, predictor, metric, param):
+    def __init__(self, dataset, generator, feature_selector, visualizer, predictor, metric, param):
         self.providedData = dataset
         self.dataset = None
         self.feature_names = np.ndarray([])
         self.generator = generator
         self.feature_selector = feature_selector
+        self.visualizer = visualizer
         self.predictor = predictor
         self.metric = metric
         self.param = param
@@ -27,5 +27,4 @@ class Pipeline:
         return self.stats
 
     def plot(self):
-        visual = Visualizer(self.param['live_visual'])
-        visual.plot_all_stats(self).show()
+        self.visualizer.plot_all_stats(self).show()

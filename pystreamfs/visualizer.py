@@ -12,7 +12,7 @@ class Visualizer:
 
     def plot_all_stats(self, pipeline):
         ###################################
-        # Collect Data
+        # Collect Data Todo: Handle Grids, don't display t=0, handle x/y range
         ###################################
         self.content['feature_names'] = pipeline.feature_names
         self.content['param'] = pipeline.param
@@ -52,8 +52,8 @@ class Visualizer:
         if self.content['x_time'].shape[0] > 30:  # plot every 5th x tick
             self.content['x_ticks'] = ['' if i % 5 != 0 else b for i, b in enumerate(self.content['x_ticks'])]
 
-        # Y ticks for selected features Todo: check if this is needed
-        self.content['y_ticks_ftr'] = range(0, len(self.content['feature_names']))
+        # Y ticks for selected features
+        self.content['y_ticks_ftr'] = np.arange(0, len(self.content['feature_names']))
 
         # Create new plot
         chart = self._create_plot()
@@ -71,7 +71,7 @@ class Visualizer:
         sns.set_context('paper')
         plt.style.use('seaborn-darkgrid')
         fig = plt.figure(figsize=(20, 25))
-        fig.canvas.set_window_title('pystreamfs')
+        fig.canvas.set_window_title('Pystreamfs')
         plt.rcParams.update({'font.size': 12 * self.content['font_scale']})
         plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
 
@@ -86,30 +86,29 @@ class Visualizer:
 
         # Plot Time
         self._create_subplot(plt.subplot(gs1[1, 0]), x_data='x_time', y_data='y_time', avg_data='avg_time',
-                             x_label='Time t', y_label='Comp. Time (ms)', title='Time Consumption')
+                             x_label='Time $t$', y_label='Comp. Time (ms)', title='Time Consumption')
 
         # Plot Memory
         self._create_subplot(plt.subplot(gs1[1, 1]), x_data='x_mem', y_data='y_mem', avg_data='avg_mem',
-                             x_label='Time t', y_label='Memory (kB)', title='Memory Usage')
+                             x_label='Time $t$', y_label='Memory (kB)', title='Memory Usage')
 
         # Performance Score
         self._create_subplot(plt.subplot(gs1[2, :]), x_data='x_perf', y_data='y_perf', avg_data='avg_perf',
-                             x_label='Time t', y_label=self.content['metric'], title='Learning Performance')
+                             x_label='Time $t$', y_label=self.content['metric'], title='Learning Performance')
 
         # Selected features
         ax = plt.subplot(gs1[3:-1, :])
-        ax.set_title('Selected features')
-        ax.set_ylabel('feature')
+        ax.set_title('Selected Features & FS Stability ($r = ' + str(self.content['param']['r']) + '$)', weight='bold')
+        ax.set_ylabel('Feature')
         ax.set_xticks(np.arange(0, self.content['x_perf'].shape[0], 1))
         ax.set_xticklabels([])
 
         # plot selected features for each time step
         for i, val in enumerate(self.content['selected_ftr']):
             for v in val:
-                ax.scatter(i, v, marker='_', color='C0')
+                ax.scatter(i, v, marker='_', color=self.palette[0])
 
-        if len(self.content['y_ticks_ftr']) <= 20:  # Todo: check if this is needed
-            # if less than 20 features plot tic for each feature and change markers
+        if len(self.content['y_ticks_ftr']) <= 20:  # if less than 20 features: plot name of each feature
             ax.set_yticks(self.content['y_ticks_ftr'])
             ax.set_yticklabels(self.content['feature_names'])
 
@@ -117,58 +116,60 @@ class Visualizer:
         # Second grid: Create Stability Subplot
         ###################################
         gs2 = gridspec.GridSpec(6, 2)
-        gs2.update(hspace=0)
+        gs2.update(hspace=0.1)
 
         # Stability
         self._create_subplot(plt.subplot(gs2[5, :]), x_data='x_stab', y_data='y_stab', avg_data='avg_stab',
-                             x_label='Feature Selection Stability', y_label=None, title=None, starts_at_one=True)
+                             x_label='Time $t$', y_label=' Feature Selection Stability', title=None, starts_at_one=True)
 
         return plt
 
     def _plot_fs_prop(self, ax):
-        f_size = str(14 * self.content['font_scale'])
-        header_size = str(24 * self.content['font_scale'])
-
         ax.axis('off')
-        ax.text(0, 1, 'pystreamfs -  Statistics Plot', size=header_size, weight='bold')
+        ax.text(0, 1, 'Evaluation of $' + self.content['feature_selector'] + '$ feature selector using a $'
+                + self.content['predictor'] + '$ as predictive model.', weight='bold', size='xx-large')
 
-        # Header (left)
-        ax.text(0, 0.6, 'Feature Selection algorithm:', size=f_size, weight='bold')
-        ax.text(0.2, 0.6, self.content['feature_selector'], size=f_size)
-        ax.text(0, 0.2, 'Machine Learning model: ', size=f_size, weight='bold')
-        ax.text(0.2, 0.2, self.content['predictor'], size=f_size)
+        # Draw horizontal line as separator
+        ax.axhline(0.95, color='black')
 
-        # FS Properties (right)
-        y = 0.6  # starting coordinates
-        x = 0.4
+        # General Parameters
+        ax.text(0, 0.8, 'General Parameters:', weight='bold')
+        ax.text(0, 0.65, 'No. of Selected Features = ' + str(self.content['param']['num_features']) + '; Batch-Size = '
+                + str(self.content['param']['batch_size']))
 
-        ax.text(0.4, 0.9, 'Parameters:', size=f_size, weight='bold')
+        # FS Properties
+        ax.text(0, 0.45, '$' + self.content['feature_selector'] + '$-Parameters:', weight='bold')
+
+        y = 0.3  # starting coordinates
+        x = 0
 
         for key, value in self.content['fs_prop'].items():
             if isinstance(value, (int, float, str)):  # only plot scalar values
-                ax.text(x, y, key + ' = ' + str(value), size=f_size)
-                y -= 0.2
+                ax.text(x, y, key + ' = ' + str(value))
+                y -= 0.15
 
-                if y < -0.1:
-                    y = 0.6
-                    x += 0.2
+                if y < 0:
+                    y = 0.3
+                    x += 0.15
 
     def _create_subplot(self, ax, x_data, y_data, avg_data, x_label, y_label, title, starts_at_one=False):
-        ax.plot(self.content[x_data], self.content[y_data])
+        ax.plot(self.content[x_data], self.content[y_data], color=self.palette[0])
 
         # Mean
         if starts_at_one:
-            ax.plot([0, self.content[x_data].shape[0]], [self.content[avg_data], self.content[avg_data]])
+            ax.plot([0, self.content[x_data].shape[0]], [self.content[avg_data], self.content[avg_data]], color=self.palette[3], ls='--')
         else:
-            ax.plot([0, self.content[x_data].shape[0] - 1], [self.content[avg_data], self.content[avg_data]])
+            ax.plot([0, self.content[x_data].shape[0] - 1], [self.content[avg_data], self.content[avg_data]], color=self.palette[3], ls='--')
 
         # Interquartile range, only for preformance metric
         if x_data == 'x_perf':
-            ax.fill_between([0, self.content[x_data].shape[0] - 1], self.content['q3_perf'], self.content['q1_perf'], facecolor='green', alpha=0.5)
+            ax.fill_between([0, self.content[x_data].shape[0] - 1], self.content['q3_perf'], self.content['q1_perf'], facecolor=self.palette[1], alpha=0.5)
 
         ax.set_xticks(np.arange(0, self.content[x_data].shape[0] + 1, 1))
         ax.set_xticklabels(self.content['x_ticks'])
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
-        ax.set_title(title)
-        ax.legend(['measures', 'mean', 'iqr'], loc="best")
+
+        ax.legend(['measures', 'mean', 'iqr'], frameon=True, loc='lower right', bbox_to_anchor=(1, 0.95), fontsize='medium',
+                   borderpad=0.2, columnspacing=0.5, ncol=4, handletextpad=0.05, markerscale=0.1)
+        ax.set_title(title, weight='bold', loc='left')
