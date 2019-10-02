@@ -48,7 +48,7 @@ param['max_timesteps'] = 10
 param['font_scale'] = 0.8
 param['r'] = 25  # shifting window range for computation of stability
 
-pipe = Pipeline(None, generator, fs_algorithm, visual, Perceptron(), accuracy_score, param)
+pipe = Pipeline(dataset, generator, fs_algorithm, visual, Perceptron(), accuracy_score, param)
 
 # Start Pipeline
 pipe.start()
