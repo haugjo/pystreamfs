@@ -11,7 +11,7 @@ def convert_input_true_false(conv_val):
     """
     Converts the user input into a string of either True or False
 
-    :param conv: string: Userinput either true or false
+    :param conv_val: string: Userinput either true or false
     :return:
     """
     if conv_val.lower() in ['true', '1', 't', 'y', 'yes', 'yeah', 'yup']:
@@ -22,6 +22,12 @@ def convert_input_true_false(conv_val):
 
 
 def create_dataset_input_path(dataset_name):
+    """
+    Returns to path to the saved CSV files by inputting the name of the file
+
+    :param dataset_name: Takes string of the chosen dataset name
+    :return: string: path to the CSV file
+    """
     switcher = {
 
         'Credit': 'credit.csv',
