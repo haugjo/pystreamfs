@@ -34,7 +34,7 @@ def create_dataset_input_path(dataset_name):
 
         'Drift': 'drift.csv',
 
-        'Har Binary': 'har_binary.csv',
+        'Har': 'har_binary.csv',
 
         'KDD': 'kdd.csv',
 
@@ -44,7 +44,7 @@ def create_dataset_input_path(dataset_name):
 
         'Usenet': 'usenet.csv'
     }
-    file_path = './datasets/' + switcher.get(dataset_name)
+    file_path = '../datasets/' + switcher.get(dataset_name)
     return file_path
 
 class GUI:
@@ -58,7 +58,7 @@ class GUI:
         sg.ChangeLookAndFeel('GreenTan')
 
         # ------ Menu Definition ------ #
-        menu_def = [['File', ['Open', 'Save results', 'Exit']],
+        menu_def = [['File', ['Open file with parameters', 'Save parameters', 'Exit']],
                     ['Help', 'About...'], ]
 
         layout = \
@@ -128,7 +128,7 @@ class GUI:
             if event == 'About...':
                 sg.PopupOK("Chose your parameter you want to use for the selected feature selection algorithm")
 
-            # Events for fs_selection TODO: Complete
+            # Events for fs_selection
             if event == 'Edit parameters' and values['_fs_algorithm_'] == 'Cancleout':
                 values['_cancleout_shifting_window_range'] = sg.PopupGetText(
                     'Parameter cancleout shifting window range: ', default_text="20")
@@ -212,31 +212,46 @@ class GUI:
 
         # Generate data TODO: Impletment functionalities to pass the needed data from the dict
         # Check if the dataset has to be loaded from a path or from a existing CSV or created
+        # Generator has to create data
         if gui_dict['_use_generator_']:
-            generator = DataGenerator(gui_dict['_data_generator_'].lower)
+            generator = DataGenerator(gui_dict['_data_generator_'].lower())
+
+        # User passes his own CSV file
         elif gui_dict['_load_data_path_']:
             dataset = pd.read_csv(gui_dict['_file_path_'])
+
+        # Userer choses one of the existing files
         else:
             dataset = pd.read_csv(create_dataset_input_path(gui_dict['_use_dataset_path_']))
 
         param['shuffle_data'] = gui_dict['_shuffle_data_']
 
-        fs_algorithm = FeatureSelector('iufes', param)
 
-        pipe = Pipeline(None, generator, fs_algorithm, Perceptron(), accuracy_score, param)
+
+
+
+        # fs_algorithm = FeatureSelector('iufes', param)
+
+        # pipe = Pipeline(None, generator, fs_algorithm, Perceptron(), accuracy_score, param)
 
         # Start Pipeline
-        pipe.start()
+        # pipe.start()
 
         # Plot results
-        pipe.plot()
+        # pipe.plot()
+        return ' '
 
 # Create the GUi object and collect the parameter as a dict
 test_gui = GUI()
 params = test_gui.create_gui()
 print('The chosen parameters are: ' + str(params))
+#print(params['_use_dataset_path_'])
 
-# test_gui.run_pipeline()
+print('Pathhhhhhhhh:' + create_dataset_input_path(params['_use_dataset_path_']))
+
+
+#print(params['_data_generator_'].lower())
+test_gui.run_pipeline(params)
 
 
 
