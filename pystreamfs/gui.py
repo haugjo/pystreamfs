@@ -34,7 +34,8 @@ class GUI:
                     ['Help', 'About...'], ]
 
         layout = \
-            [[sg.Menu(menu_def, tearoff=True, key='menu_action')],
+            [[sg.Image(r'../logo_scaled.png')],
+             [sg.Menu(menu_def, tearoff=True, key='menu_action')],
              [sg.Text('Chose your FS algorithms and parameters', justification='center', font=("Helvetica", 16))],
 
              # Select FS algorithm
@@ -59,13 +60,14 @@ class GUI:
 
              # Begin frame for data options
              [sg.Frame(layout=[
-                 [sg.Radio('Enter a CSV with your data', "RADIO1", default=True, size=(25, 1)), sg.Input(),
+                 [sg.Radio('Enter a CSV with your data', "RADIO1", default=True, size=(40, 1)), sg.Input(),
                   sg.FileBrowse(), ],
-                 [sg.Radio('Chose a generator to create data', "RADIO1", size=(25, 1), key='_create_data_'),
-                  sg.InputCombo(('Gen1', 'Gen2', 'Gen3'), size=(25, 1), key='_create_dataset_')],
-                 [sg.Radio('Use one of the existing datasets', "RADIO1", size=(25, 1), key='_have_data_'),
-                  sg.InputCombo(('Credit', 'Drift', 'Har', 'KDD', 'MOA', 'Spambase', 'Usenet'), size=(25, 1),
+                 [sg.Radio('Chose a generator to create data', "RADIO1", size=(40, 1), key='_create_data_'),
+                  sg.InputCombo(('Gen1', 'Gen2', 'Gen3'), size=(30, 1), key='_create_dataset_')],
+                 [sg.Radio('Use one of the existing datasets', "RADIO1", size=(40, 1), key='_have_data_'),
+                  sg.InputCombo(('Credit', 'Drift', 'Har', 'KDD', 'MOA', 'Spambase', 'Usenet'), size=(30, 1),
                                 key='_use_dataset_')],
+                 [sg.Checkbox('Shuffle dataset', size=(25, 1), default=False, key='_shuffle_data_')],
              ],
                  title='Data', title_color='red', relief=sg.RELIEF_SUNKEN,
                  tooltip='Chose one of these options')],
@@ -195,8 +197,8 @@ test_gui = GUI()
 params = test_gui.create_gui()
 print('The chosen parameters are: ' + str(params))
 
+# test_gui.run_pipeline()
 
-# TODO: create the pipe with run_pipline
 
 
 
