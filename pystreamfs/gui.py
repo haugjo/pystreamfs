@@ -5,6 +5,20 @@ from pystreamfs.data_generator import DataGenerator
 from sklearn.linear_model import Perceptron
 from sklearn.metrics import accuracy_score
 
+
+def convert_input_true_false(conv_val):
+    """
+    Converts the user input into a string of either True or False
+
+    :param conv: string: Userinput either true or false
+    :return:
+    """
+    if conv_val.lower() in ['true', '1', 't', 'y', 'yes', 'yeah', 'yup']:
+        ret_val = True
+    else:
+        ret_val = False
+    return str(ret_val)
+
 class GUI:
     def create_gui(self):
         """
@@ -27,8 +41,12 @@ class GUI:
              [sg.Text('FS algorithms:')],
              [sg.InputCombo(('Cancleout', 'EFS', 'FSDS', 'IUFES', 'MCNN', 'OFS'), size=(30, 1), key='_fs_algorithm_'),
               sg.Button('Edit parameters'), ],
-             [sg.Text('Your chosen parameters are:'),sg.Text('                   -                  ', key='_OUTPUT_')],
-
+             [sg.Text('Your chosen parameters are:'),sg.Text('                               -                         '
+                                                             '                           '
+                                                             '                                      ', key='_OUTPUT_')],
+             [sg.Text(' '), sg.Text('                                                         '
+                                                             '                           '
+                                                             '                                     ', key='_OUTPUT_2')],
 
              # Begin frame for parameters
              [sg.Frame(layout=[
@@ -39,7 +57,7 @@ class GUI:
                  title='Feature selection parameters', title_color='red', relief=sg.RELIEF_SUNKEN)],
              # End frame for data options
 
-             # Begin frame for data options TODO: Check if not set radio button options are still passed to dict
+             # Begin frame for data options
              [sg.Frame(layout=[
                  [sg.Radio('Enter a CSV with your data', "RADIO1", default=True, size=(25, 1)), sg.Input(),
                   sg.FileBrowse(), ],
@@ -82,23 +100,68 @@ class GUI:
 
             # Events for fs_selection TODO: Complete
             if event == 'Edit parameters' and values['_fs_algorithm_'] == 'Cancleout':
-                values['_cancleout_shifting_window_range'] = sg.PopupGetText('Parameter cancleout shifting window range: ', default_text="20")
-                window.Element('_OUTPUT_').Update('Shifting window range:  ' + values['_cancleout_shifting_window_range'])
+                values['_cancleout_shifting_window_range'] = sg.PopupGetText(
+                    'Parameter cancleout shifting window range: ', default_text="20")
+                window.Element('_OUTPUT_').Update(
+                    'Shifting window range:  ' + values['_cancleout_shifting_window_range'])
+                window.Element('_OUTPUT_2').Update(' ')
 
             if event == 'Edit parameters' and values['_fs_algorithm_'] == 'EFS':
-                sg.PopupYesNo()
+                values['_efs_alpha'] = sg.PopupGetText(
+                    'Parameter EFS alpha: ', default_text="1.5")
+                values['_efs_beta'] = sg.PopupGetText(
+                    'Parameter EFS beta: ', default_text="0.5")
+                values['_efs_threshold'] = sg.PopupGetText(
+                    'Parameter EFS threshold: ', default_text="1")
+                values['_efs_margin'] = sg.PopupGetText(
+                    'Parameter EFS margin: ', default_text="1")
+                window.Element('_OUTPUT_').Update(
+                    'Alpha: ' + values['_efs_alpha'] + ', Beta: ' + values['_efs_beta'] + ', Thresh.: ' +
+                    values['_efs_threshold'] + ', Margin: ' + values['_efs_margin'])
+                window.Element('_OUTPUT_2').Update(' ')
 
             if event == 'Edit parameters' and values['_fs_algorithm_'] == 'FSDS':
-                sg.PopupYesNo()
+                values['_fsds_ell'] = sg.PopupGetText(
+                    'Parameter FSDS initial sketch size ell: ', default_text="0")
+                values['_fsds_k'] = sg.PopupGetText(
+                    'Parameter FSDS no. of singular values: ', default_text="2")
+                window.Element('_OUTPUT_').Update(
+                    'Init. sketch size: ' + values['_fsds_ell'] + ', No. singular values: ' + values['_fsds_k'])
+                window.Element('_OUTPUT_2').Update(' ')
 
+            # TODO: Insert rest of params, maybe even on output2
             if event == 'Edit parameters' and values['_fs_algorithm_'] == 'IUFES':
-                sg.PopupYesNo()
+                values['_iufes_drift_check'] = sg.PopupGetText(
+                    'Parameter IUFES check drift: ', default_text="False")
+                values['_iufes_drift_check'] = convert_input_true_false(values['_iufes_drift_check'])
+                values['_iufes_range'] = sg.PopupGetText(
+                    'Parameter IUFES range of last t to check drift: ', default_text="2")
+                values['_iufes_drift_basis'] = sg.PopupGetText(
+                    'Parameter IUFES drift basis (mu): ', default_text="mu")
+                window.Element('_OUTPUT_').Update(
+                    'Drift check: ' + values['_iufes_drift_check'] + ', Range: ' +
+                    values['_iufes_range'] + ', Drift basis: ' + values['_iufes_drift_basis'])
+                window.Element('_OUTPUT_2').Update(' ')
 
             if event == 'Edit parameters' and values['_fs_algorithm_'] == 'MCNN':
-                sg.PopupYesNo()
+                values['_mcnn_max_n'] = sg.PopupGetText(
+                    'Parameter MCNN Max. num. of saved instances per cluster: ', default_text="100")
+                values['_mcnn_e_threshold'] = sg.PopupGetText(
+                    'Parameter MCNN Treshold for splitting a cluster: ', default_text="3")
+                values['_mcnn_max_out_of_var_bound'] = sg.PopupGetText(
+                    'Parameter MCNN Max out of var bound: ', default_text="0.3")
+                values['_mcnn_p_diff_threshold'] = sg.PopupGetText(
+                    'Parameter MCNN Threshold of perc. diff. for split/death rate: ', default_text="50")
+                window.Element('_OUTPUT_').Update(
+                    'Max saved distances: ' + values['_mcnn_max_n'] + ', Splitting treshold: ' +
+                    values['_mcnn_e_threshold'] + ', Max out of var bound: ' + values['_mcnn_max_out_of_var_bound'])
+                window.Element('_OUTPUT_2').Update(
+                    '                                         P diff treshold: ' + values['_mcnn_p_diff_threshold'])
 
             if event == 'Edit parameters' and values['_fs_algorithm_'] == 'OFS':
-                sg.PopupYesNo()
+                sg.PopupOK('No additional parameters needed for this algorithm')
+                window.Element('_OUTPUT_').Update('                   ')
+                window.Element('_OUTPUT_2').Update('                  ')
 
         window.Close()
 
@@ -131,6 +194,7 @@ class GUI:
 test_gui = GUI()
 params = test_gui.create_gui()
 print('The chosen parameters are: ' + str(params))
+
 
 # TODO: create the pipe with run_pipline
 
