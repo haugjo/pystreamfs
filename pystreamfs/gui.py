@@ -1,4 +1,5 @@
 import PySimpleGUI as sg
+import pandas as pd
 from pystreamfs.pipeline import Pipeline
 from pystreamfs.feature_selector import FeatureSelector
 from pystreamfs.data_generator import DataGenerator
@@ -18,6 +19,27 @@ def convert_input_true_false(conv_val):
     else:
         ret_val = False
     return str(ret_val)
+
+
+def create_dataset_input_path(dataset_name):
+    switcher = {
+
+        'Credit': 'credit.csv',
+
+        'Drift': 'drift.csv',
+
+        'Har Binary': 'har_binary.csv',
+
+        'KDD': 'kdd.csv',
+
+        'MOA': 'moa.csv',
+
+        'Spambase': 'spambase.csv',
+
+        'Usenet': 'usenet.csv'
+    }
+    file_path = './datasets/' + switcher.get(dataset_name)
+    return file_path
 
 class GUI:
     def create_gui(self):
@@ -60,13 +82,13 @@ class GUI:
 
              # Begin frame for data options
              [sg.Frame(layout=[
-                 [sg.Radio('Enter a CSV with your data', "RADIO1", default=True, size=(40, 1)), sg.Input(),
-                  sg.FileBrowse(), ],
-                 [sg.Radio('Chose a generator to create data', "RADIO1", size=(40, 1), key='_create_data_'),
-                  sg.InputCombo(('Gen1', 'Gen2', 'Gen3'), size=(30, 1), key='_create_dataset_')],
-                 [sg.Radio('Use one of the existing datasets', "RADIO1", size=(40, 1), key='_have_data_'),
+                 [sg.Radio('Enter a CSV with your data', "RADIO1", default=True, size=(40, 1),key='_load_data_path_'),
+                  sg.Input(), sg.FileBrowse(key='_file_path_'), ],
+                 [sg.Radio('Chose a generator to create data', "RADIO1", size=(40, 1), key='_use_generator_'),
+                  sg.InputCombo(('Agrawal', 'Rbf', 'Sine'), size=(30, 1), key='_data_generator_')],
+                 [sg.Radio('Use one of the existing datasets', "RADIO1", size=(40, 1), key='_load_data_CSV_'),
                   sg.InputCombo(('Credit', 'Drift', 'Har', 'KDD', 'MOA', 'Spambase', 'Usenet'), size=(30, 1),
-                                key='_use_dataset_')],
+                                key='_use_dataset_path_')],
                  [sg.Checkbox('Shuffle dataset', size=(25, 1), default=False, key='_shuffle_data_')],
              ],
                  title='Data', title_color='red', relief=sg.RELIEF_SUNKEN,
@@ -172,15 +194,26 @@ class GUI:
 
         return values
 
-    def run_pipeline(self, param):
+    def run_pipeline(self, gui_dict):
         """
         Run the pipeline with the selected parameter from the gui
 
-        :param param: dict parameters: parameters from the gui
+        :param gui_dict: dict parameters: parameters from the gui
         """
 
+        # dictionary which takes all the parameters for the pipeline, most out of the gui dictionary gui_dict
+        param = dict()
+
         # Generate data TODO: Impletment functionalities to pass the needed data from the dict
-        generator = DataGenerator('agrawal')
+        # Check if the dataset has to be loaded from a path or from a existing CSV or created
+        if gui_dict['_use_generator_']:
+            generator = DataGenerator(gui_dict['_data_generator_'].lower)
+        elif gui_dict['_load_data_path_']:
+            dataset = pd.read_csv(gui_dict['_file_path_'])
+        else:
+            dataset = pd.read_csv(create_dataset_input_path(gui_dict['_use_dataset_path_']))
+
+        param['shuffle_data'] = gui_dict['_shuffle_data_']
 
         fs_algorithm = FeatureSelector('iufes', param)
 
