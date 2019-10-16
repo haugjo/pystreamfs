@@ -96,9 +96,9 @@ class GUI:
                   sg.InputCombo(('Credit', 'Drift', 'Har', 'KDD', 'MOA', 'Spambase', 'Usenet'), size=(30, 1),
                                 key='_use_dataset_path_')],
                  [sg.Checkbox('Shuffle dataset', size=(25, 1), default=False, key='_shuffle_data_')],
+                 [sg.Text('Label index: '), sg.Input(default_text=0, key='_label_index_', size=(6,1))],
              ],
-                 title='Data', title_color='red', relief=sg.RELIEF_SUNKEN,
-                 tooltip='Chose one of these options')],
+                 title='Data', title_color='red', relief=sg.RELIEF_SUNKEN)],
              # End frame for data options
 
              # Begin frame for output options
@@ -195,8 +195,8 @@ class GUI:
 
         window.Close()
 
-        # Print all the chosen stats
-        print(event, values)
+        # Add the last event to the dict to check whether the pipe should be started or not
+        values['_final_event_'] = event
 
         return values
 
@@ -224,8 +224,28 @@ class GUI:
         else:
             dataset = pd.read_csv(create_dataset_input_path(gui_dict['_use_dataset_path_']))
 
-        param['shuffle_data'] = gui_dict['_shuffle_data_']
 
+        # Parameters
+        param['shuffle_data'] = gui_dict['_shuffle_data_']
+        param['label_idx'] = gui_dict['_label_index_']
+
+
+        # FS properties
+        fs_prop = dict()  # FS Algorithm properties
+        fs_prop['epochs'] = 5  # iterations over current batch during one execution of iufes
+        fs_prop['mini_batch_size'] = 25  # must be smaller than batch_size
+        fs_prop['lr_mu'] = 0.1  # learning rate for mean
+        fs_prop['lr_sigma'] = 0.1  # learning rate for standard deviation
+        fs_prop['init_sigma'] = 1
+
+        fs_prop['lr_w'] = 0.1  # learning rate for weights
+        fs_prop['lr_lambda'] = 0.1  # learning rate for lambda
+        fs_prop['init_lambda'] = 1
+
+        # Parameters for concept drift detection
+        fs_prop['check_drift'] = False  # indicator whether to check drift or not
+        fs_prop['range'] = 2  # range of last t to check for drift
+        fs_prop['drift_basis'] = 'mu'  # basis parameter on which we perform concept drift detection
 
 
 
@@ -241,17 +261,19 @@ class GUI:
         # pipe.plot()
         return ' '
 
-# Create the GUi object and collect the parameter as a dict
+
+# Create the GUi object and collect its parameters as a dict
 test_gui = GUI()
 params = test_gui.create_gui()
-print('The chosen parameters are: ' + str(params))
-#print(params['_use_dataset_path_'])
-
-print('Pathhhhhhhhh:' + create_dataset_input_path(params['_use_dataset_path_']))
 
 
-#print(params['_data_generator_'].lower())
-test_gui.run_pipeline(params)
+# Check whether the pipeline should be started and print the parameters
+if params['_final_event_'] == 'Submit':
+    print('The chosen parameters are: ' + str(params))
+    for k, v in params.items():
+        print ('Keys: ' + str(k) + ', values: ' + str(v))
+    test_gui.run_pipeline(params)
+
 
 
 
