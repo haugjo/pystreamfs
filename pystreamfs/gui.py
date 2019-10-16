@@ -234,6 +234,8 @@ class GUI:
 
         # Add the last event to the dict to check whether the pipe should be started or not
         values['_final_event_'] = event
+
+        # Update the values dict with the window input dict
         values.update(w_input)
         print('Not class vals: ' + str(values))
 
