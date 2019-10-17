@@ -67,14 +67,14 @@ class GUI:
             '_efs_v_': None,
             '_efs_alpha_': 1.5,
             '_efs_beta_': 0.5,
-            '_efs_threshold_': 1,
-            '_efs_margin_:': 1,
+            '_efs_threshold_': 1.0,
+            '_efs_margin_:': 1.0,
             '_fsds_b_': [],
             '_fsds_ell_': 0,
             '_fsds_k_': 2,
             '_fsds_m_': None,
             '_iufes_epochs_': 5,
-            '_iufes_ini_batch_size_': 25,
+            '_iufes_mini_batch_size_': 25,
             '_iufes_lr_mu_': 0.1,
             '_iufes_lr_sigma_': 0.1,
             '_iufes_init_sigma_': 1,
@@ -83,7 +83,11 @@ class GUI:
             '_iufes_init_lambda_': 1,
             '_iufes_drift_check_': False,
             '_iufes_range_': 2,
-            '_iufes_drift_basis_': 'mu'
+            '_iufes_drift_basis_': 'mu',
+            '_mcnn_max_n_': 100,
+            '_mcnn_e_threshold_': 3,
+            '_mcnn_max_out_of_var_bound_': 0.3,
+            '_mcnn_p_diff_threshold_': 50
         }
 
     def create_gui(self):
@@ -109,25 +113,27 @@ class GUI:
              [sg.Text('FS algorithms:')],
              [sg.InputCombo(('Cancleout', 'EFS', 'FSDS', 'IUFES', 'MCNN', 'OFS'), size=(30, 1), key='_fs_algorithm_'),
               sg.Button('Edit parameters'), ],
-             [sg.Text('Your chosen parameters are:'),sg.Text('                               -                         '
-                                                             '                           '
-                                                             '                                      ', key='_OUTPUT_')],
+             [sg.Text('Your chosen parameters are:'),
+              sg.Text('                               -                         '
+                      '                           '
+                      '                                      ', key='_OUTPUT_')],
              [sg.Text(' '), sg.Text('                                                         '
-                                                             '                           '
-                                                             '                                     ', key='_OUTPUT_2')],
+                                    '                           '
+                                    '                                     ', key='_OUTPUT_2')],
 
              # Begin frame for parameters
              [sg.Frame(layout=[
-                 [sg.Text('Number of  features:     '), sg.Input(default_text=5, key='_no_features_', size=(6,1))],
-                 [sg.Text('Batch size:                 '), sg.Input(default_text=50, key='_batch_size_', size=(6,1))],
-                 [sg.Text('Shifting window range: '), sg.Input(default_text=20, key='_shifting_window_range_', size=(6,1))],
+                 [sg.Text('Number of  features:     '), sg.Input(default_text=5, key='_no_features_', size=(6, 1))],
+                 [sg.Text('Batch size:                 '), sg.Input(default_text=50, key='_batch_size_', size=(6, 1))],
+                 [sg.Text('Shifting window range: '),
+                  sg.Input(default_text=20, key='_shifting_window_range_', size=(6, 1))],
              ],
                  title='Feature selection parameters', title_color='red', relief=sg.RELIEF_SUNKEN)],
              # End frame for data options
 
              # Begin frame for data options
              [sg.Frame(layout=[
-                 [sg.Radio('Enter a CSV with your data', "RADIO1", default=True, size=(40, 1),key='_load_data_path_'),
+                 [sg.Radio('Enter a CSV with your data', "RADIO1", default=True, size=(40, 1), key='_load_data_path_'),
                   sg.Input(), sg.FileBrowse(key='_file_path_'), ],
                  [sg.Radio('Chose a generator to create data', "RADIO1", size=(40, 1), key='_use_generator_'),
                   sg.InputCombo(('Agrawal', 'Rbf', 'Sine'), size=(30, 1), key='_data_generator_')],
@@ -135,7 +141,7 @@ class GUI:
                   sg.InputCombo(('Credit', 'Drift', 'Har', 'KDD', 'MOA', 'Spambase', 'Usenet'), size=(30, 1),
                                 key='_use_dataset_path_')],
                  [sg.Checkbox('Shuffle dataset', size=(25, 1), default=False, key='_shuffle_data_')],
-                 [sg.Text('Label index: '), sg.Input(default_text=0, key='_label_index_', size=(6,1))],
+                 [sg.Text('Label index: '), sg.Input(default_text=0, key='_label_index_', size=(6, 1))],
              ],
                  title='Data', title_color='red', relief=sg.RELIEF_SUNKEN)],
              # End frame for data options
@@ -170,19 +176,19 @@ class GUI:
                 window.Element('_OUTPUT_').Update('                   ')
                 window.Element('_OUTPUT_2').Update('                  ')
 
-            # Selected FS algorithm is EFS
+            # Selected FS algorithm is EFS TODO: use .format instead of casting in the update fct
             if event == 'Edit parameters' and w_input['_fs_algorithm_'] == 'EFS':
-                values['_efs_alpha_'] = sg.PopupGetText(
-                    'Parameter EFS alpha: ', default_text="1.5")
-                values['_efs_beta_'] = sg.PopupGetText(
-                    'Parameter EFS beta: ', default_text="0.5")
-                values['_efs_threshold_'] = sg.PopupGetText(
-                    'Parameter EFS threshold: ', default_text="1")
-                values['_efs_margin_'] = sg.PopupGetText(
-                    'Parameter EFS margin: ', default_text="1")
+                values['_efs_alpha_'] = float(sg.PopupGetText(
+                    'Parameter EFS alpha: ', default_text="1.5"))
+                values['_efs_beta_'] = float(sg.PopupGetText(
+                    'Parameter EFS beta: ', default_text="0.5"))
+                values['_efs_threshold_'] = float(sg.PopupGetText(
+                    'Parameter EFS threshold: ', default_text="1"))
+                values['_efs_margin_'] = float(sg.PopupGetText(
+                    'Parameter EFS margin: ', default_text="1"))
                 window.Element('_OUTPUT_').Update(
-                    'Alpha: ' + values['_efs_alpha_'] + ', Beta: ' + values['_efs_beta_'] + ', Thresh.: ' +
-                    values['_efs_threshold_'] + ', Margin: ' + values['_efs_margin_'])
+                    'Alpha: ' + str(values['_efs_alpha_']) + ', Beta: ' + str(values['_efs_beta_']) + ', Thresh.: ' +
+                    str(values['_efs_threshold_']) + ', Margin: ' + str(values['_efs_margin_']))
                 window.Element('_OUTPUT_2').Update(' ')
 
             # Selected FS algorithm is FSDS
@@ -195,8 +201,24 @@ class GUI:
                     'Init. sketch size: ' + values['_fsds_ell_'] + ', No. singular values: ' + values['_fsds_k_'])
                 window.Element('_OUTPUT_2').Update(' ')
 
-            # Selected FS algorithm is IUFES
+            # Selected FS algorithm is IUFES TODO: show output correctly
             if event == 'Edit parameters' and w_input['_fs_algorithm_'] == 'IUFES':
+                values['_iufes_epochs_'] = sg.PopupGetText(
+                    'Parameter IUFES epochs: ', default_text="5")
+                values['_iufes_mini_batch_size_'] = sg.PopupGetText(
+                    'Parameter IUFES Mini batch size: ', default_text="25")
+                values['_iufes_lr_mu_'] = sg.PopupGetText(
+                    'Parameter IUFES Mean learning rate: ', default_text="0.1")
+                values['_iufes_lr_sigma_'] = sg.PopupGetText(
+                    'Parameter IUFES standard deviation learning rate: ', default_text="0.1")
+                values['_iufes_init_sigma_'] = sg.PopupGetText(
+                    'Parameter IUFES initial sigma: ', default_text="1")
+                values['_iufes_lr_w_'] = sg.PopupGetText(
+                    'Parameter IUFES weight learning rate: ', default_text="0.1")
+                values['_iufes_lr_lambda_'] = sg.PopupGetText(
+                    'Parameter IUFES lambda learning rate: ', default_text="0.1")
+                values['_iufes_init_lambda_'] = sg.PopupGetText(
+                    'Parameter IUFES initial lambda: ', default_text="1")
                 values['_iufes_drift_check_'] = sg.PopupGetText(
                     'Parameter IUFES check drift: ', default_text="False")
                 values['_iufes_drift_check_'] = convert_input_true_false(values['_iufes_drift_check_'])
@@ -205,8 +227,8 @@ class GUI:
                 values['_iufes_drift_basis_'] = sg.PopupGetText(
                     'Parameter IUFES drift basis (mu): ', default_text="mu")
                 window.Element('_OUTPUT_').Update(
-                    'Drift check: ' + values['_iufes_drift_check_'] + ', Range: ' +
-                    values['_iufes_range_'] + ', Drift basis: ' + values['_iufes_drift_basis_'])
+                        'Drift check: ' + values['_iufes_drift_check_'] + ', Range: ' +
+                        values['_iufes_range_'] + ', Drift basis: ' + values['_iufes_drift_basis_'])
                 window.Element('_OUTPUT_2').Update(' ')
 
             # Selected FS algorithm is MCNN
@@ -243,8 +265,7 @@ class GUI:
         for key, val in values.items():
             self.values[key] = val
 
-        print('Updates vals are: '+str(self.values))
-
+        print('Update vals are: ' + str(self.values))
 
     # def run_pipeline(self):
     #     """
@@ -319,12 +340,5 @@ test_gui.create_gui()
 if test_gui.values['_final_event_'] == 'Submit':
     print('The chosen parameters are: ' + str(test_gui.values))
     for k, v in test_gui.values.items():
-        print ('Keys: ' + str(k) + ', values: ' + str(v))
+        print('Keys: ' + str(k) + ', values: ' + str(v))
 #     test_gui.run_pipeline()
-
-
-
-
-
-
-
