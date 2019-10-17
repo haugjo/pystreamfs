@@ -1,5 +1,6 @@
 import PySimpleGUI as sg
 import pandas as pd
+import numpy as np
 from pystreamfs.pipeline import Pipeline
 from pystreamfs.feature_selector import FeatureSelector
 from pystreamfs.data_generator import DataGenerator
@@ -280,69 +281,68 @@ class GUI:
         self.values.update(w_input)
         print('Update values are: ' + str(self.values))
 
-    # def run_pipeline(self):
-    #     """
-    #     Run the pipeline with the selected parameter from the gui
-    #
-    #     :param gui_dict: dict parameters: parameters from the gui
-    #     """
-    #
-    #     # dictionary which takes all the parameters for the pipeline, most out of the gui dictionary gui_dict
-    #     param = dict()
-    #
-    #     # Generate data TODO: Impletment functionalities to pass the needed data from the dict
-    #     # Check if the dataset has to be loaded from a path or from a existing CSV or created
-    #     # Generator has to create data
-    #     if gui_dict['_use_generator_']:
-    #         generator = DataGenerator(gui_dict['_data_generator_'].lower())
-    #     # User passes his own CSV file
-    #     elif gui_dict['_load_data_path_']:
-    #         dataset = pd.read_csv(gui_dict['_file_path_'])
-    #     # User chooses one of the existing files
-    #     else:
-    #         dataset = pd.read_csv(create_dataset_input_path(gui_dict['_use_dataset_path_']))
-    #
-    #     ###################################################################################################
-    #     # Parameters
-    #     param['shuffle_data'] = gui_dict['_shuffle_data_']
-    #     param['label_idx'] = int(gui_dict['_label_index_'])
-    #
-    #     ###################################################################################################
-    #     # FS properties
-    #     fs_prop = dict()  # FS Algorithm properties
-    #
-    #     # Cancleout
-    #     if gui_dict['_fs_algorithm_'] == 'Cancleout':
-    #         pass
-    #
-    #     fs_prop['epochs'] = gui_dict['_iufes_drift_check']  # iterations over current batch during one execution of iufes, default 5
-    #     fs_prop['mini_batch_size'] = 25  # must be smaller than batch_size
-    #     fs_prop['lr_mu'] = 0.1  # learning rate for mean
-    #     fs_prop['lr_sigma'] = 0.1  # learning rate for standard deviation
-    #     fs_prop['init_sigma'] = 1
-    #
-    #     fs_prop['lr_w'] = 0.1  # learning rate for weights
-    #     fs_prop['lr_lambda'] = 0.1  # learning rate for lambda
-    #     fs_prop['init_lambda'] = 1
-    #
-    #     # Parameters for concept drift detection
-    #     fs_prop['check_drift'] = False  # indicator whether to check drift or not
-    #     fs_prop['range'] = 2  # range of last t to check for drift
-    #     fs_prop['drift_basis'] = 'mu'  # basis parameter on which we perform concept drift detection
-    #
-    #
-    #
-    #
-    #     # fs_algorithm = FeatureSelector('iufes', param)
-    #
-    #     # pipe = Pipeline(None, generator, fs_algorithm, Perceptron(), accuracy_score, param)
-    #
-    #     # Start Pipeline
-    #     # pipe.start()
-    #
-    #     # Plot results
-    #     # pipe.plot()
-    #     return ' '
+    def run_pipeline(self):
+        """
+        Run the pipeline with the selected parameter from the gui
+
+        """
+
+        # dictionary which takes all the parameters for the pipeline, most out of the gui dictionary gui_dict
+        param = dict()
+
+
+        # Generate data
+        # Check if the dataset has to be loaded from a path or from a existing CSV or created
+        # Generator has to create data
+        if self.values['_use_generator_']:
+            generator = DataGenerator(self.values['_data_generator_'].lower())
+        # User passes his own CSV file
+        elif self.values['_load_data_path_']:
+            dataset = pd.read_csv(self.values['_file_path_'])
+        # User chooses one of the existing files
+        else:
+            dataset = pd.read_csv(create_dataset_input_path(self.values['_use_dataset_path_']))
+
+        # Parameters for the dataset
+        param['shuffle_data'] = self.values['_shuffle_data_']
+        param['label_idx'] = self.values['_label_index_']
+
+        ###################################################################################################
+        # Hand over all FS properties from the self.values dict
+        fs_prop = dict()  # FS Algorithm properties
+
+        # Properties EFS:
+        param['u'] = np.ones(num_features) * 2  # initial positive model with weights 2
+        param['v'] = np.ones(num_features)  # initial negative model with weights 1
+        param['alpha'] = 1.5  # promotion parameter
+        param['beta'] = 0.5  # demotion parameter
+        param['threshold'] = 1  # threshold parameter
+        param['M'] = 1  # margin
+
+        fs_prop['epochs'] = self.values['_iufes_drift_check']  # iterations over curr. batch during one execution IUFES
+        fs_prop['mini_batch_size'] = self.values['_iufes_mini_batch_size_']  # must be smaller than batch_size
+        fs_prop['lr_mu'] = self.values['_iufes_lr_mu_']  # learning rate for mean
+        fs_prop['lr_sigma'] = 0.1  # learning rate for standard deviation
+        fs_prop['init_sigma'] = 1
+        fs_prop['lr_w'] = 0.1  # learning rate for weights
+        fs_prop['lr_lambda'] = 0.1  # learning rate for lambda
+        fs_prop['init_lambda'] = 1
+
+        # Parameters for concept drift detection
+        fs_prop['check_drift'] = False  # indicator whether to check drift or not
+        fs_prop['range'] = 2  # range of last t to check for drift
+        fs_prop['drift_basis'] = 'mu'  # basis parameter on which we perform concept drift detection
+
+        # fs_algorithm = FeatureSelector('iufes', param)
+
+        # pipe = Pipeline(None, generator, fs_algorithm, Perceptron(), accuracy_score, param)
+
+        # Start Pipeline
+        # pipe.start()
+
+        # Plot results
+        # pipe.plot()
+        return ' '
 
 
 # Create the GUi object and collect its parameters as a dict
@@ -355,4 +355,4 @@ if test_gui.values['_final_event_'] == 'Submit':
     for k, v in test_gui.values.items():
         print('Keys: ' + str(k) + ', values: ' + str(v))
         print('Starting the pipeline.')
-        #test_gui.run_pipeline()
+        # test_gui.run_pipeline()
