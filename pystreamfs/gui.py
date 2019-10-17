@@ -314,7 +314,7 @@ class GUI:
         param['label_idx'] = int(self.values['_label_index_'])
 
         ###################################################################################################
-        # Hand over all FS properties from the self.values dict
+        # Hand over all FS properties from the self.values dict TODO: add all the remaining properties
         fs_prop = dict()  # FS Algorithm properties
 
         # Properties EFS:
@@ -345,7 +345,7 @@ class GUI:
         fs_prop['drift_basis'] = self.values['_iufes_drift_basis_']  # basis param to perform concept drift detection
 
         ###################################################################################################
-        # General parameters
+        # General parameters TODO: add max timesteps and font scale options to gui
         param['batch_size'] = int(self.values['_batch_size_'])
         param['num_features'] = int(self.values['_no_features_'])
         param['max_timesteps'] = 10
