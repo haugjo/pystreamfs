@@ -4,6 +4,7 @@ import numpy as np
 from pystreamfs.pipeline import Pipeline
 from pystreamfs.feature_selector import FeatureSelector
 from pystreamfs.data_generator import DataGenerator
+from pystreamfs.visualizer import Visualizer
 from sklearn.linear_model import Perceptron
 from sklearn.metrics import accuracy_score
 
@@ -310,7 +311,7 @@ class GUI:
 
         # Parameters for the dataset
         param['shuffle_data'] = self.values['_shuffle_data_']
-        param['label_idx'] = self.values['_label_index_']
+        param['label_idx'] = int(self.values['_label_index_'])
 
         ###################################################################################################
         # Hand over all FS properties from the self.values dict
@@ -345,16 +346,19 @@ class GUI:
 
         ###################################################################################################
         # General parameters
-        param['batch_size'] = self.values['_batch_size_']
-        param['num_features'] = self.values['_no_features_']
+        param['batch_size'] = int(self.values['_batch_size_'])
+        param['num_features'] = int(self.values['_no_features_'])
         param['max_timesteps'] = 10
         param['font_scale'] = 0.8
-        param['r'] = self.values['_shifting_window_range_']
+        param['r'] = int(self.values['_shifting_window_range_'])
 
         # Use the feature selector on the chosen algorithm
-        fs_algorithm = FeatureSelector(self.values['_fs_algorithm_'].lower(), param)
+        fs_algorithm = FeatureSelector(self.values['_fs_algorithm_'].lower(), fs_prop)
 
-        pipe = Pipeline(dataset, generator, fs_algorithm, Perceptron(), accuracy_score, param)
+        # Generate Visualizer
+        visual = Visualizer(self.values['_life_visualization_'])
+
+        pipe = Pipeline(dataset, generator, fs_algorithm, visual, Perceptron(), accuracy_score, param)
 
         # Start Pipeline
         pipe.start()
@@ -372,6 +376,6 @@ test_gui.create_gui()
 if test_gui.values['_final_event_'] == 'Submit':
     print('The chosen parameters are: ')
     for k, v in test_gui.values.items():
-        print('Keys: ' + str(k) + ', values: ' + str(v))
-        print('Starting the pipeline.')
+        print('Keys: ' + str(k) + ', values: ' + str(type(v)))
+    print('Starting the pipeline.')
     test_gui.run_pipeline()
