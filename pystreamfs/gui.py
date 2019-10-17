@@ -57,12 +57,14 @@ class GUI:
             '_fs_algorithm_': 'Cancelout',
             '_no_features_': 5,
             '_batch_size_': 50,
+            '_max_timesteps_': 10,
             '_shifting_window_range_': 20,
             '_file_path_': '../datasets/credit.csv',
             '_data_generator_': 'Agrawal',
             '_use_dataset_path_': '../datasets/credit.csv',
             '_shuffle_data_': False,
             '_label_index_': 0,
+            '_font_scale_': 0.8,
             '_summation_': True,
             '_life_visualization_': True,
             '_efs_u_': None,
@@ -127,10 +129,12 @@ class GUI:
 
              # Begin frame for parameters
              [sg.Frame(layout=[
-                 [sg.Text('Number of  features:     '), sg.Input(default_text=5, key='_no_features_', size=(6, 1))],
-                 [sg.Text('Batch size:                 '), sg.Input(default_text=50, key='_batch_size_', size=(6, 1))],
-                 [sg.Text('Shifting window range: '),
+                 [sg.Text('Number of  features:      '), sg.Input(default_text=5, key='_no_features_', size=(6, 1))],
+                 [sg.Text('Batch size:                   '), sg.Input(default_text=50, key='_batch_size_', size=(6, 1))],
+                 [sg.Text('Shifting window range:   '),
                   sg.Input(default_text=20, key='_shifting_window_range_', size=(6, 1))],
+                 [sg.Text('Timesteps generator:     '),
+                  sg.Input(default_text=10, key='_max_timesteps_', size=(6, 1))],
              ],
                  title='Feature selection parameters', title_color='red', relief=sg.RELIEF_SUNKEN)],
              # End frame for data options
@@ -152,19 +156,20 @@ class GUI:
 
              # Begin frame for output options
              [sg.Frame(layout=[
+                 [sg.Text('Font scale: '),
+                  sg.Input(default_text=0.8, key='_font_scale_', size=(6, 1))],
                  [sg.Checkbox('Sum up results', size=(20, 1), default=True, key='_summation_'),
                   sg.Checkbox('Live visualization', default=True, key='_life_visualization_')], ],
                  title='Output options', title_color='red', relief=sg.RELIEF_SUNKEN,
                  tooltip='Set these options to customize your output')],
              # End frame for output options
 
-             # Submit to start program, cancle to stop
+             # Submit to start program, cancel to stop
              [sg.Submit(), sg.Cancel()]]
 
         # Set window to display your options
         window = sg.Window('PystreamFS', layout)
         # Check for the different events and perform the needed actions
-        values = dict()
         while True:
             event, w_input = window.Read()
             if event is None or event == 'Cancel':
@@ -303,11 +308,9 @@ class GUI:
         # User passes his own CSV file
         elif self.values['_load_data_path_']:
             dataset = pd.read_csv(self.values['_file_path_'])
-            print(dataset.shape)
         # User chooses one of the existing files
         else:
             dataset = pd.read_csv(create_dataset_input_path(self.values['_use_dataset_path_']))
-            print(dataset.shape)
 
         # Parameters for the dataset
         param['shuffle_data'] = self.values['_shuffle_data_']
@@ -368,11 +371,11 @@ class GUI:
             fs_prop['p_diff_threshold'] = self.values['_mcnn_p_diff_threshold_']
 
         ###################################################################################################
-        # General parameters TODO: add max timesteps and font scale options to gui
+        # General parameters
         param['batch_size'] = int(self.values['_batch_size_'])
         param['num_features'] = int(self.values['_no_features_'])
-        param['max_timesteps'] = 10
-        param['font_scale'] = 0.8
+        param['max_timesteps'] = int(self.values['_max_timesteps_'])
+        param['font_scale'] = float(self.values['_font_scale_'])
         param['r'] = int(self.values['_shifting_window_range_'])
 
         # Use the feature selector on the chosen algorithm
