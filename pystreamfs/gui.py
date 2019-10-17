@@ -77,10 +77,10 @@ class GUI:
             '_iufes_mini_batch_size_': 25,
             '_iufes_lr_mu_': 0.1,
             '_iufes_lr_sigma_': 0.1,
-            '_iufes_init_sigma_': 1,
+            '_iufes_init_sigma_': 1.0,
             '_iufes_lr_w_': 0.1,
             '_iufes_lr_lambda_': 0.1,
-            '_iufes_init_lambda_': 1,
+            '_iufes_init_lambda_': 1.0,
             '_iufes_drift_check_': False,
             '_iufes_range_': 2,
             '_iufes_drift_basis_': 'mu',
@@ -110,16 +110,18 @@ class GUI:
              [sg.Text('Chose your FS algorithms and parameters', justification='center', font=("Helvetica", 16))],
 
              # Select FS algorithm
-             [sg.Text('FS algorithms:')],
+             [sg.Text('FS algorithm:')],
              [sg.InputCombo(('Cancleout', 'EFS', 'FSDS', 'IUFES', 'MCNN', 'OFS'), size=(30, 1), key='_fs_algorithm_'),
               sg.Button('Edit parameters'), ],
-             [sg.Text('Your chosen parameters are:'),
-              sg.Text('                               -                         '
+             [sg.Text('Your chosen parameters are:')],
+             [sg.Text('                                                            '
                       '                           '
-                      '                                      ', key='_OUTPUT_')],
-             [sg.Text(' '), sg.Text('                                                         '
-                                    '                           '
-                                    '                                     ', key='_OUTPUT_2')],
+                      '                                      '
+                      '                                       ', key='_OUTPUT_')],
+             [sg.Text('                                                         '
+                      '                           '
+                      '                                     '
+                      '                                     ', key='_OUTPUT_2_')],
 
              # Begin frame for parameters
              [sg.Frame(layout=[
@@ -173,99 +175,110 @@ class GUI:
             # Events for fs_selection
             if event == 'Edit parameters' and w_input['_fs_algorithm_'] == 'Cancleout':
                 sg.PopupOK('No additional parameters needed for this algorithm')
-                window.Element('_OUTPUT_').Update('                   ')
-                window.Element('_OUTPUT_2').Update('                  ')
+                window.Element('_OUTPUT_').Update('No additional parameters required for Cancleout')
+                window.Element('_OUTPUT_2_').Update('                  ')
 
-            # Selected FS algorithm is EFS TODO: use .format instead of casting in the update fct
+            # Selected FS algorithm is EFS
             if event == 'Edit parameters' and w_input['_fs_algorithm_'] == 'EFS':
-                values['_efs_alpha_'] = float(sg.PopupGetText(
+                self.values['_efs_alpha_'] = float(sg.PopupGetText(
                     'Parameter EFS alpha: ', default_text="1.5"))
-                values['_efs_beta_'] = float(sg.PopupGetText(
+                self.values['_efs_beta_'] = float(sg.PopupGetText(
                     'Parameter EFS beta: ', default_text="0.5"))
-                values['_efs_threshold_'] = float(sg.PopupGetText(
+                self.values['_efs_threshold_'] = float(sg.PopupGetText(
                     'Parameter EFS threshold: ', default_text="1"))
-                values['_efs_margin_'] = float(sg.PopupGetText(
+                self.values['_efs_margin_'] = float(sg.PopupGetText(
                     'Parameter EFS margin: ', default_text="1"))
-                window.Element('_OUTPUT_').Update(
-                    'Alpha: ' + str(values['_efs_alpha_']) + ', Beta: ' + str(values['_efs_beta_']) + ', Thresh.: ' +
-                    str(values['_efs_threshold_']) + ', Margin: ' + str(values['_efs_margin_']))
-                window.Element('_OUTPUT_2').Update(' ')
+                window.Element('_OUTPUT_').Update('Alpha: {0:.2f}, Beta: {1:.2f}, Thresh: {2:.2f}, '
+                                                  'Margin: {3:.2f}'.format(self.values['_efs_alpha_'],
+                                                                           self.values['_efs_beta_'],
+                                                                           self.values['_efs_threshold_'],
+                                                                           self.values['_efs_margin_']))
+                window.Element('_OUTPUT_2_').Update(' ')
 
             # Selected FS algorithm is FSDS
             if event == 'Edit parameters' and w_input['_fs_algorithm_'] == 'FSDS':
-                values['_fsds_ell_'] = sg.PopupGetText(
-                    'Parameter FSDS initial sketch size ell: ', default_text="0")
-                values['_fsds_k_'] = sg.PopupGetText(
-                    'Parameter FSDS no. of singular values: ', default_text="2")
+                self.values['_fsds_ell_'] = int(sg.PopupGetText(
+                    'Parameter FSDS initial sketch size: ', default_text="0"))
+                self.values['_fsds_k_'] = int(sg.PopupGetText(
+                    'Parameter FSDS no. of singular values: ', default_text="2"))
                 window.Element('_OUTPUT_').Update(
-                    'Init. sketch size: ' + values['_fsds_ell_'] + ', No. singular values: ' + values['_fsds_k_'])
-                window.Element('_OUTPUT_2').Update(' ')
+                    'Init. sketch size: {0:d}, No. singular values: {1:d}'.format(self.values['_fsds_ell_'],
+                                                                                  self.values['_fsds_k_']))
+                window.Element('_OUTPUT_2_').Update(' ')
 
-            # Selected FS algorithm is IUFES TODO: show output correctly
+            # Selected FS algorithm is IUFES
             if event == 'Edit parameters' and w_input['_fs_algorithm_'] == 'IUFES':
-                values['_iufes_epochs_'] = sg.PopupGetText(
-                    'Parameter IUFES epochs: ', default_text="5")
-                values['_iufes_mini_batch_size_'] = sg.PopupGetText(
-                    'Parameter IUFES Mini batch size: ', default_text="25")
-                values['_iufes_lr_mu_'] = sg.PopupGetText(
-                    'Parameter IUFES Mean learning rate: ', default_text="0.1")
-                values['_iufes_lr_sigma_'] = sg.PopupGetText(
-                    'Parameter IUFES standard deviation learning rate: ', default_text="0.1")
-                values['_iufes_init_sigma_'] = sg.PopupGetText(
-                    'Parameter IUFES initial sigma: ', default_text="1")
-                values['_iufes_lr_w_'] = sg.PopupGetText(
-                    'Parameter IUFES weight learning rate: ', default_text="0.1")
-                values['_iufes_lr_lambda_'] = sg.PopupGetText(
-                    'Parameter IUFES lambda learning rate: ', default_text="0.1")
-                values['_iufes_init_lambda_'] = sg.PopupGetText(
-                    'Parameter IUFES initial lambda: ', default_text="1")
-                values['_iufes_drift_check_'] = sg.PopupGetText(
+                self.values['_iufes_epochs_'] = int(sg.PopupGetText(
+                    'Parameter IUFES epochs: ', default_text="5"))
+                self.values['_iufes_mini_batch_size_'] = int(sg.PopupGetText(
+                    'Parameter IUFES Mini batch size: ', default_text="25"))
+                self.values['_iufes_lr_mu_'] = float(sg.PopupGetText(
+                    'Parameter IUFES Mean learning rate: ', default_text="0.1"))
+                self.values['_iufes_lr_sigma_'] = float(sg.PopupGetText(
+                    'Parameter IUFES standard deviation learning rate: ', default_text="0.1"))
+                self.values['_iufes_init_sigma_'] = float(sg.PopupGetText(
+                    'Parameter IUFES initial sigma: ', default_text="1.0"))
+                self.values['_iufes_lr_w_'] = float(sg.PopupGetText(
+                    'Parameter IUFES weight learning rate: ', default_text="0.1"))
+                self.values['_iufes_lr_lambda_'] = float(sg.PopupGetText(
+                    'Parameter IUFES lambda learning rate: ', default_text="0.1"))
+                self.values['_iufes_init_lambda_'] = float(sg.PopupGetText(
+                    'Parameter IUFES initial lambda: ', default_text="1.0"))
+                self.values['_iufes_drift_check_'] = sg.PopupGetText(
                     'Parameter IUFES check drift: ', default_text="False")
-                values['_iufes_drift_check_'] = convert_input_true_false(values['_iufes_drift_check_'])
-                values['_iufes_range_'] = sg.PopupGetText(
-                    'Parameter IUFES range of last t to check drift: ', default_text="2")
-                values['_iufes_drift_basis_'] = sg.PopupGetText(
+                self.values['_iufes_drift_check_'] = convert_input_true_false(self.values['_iufes_drift_check_'])
+                self.values['_iufes_range_'] = int(sg.PopupGetText(
+                    'Parameter IUFES range of last t to check drift: ', default_text="2"))
+                self.values['_iufes_drift_basis_'] = sg.PopupGetText(
                     'Parameter IUFES drift basis (mu): ', default_text="mu")
-                window.Element('_OUTPUT_').Update(
-                        'Drift check: ' + values['_iufes_drift_check_'] + ', Range: ' +
-                        values['_iufes_range_'] + ', Drift basis: ' + values['_iufes_drift_basis_'])
-                window.Element('_OUTPUT_2').Update(' ')
+                window.Element('_OUTPUT_').Update('Epochs: {0:d}, Mini Batch Size: {1:d}, Mean LR: {2:.2f}, '
+                                                  'Sigma LR: {3:.2f}, Init. Sigma: {4:0.2f}'
+                                                  .format(self.values['_iufes_epochs_'],
+                                                          self.values['_iufes_mini_batch_size_'],
+                                                          self.values['_iufes_lr_mu_'],
+                                                          self.values['_iufes_lr_sigma_'],
+                                                          self.values['_iufes_init_sigma_']))
+                window.Element('_OUTPUT_2_').Update('Weight LR: {0:.2f}, Lambda LR: {1:.2f}, Init. Lambda: {2:.2f}, '
+                                                    'Drift check: {3:s}, Range: {4:d}, Drift Basis: {5:s}'
+                                                    .format(self.values['_iufes_lr_w_'],
+                                                            self.values['_iufes_lr_lambda_'],
+                                                            self.values['_iufes_init_lambda_'],
+                                                            self.values['_iufes_drift_check_'],
+                                                            self.values['_iufes_range_'],
+                                                            self.values['_iufes_drift_basis_']))
 
             # Selected FS algorithm is MCNN
             if event == 'Edit parameters' and w_input['_fs_algorithm_'] == 'MCNN':
-                values['_mcnn_max_n_'] = sg.PopupGetText(
-                    'Parameter MCNN Max. num. of saved instances per cluster: ', default_text="100")
-                values['_mcnn_e_threshold_'] = sg.PopupGetText(
-                    'Parameter MCNN Treshold for splitting a cluster: ', default_text="3")
-                values['_mcnn_max_out_of_var_bound_'] = sg.PopupGetText(
-                    'Parameter MCNN Max out of var bound: ', default_text="0.3")
-                values['_mcnn_p_diff_threshold_'] = sg.PopupGetText(
-                    'Parameter MCNN Threshold of perc. diff. for split/death rate: ', default_text="50")
-                window.Element('_OUTPUT_').Update(
-                    'Max saved distances: ' + values['_mcnn_max_n_'] + ', Splitting treshold: ' +
-                    values['_mcnn_e_threshold_'] + ', Max out of var bound: ' + values['_mcnn_max_out_of_var_bound_'])
-                window.Element('_OUTPUT_2').Update(
-                    '                                         P diff treshold: ' + values['_mcnn_p_diff_threshold_'])
+                self.values['_mcnn_max_n_'] = int(sg.PopupGetText(
+                    'Parameter MCNN Max. num. of saved instances per cluster: ', default_text="100"))
+                self.values['_mcnn_e_threshold_'] = int(sg.PopupGetText(
+                    'Parameter MCNN Threshold for splitting a cluster: ', default_text="3"))
+                self.values['_mcnn_max_out_of_var_bound_'] = float(sg.PopupGetText(
+                    'Parameter MCNN Max out of var bound: ', default_text="0.3"))
+                self.values['_mcnn_p_diff_threshold_'] = int(sg.PopupGetText(
+                    'Parameter MCNN Threshold of perc. diff. for split/death rate: ', default_text="50"))
+                window.Element('_OUTPUT_').Update('Max. num. saved instances: {0:d}, Split thresh.: {1:d}, '
+                                                  'Max out of var bound: {2:.2f}, Perc. thresh. rate: {3:.2f}'
+                                                  .format(self.values['_mcnn_max_n_'],
+                                                          self.values['_mcnn_e_threshold_'],
+                                                          self.values['_mcnn_max_out_of_var_bound_'],
+                                                          self.values['_mcnn_p_diff_threshold_']))
+                window.Element('_OUTPUT_2_').Update(' ')
+
             # Selected FS algorithm is OFS
             if event == 'Edit parameters' and w_input['_fs_algorithm_'] == 'OFS':
                 sg.PopupOK('No additional parameters needed for this algorithm')
-                window.Element('_OUTPUT_').Update('                   ')
-                window.Element('_OUTPUT_2').Update('                  ')
+                window.Element('_OUTPUT_').Update('No additional parameters required for OFS')
+                window.Element('_OUTPUT_2_').Update('                  ')
 
         window.Close()
 
         # Add the last event to the dict to check whether the pipe should be started or not
-        values['_final_event_'] = event
+        self.values['_final_event_'] = event
 
         # Update the values dict with the window input dict
-        values.update(w_input)
-        print('Not class vals: ' + str(values))
-
-        # Put all the new values in the dict
-        for key, val in values.items():
-            self.values[key] = val
-
-        print('Update vals are: ' + str(self.values))
+        self.values.update(w_input)
+        print('Update values are: ' + str(self.values))
 
     # def run_pipeline(self):
     #     """
@@ -338,7 +351,8 @@ test_gui.create_gui()
 
 # Check whether the pipeline should be started and print the parameters
 if test_gui.values['_final_event_'] == 'Submit':
-    print('The chosen parameters are: ' + str(test_gui.values))
+    print('The chosen parameters are: ')
     for k, v in test_gui.values.items():
         print('Keys: ' + str(k) + ', values: ' + str(v))
-#     test_gui.run_pipeline()
+        print('Starting the pipeline.')
+        #test_gui.run_pipeline()
