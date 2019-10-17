@@ -314,35 +314,58 @@ class GUI:
         param['label_idx'] = int(self.values['_label_index_'])
 
         ###################################################################################################
-        # Hand over all FS properties from the self.values dict TODO: add all the remaining properties
+        # Hand over all FS properties from the self.values dict
         fs_prop = dict()  # FS Algorithm properties
 
         # Properties EFS:
-        # get u and v using a generator
-        if self.values['_use_generator_']:
-            fs_prop['u'] = np.ones(generator.no_features) * 2  # initial positive model with weights 2
-            fs_prop['v'] = np.ones(generator.no_features)  # initial negative model with weights 1
-        # get u and v using a dataset
-        else:
-            fs_prop['u'] = np.ones(dataset.shape[1]-1) * 2  # initial positive model with weights 2
-            fs_prop['v'] = np.ones(dataset.shape[1]-1)  # initial negative model with weights 1
-        fs_prop['alpha'] = self.values['_efs_alpha_']  # promotion parameter
-        fs_prop['beta'] = self.values['_efs_beta_']  # demotion parameter
-        fs_prop['threshold'] = self.values['_efs_threshold_']  # threshold parameter
-        fs_prop['M'] = self.values['_efs_margin_']  # margin
+        if self.values['_fs_algorithm_'] == 'EFS':
+            # get u and v using a generator
+            if self.values['_use_generator_']:
+                fs_prop['u'] = np.ones(generator.no_features) * 2  # initial positive model with weights 2
+                fs_prop['v'] = np.ones(generator.no_features)  # initial negative model with weights 1
+            # get u and v using a dataset
+            else:
+                fs_prop['u'] = np.ones(dataset.shape[1] - 1) * 2  # initial positive model with weights 2
+                fs_prop['v'] = np.ones(dataset.shape[1] - 1)  # initial negative model with weights 1
+            fs_prop['alpha'] = self.values['_efs_alpha_']  # promotion parameter
+            fs_prop['beta'] = self.values['_efs_beta_']  # demotion parameter
+            fs_prop['threshold'] = self.values['_efs_threshold_']  # threshold parameter
+            fs_prop['M'] = self.values['_efs_margin_']  # margin
+
+        # Properties FSDS:
+        if self.values['_fs_algorithm_'] == 'FSDS':
+            fs_prop['B'] = []  # initial sketch matrix
+            fs_prop['ell'] = self.values['_fsds_ell_']  # initial sketch size
+            fs_prop['k'] = self.values['_fsds_k_']  # no. of singular values (can be equal to no. of clusters/classes -> 2 for binary class.)
+            # get m using a generator
+            if self.values['_use_generator_']:
+                fs_prop['m'] = generator.no_features  # no. of original features
+            else:
+                fs_prop['m'] = dataset.shape[1] - 1
 
         # Properties IUFES:
-        fs_prop['epochs'] = self.values['_iufes_drift_check_']  # iterations over curr. batch during one execution IUFES
-        fs_prop['mini_batch_size'] = self.values['_iufes_mini_batch_size_']  # must be smaller than batch_size
-        fs_prop['lr_mu'] = self.values['_iufes_lr_mu_']  # learning rate for mean
-        fs_prop['lr_sigma'] = self.values['_iufes_lr_sigma_']  # learning rate for standard deviation
-        fs_prop['init_sigma'] = self.values['_iufes_init_sigma_']
-        fs_prop['lr_w'] = self.values['_iufes_lr_w_']  # learning rate for weights
-        fs_prop['lr_lambda'] = self.values['_iufes_lr_lambda_']  # learning rate for lambda
-        fs_prop['init_lambda'] = self.values['_iufes_lr_lambda_']
-        fs_prop['check_drift'] = self.values['_iufes_drift_check_']  # indicator whether to check drift or not
-        fs_prop['range'] = self.values['_iufes_range_']  # range of last t to check for drift
-        fs_prop['drift_basis'] = self.values['_iufes_drift_basis_']  # basis param to perform concept drift detection
+        if self.values['_fs_algorithm_'] == 'IUFES':
+            fs_prop['epochs'] = self.values['_iufes_drift_check_']  # iterations over curr. batch
+            fs_prop['mini_batch_size'] = self.values['_iufes_mini_batch_size_']  # must be smaller than batch_size
+            fs_prop['lr_mu'] = self.values['_iufes_lr_mu_']  # learning rate for mean
+            fs_prop['lr_sigma'] = self.values['_iufes_lr_sigma_']  # learning rate for standard deviation
+            fs_prop['init_sigma'] = self.values['_iufes_init_sigma_']
+            fs_prop['lr_w'] = self.values['_iufes_lr_w_']  # learning rate for weights
+            fs_prop['lr_lambda'] = self.values['_iufes_lr_lambda_']  # learning rate for lambda
+            fs_prop['init_lambda'] = self.values['_iufes_lr_lambda_']
+            fs_prop['check_drift'] = self.values['_iufes_drift_check_']  # indicator whether to check drift or not
+            fs_prop['range'] = self.values['_iufes_range_']  # range of last t to check for drift
+            fs_prop['drift_basis'] = self.values['_iufes_drift_basis_']  # basis param to perform concept drift det.
+
+        # Properties MCNN:
+        if self.values['_fs_algorithm_'] == 'MCNN':
+            fs_prop['max_n'] = self.values['_mcnn_max_n_']  # maximum number of saved instances per cluster
+            fs_prop['e_threshold'] = self.values['_mcnn_e_threshold_']  # error threshold for splitting of a cluster
+            # Additional parameters
+            # percentage of variables that can at most be outside of variance boundary before new cluster is created
+            fs_prop['max_out_of_var_bound'] = self.values['_mcnn_max_out_of_var_bound_']
+            # threshold of perc. diff. for split/death rate when drift is assumed
+            fs_prop['p_diff_threshold'] = self.values['_mcnn_p_diff_threshold_']
 
         ###################################################################################################
         # General parameters TODO: add max timesteps and font scale options to gui
