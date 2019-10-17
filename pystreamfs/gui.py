@@ -348,14 +348,14 @@ class GUI:
 
         # Properties IUFES:
         if self.values['_fs_algorithm_'] == 'IUFES':
-            fs_prop['epochs'] = self.values['_iufes_drift_check_']  # iterations over curr. batch
+            fs_prop['epochs'] = self.values['_iufes_epochs_']  # iterations over curr. batch
             fs_prop['mini_batch_size'] = self.values['_iufes_mini_batch_size_']  # must be smaller than batch_size
             fs_prop['lr_mu'] = self.values['_iufes_lr_mu_']  # learning rate for mean
             fs_prop['lr_sigma'] = self.values['_iufes_lr_sigma_']  # learning rate for standard deviation
             fs_prop['init_sigma'] = self.values['_iufes_init_sigma_']
             fs_prop['lr_w'] = self.values['_iufes_lr_w_']  # learning rate for weights
             fs_prop['lr_lambda'] = self.values['_iufes_lr_lambda_']  # learning rate for lambda
-            fs_prop['init_lambda'] = self.values['_iufes_lr_lambda_']
+            fs_prop['init_lambda'] = self.values['_iufes_init_lambda_']
             fs_prop['check_drift'] = self.values['_iufes_drift_check_']  # indicator whether to check drift or not
             fs_prop['range'] = self.values['_iufes_range_']  # range of last t to check for drift
             fs_prop['drift_basis'] = self.values['_iufes_drift_basis_']  # basis param to perform concept drift det.
