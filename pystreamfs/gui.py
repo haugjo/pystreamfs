@@ -53,7 +53,7 @@ class GUI:
     def __init__(self):
         # Create the dict with all default values
         self.values = {
-            '_fs_algorithm_': 'Cancleout',
+            '_fs_algorithm_': 'Cancelout',
             '_no_features_': 5,
             '_batch_size_': 50,
             '_shifting_window_range_': 20,
@@ -69,7 +69,7 @@ class GUI:
             '_efs_alpha_': 1.5,
             '_efs_beta_': 0.5,
             '_efs_threshold_': 1.0,
-            '_efs_margin_:': 1.0,
+            '_efs_margin_': 1.0,
             '_fsds_b_': [],
             '_fsds_ell_': 0,
             '_fsds_k_': 2,
@@ -112,7 +112,7 @@ class GUI:
 
              # Select FS algorithm
              [sg.Text('FS algorithm:')],
-             [sg.InputCombo(('Cancleout', 'EFS', 'FSDS', 'IUFES', 'MCNN', 'OFS'), size=(30, 1), key='_fs_algorithm_'),
+             [sg.InputCombo(('Cancelout', 'EFS', 'FSDS', 'IUFES', 'MCNN', 'OFS'), size=(30, 1), key='_fs_algorithm_'),
               sg.Button('Edit parameters'), ],
              [sg.Text('Your chosen parameters are:')],
              [sg.Text('                                                            '
@@ -174,9 +174,9 @@ class GUI:
                 sg.PopupOK("Chose your parameter you want to use for the selected feature selection algorithm")
 
             # Events for fs_selection
-            if event == 'Edit parameters' and w_input['_fs_algorithm_'] == 'Cancleout':
+            if event == 'Edit parameters' and w_input['_fs_algorithm_'] == 'Cancelout':
                 sg.PopupOK('No additional parameters needed for this algorithm')
-                window.Element('_OUTPUT_').Update('No additional parameters required for Cancleout')
+                window.Element('_OUTPUT_').Update('No additional parameters required for Cancelout')
                 window.Element('_OUTPUT_2_').Update('                  ')
 
             # Selected FS algorithm is EFS
@@ -290,6 +290,9 @@ class GUI:
         # dictionary which takes all the parameters for the pipeline, most out of the gui dictionary gui_dict
         param = dict()
 
+        # Generate empty generator and dataset if either is not used
+        generator = None
+        dataset = None
 
         # Generate data
         # Check if the dataset has to be loaded from a path or from a existing CSV or created
@@ -299,9 +302,11 @@ class GUI:
         # User passes his own CSV file
         elif self.values['_load_data_path_']:
             dataset = pd.read_csv(self.values['_file_path_'])
+            print(dataset.shape)
         # User chooses one of the existing files
         else:
             dataset = pd.read_csv(create_dataset_input_path(self.values['_use_dataset_path_']))
+            print(dataset.shape)
 
         # Parameters for the dataset
         param['shuffle_data'] = self.values['_shuffle_data_']
@@ -312,36 +317,50 @@ class GUI:
         fs_prop = dict()  # FS Algorithm properties
 
         # Properties EFS:
-        param['u'] = np.ones(num_features) * 2  # initial positive model with weights 2
-        param['v'] = np.ones(num_features)  # initial negative model with weights 1
-        param['alpha'] = 1.5  # promotion parameter
-        param['beta'] = 0.5  # demotion parameter
-        param['threshold'] = 1  # threshold parameter
-        param['M'] = 1  # margin
+        # get u and v using a generator
+        if self.values['_use_generator_']:
+            fs_prop['u'] = np.ones(generator.no_features) * 2  # initial positive model with weights 2
+            fs_prop['v'] = np.ones(generator.no_features)  # initial negative model with weights 1
+        # get u and v using a dataset
+        else:
+            fs_prop['u'] = np.ones(dataset.shape[1]-1) * 2  # initial positive model with weights 2
+            fs_prop['v'] = np.ones(dataset.shape[1]-1)  # initial negative model with weights 1
+        fs_prop['alpha'] = self.values['_efs_alpha_']  # promotion parameter
+        fs_prop['beta'] = self.values['_efs_beta_']  # demotion parameter
+        fs_prop['threshold'] = self.values['_efs_threshold_']  # threshold parameter
+        fs_prop['M'] = self.values['_efs_margin_']  # margin
 
-        fs_prop['epochs'] = self.values['_iufes_drift_check']  # iterations over curr. batch during one execution IUFES
+        # Properties IUFES:
+        fs_prop['epochs'] = self.values['_iufes_drift_check_']  # iterations over curr. batch during one execution IUFES
         fs_prop['mini_batch_size'] = self.values['_iufes_mini_batch_size_']  # must be smaller than batch_size
         fs_prop['lr_mu'] = self.values['_iufes_lr_mu_']  # learning rate for mean
-        fs_prop['lr_sigma'] = 0.1  # learning rate for standard deviation
-        fs_prop['init_sigma'] = 1
-        fs_prop['lr_w'] = 0.1  # learning rate for weights
-        fs_prop['lr_lambda'] = 0.1  # learning rate for lambda
-        fs_prop['init_lambda'] = 1
+        fs_prop['lr_sigma'] = self.values['_iufes_lr_sigma_']  # learning rate for standard deviation
+        fs_prop['init_sigma'] = self.values['_iufes_init_sigma_']
+        fs_prop['lr_w'] = self.values['_iufes_lr_w_']  # learning rate for weights
+        fs_prop['lr_lambda'] = self.values['_iufes_lr_lambda_']  # learning rate for lambda
+        fs_prop['init_lambda'] = self.values['_iufes_lr_lambda_']
+        fs_prop['check_drift'] = self.values['_iufes_drift_check_']  # indicator whether to check drift or not
+        fs_prop['range'] = self.values['_iufes_range_']  # range of last t to check for drift
+        fs_prop['drift_basis'] = self.values['_iufes_drift_basis_']  # basis param to perform concept drift detection
 
-        # Parameters for concept drift detection
-        fs_prop['check_drift'] = False  # indicator whether to check drift or not
-        fs_prop['range'] = 2  # range of last t to check for drift
-        fs_prop['drift_basis'] = 'mu'  # basis parameter on which we perform concept drift detection
+        ###################################################################################################
+        # General parameters
+        param['batch_size'] = self.values['_batch_size_']
+        param['num_features'] = self.values['_no_features_']
+        param['max_timesteps'] = 10
+        param['font_scale'] = 0.8
+        param['r'] = self.values['_shifting_window_range_']
 
-        # fs_algorithm = FeatureSelector('iufes', param)
+        # Use the feature selector on the chosen algorithm
+        fs_algorithm = FeatureSelector(self.values['_fs_algorithm_'].lower(), param)
 
-        # pipe = Pipeline(None, generator, fs_algorithm, Perceptron(), accuracy_score, param)
+        pipe = Pipeline(dataset, generator, fs_algorithm, Perceptron(), accuracy_score, param)
 
         # Start Pipeline
-        # pipe.start()
+        pipe.start()
 
         # Plot results
-        # pipe.plot()
+        pipe.plot()
         return ' '
 
 
@@ -355,4 +374,4 @@ if test_gui.values['_final_event_'] == 'Submit':
     for k, v in test_gui.values.items():
         print('Keys: ' + str(k) + ', values: ' + str(v))
         print('Starting the pipeline.')
-        # test_gui.run_pipeline()
+    test_gui.run_pipeline()
