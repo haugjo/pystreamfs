@@ -377,6 +377,7 @@ class GUI:
         param['max_timesteps'] = int(self.values['_max_timesteps_'])
         param['font_scale'] = float(self.values['_font_scale_'])
         param['r'] = int(self.values['_shifting_window_range_'])
+        param['is_live'] = self.values['_life_visualization_']
 
         # Use the feature selector on the chosen algorithm
         fs_algorithm = FeatureSelector(self.values['_fs_algorithm_'].lower(), fs_prop)

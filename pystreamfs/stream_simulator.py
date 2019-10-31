@@ -3,6 +3,7 @@ import psutil
 import os
 import warnings
 import time
+import matplotlib.pyplot as plt
 
 
 def prepare_data(data, target, shuffle):
@@ -63,6 +64,16 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
     else:  # if generator is defined
         total_samples = param['max_timesteps'] * param['batch_size']
 
+    #########################################################
+    # set up visualization
+    if param['is_live']:
+        fig = plt.figure()
+        x = []
+        y = []
+        ax = fig.add_subplot(111)
+        ax.set_title('Time measure per batch')
+
+
     for i in range(0, total_samples, param['batch_size']):  # for generated data
         t = i / param['batch_size']  # time window
         param['t'] = t
@@ -109,6 +120,16 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
             stability = nogueira_stability(X.shape[1], stats['features'], param['r'])
             stats['stab_measures'].append(stability)
 
+        if param['is_live']:
+            # Erste Livemethode
+            x.append(t)
+            y.append(stats['time_measures'][int(t)])
+            plt.plot(x, y)
+            plt.xlim(0, int(t))
+            plt.show(block=False)
+            plt.pause(1)
+
+
     # end of stream simulation
 
     # Compute average statistics
@@ -127,6 +148,8 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
         stats['mu_measures'] = param['mu_measures']
         stats['sigma_measures'] = param['sigma_measures']
 
+    # close the figure
+    plt.close()
     return stats
 
 
