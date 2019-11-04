@@ -10,9 +10,10 @@ class BaseMetric(metaclass=ABCMeta):
     >>> Accuracy = type('ScikitMetric', (BaseMetric,), {'compute': lambda true, predicted: sklearn.metrics.accuracy_score(true, predicted)})
     >>> accuracy = Accuracy()
     """
+    def __init__(self):
+        self.measures = []
+
     @abstractmethod
     def compute(self):
-        """ Compute metric given some inputs
-        :return: metric
-        """
+        """ Compute metric given inputs at current time step and append self.measures"""
         pass

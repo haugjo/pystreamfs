@@ -4,20 +4,36 @@ from scipy.stats import norm
 
 
 class FIREFeatureSelector(BaseFeatureSelector):
-    def __init__(self, total_ftr, sigma_init, epochs, batch_size):
-        super().__init__(self, total_ftr, True, True)
+    def __init__(self, n_total_ftr, sigma_init, epochs, batch_size, lr_mu, lr_sigma, lr_weights, lr_lamb, lamb, model='probit'):
+        super().__init__(self, n_total_ftr, True, True)
 
-        # Initialize theta ~ N(mu, sigma)
-        self.mu = np.zeros(total_ftr)
-        self.sigma = np.ones(total_ftr) * sigma_init
+        self.mu = np.zeros(n_total_ftr)
+        self.sigma = np.ones(n_total_ftr) * sigma_init
         self.epochs = epochs
         self.batch_size = batch_size
-
+        self.lr_mu = lr_mu
+        self.lr_sigma = lr_sigma
+        self.lr_weights = lr_weights
+        self.lr_lamb = lr_lamb
+        self.lamb = lamb
+        self.model = model
 
     def select_features(self, x, y):
-        mu = self.mu.copy()  # Todo: is this step necessary?
-        sigma = self.sigma.copy()
+        # Update estimates of mu and sigma given the model
+        if self.model == 'probit':
+            self.__probit(x, y)
+        elif self.model == 'neural_net':
+            self.__neural_net(x, y)
+        else:
+            raise InvalidModelError('FIRE Feature Selection: The chosen model is not specified.')
 
+        # Update feature weights
+        self.__update_weights()
+
+    def detect_concept_drift(self, x, y):
+        raise NotImplementedError
+
+    def __probit(self, x, y):
         for epoch in range(self.epochs):  # SGD
             np.random.shuffle(x)
 
@@ -27,35 +43,39 @@ class FIREFeatureSelector(BaseFeatureSelector):
                 y_batch = y[i:i + self.batch_size]
 
                 # Sub-functions
-                dot_x_mu = np.dot(x, mu)  # x . mu
-                dot_x_sigma = np.dot(x ** 2, sigma ** 2)  # x^2 . sigma^2
+                dot_x_mu = np.dot(x_batch, self.mu)  # x . mu
+                dot_x_sigma = np.dot(x_batch ** 2, self.sigma ** 2)  # x^2 . sigma^2
 
                 # Partial derivatives of log likelihood with respect to mu and sigma
-                nabla_mu = norm.pdf(dot_x_mu / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y) * (
-                        x.T / np.sqrt(1 + dot_x_sigma))
+                nabla_mu = norm.pdf(dot_x_mu / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y_batch) * (
+                        x_batch.T / np.sqrt(1 + dot_x_sigma))
 
-                nabla_sigma = norm.pdf((-1) ** (1 - y) * dot_x_mu / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y) * (
-                        (2 * x ** 2 * sigma).T * dot_x_mu) / (-2 * np.sqrt(1 + dot_x_sigma) ** 3)
+                nabla_sigma = norm.pdf((-1) ** (1 - y_batch) * dot_x_mu / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y_batch) * (
+                        (2 * x_batch ** 2 * self.sigma).T * dot_x_mu) / (-2 * np.sqrt(1 + dot_x_sigma) ** 3)
 
                 # update parameters
-                mu += param['lr_mu'] * np.mean(nabla_mu, axis=1)
-                sigma += param['lr_sigma'] * np.mean(nabla_sigma, axis=1)
+                self.mu += self.lr_mu * np.mean(nabla_mu, axis=1)
+                self.sigma += self.lr_sigma * np.mean(nabla_sigma, axis=1)
 
-        # update param
-        param['mu'] = mu
-        param['sigma'] = sigma
-
-        # Update weights
-        w_unscaled, param = _update_weights(mu.copy(), sigma.copy(), param, X.shape[1])
-
-        # scale weights to [0,1] because pystreamfs considers absolute weights for feature selection
-        w = MinMaxScaler().fit_transform(w_unscaled.reshape(-1, 1)).flatten()
-
-        # concept drift detection
-        if param['check_drift'] is True:
-            param = _check_concept_drift(mu, sigma, param)
-
-        return w, param
-
-    def detect_concept_drift(self, x, y):
+    def __neural_net(self, x, y):
         raise NotImplementedError
+
+    def __update_weights(self):
+        mu = self.mu.copy()
+        sigma = self.sigma.copy()
+
+        # Scale mu and sigma -> to avoid exploding gradient
+        mu /= np.sum(np.abs(mu))
+        sigma /= np.sum(np.abs(sigma))
+
+        # Compute derivative of weight and lambda +  update with gradient ascent
+        w_update = np.abs(mu) - 2 * self.lamb * (self.weights * sigma ** 2) - 2 * self.weights
+        self.weights += self.lr_weights * w_update
+
+        lamb_update = -np.dot(self.weights ** 2, sigma ** 2)
+        self.lamb += self.lr_lamb * lamb_update
+
+
+class InvalidModelError(Exception):
+    """Raised if specified FIRE-Model is invalid"""
+    pass
