@@ -32,4 +32,4 @@ class NogueiraStabilityMetric(BaseMetric):
 
         '''END ORIGINAL CODE'''
 
-        self.measures.append(stability_measure)
+        self.measures.extend(stability_measure)

@@ -1,11 +1,12 @@
 from pystreamfs_refurbished.feature_selectors import BaseFeatureSelector
+from pystreamfs_refurbished.exceptions import InvalidModelError
 import numpy as np
 from scipy.stats import norm
 
 
 class FIREFeatureSelector(BaseFeatureSelector):
     def __init__(self, n_total_ftr, sigma_init, epochs, batch_size, lr_mu, lr_sigma, lr_weights, lr_lamb, lamb, model='probit'):
-        super().__init__(self, n_total_ftr, True, True)
+        super().__init__(self, n_total_ftr, False, True, True)
 
         self.mu = np.zeros(n_total_ftr)
         self.sigma = np.ones(n_total_ftr) * sigma_init
@@ -18,7 +19,7 @@ class FIREFeatureSelector(BaseFeatureSelector):
         self.lamb = lamb
         self.model = model
 
-    def select_features(self, x, y):
+    def weight_features(self, x, y, active_features):  # Todo: handle active features
         # Update estimates of mu and sigma given the model
         if self.model == 'probit':
             self.__probit(x, y)
@@ -74,8 +75,3 @@ class FIREFeatureSelector(BaseFeatureSelector):
 
         lamb_update = -np.dot(self.weights ** 2, sigma ** 2)
         self.lamb += self.lr_lamb * lamb_update
-
-
-class InvalidModelError(Exception):
-    """Raised if specified FIRE-Model is invalid"""
-    pass

@@ -1,15 +1,23 @@
 import os
 import re
+import sys
 from timeit import default_timer as timer
-
-from numpy import unique
+import numpy as np
 
 from skmultiflow.utils import constants
+from skmultiflow.data.base_stream import Stream
+from skmultiflow.evaluation.base_evaluator import StreamEvaluator
+
+from pystreamfs_refurbished.metrics import TimeMetric
+from pystreamfs_refurbished.exceptions import InvalidModelError
+from pystreamfs_refurbished.feature_selectors import BaseFeatureSelector
 
 
 class EvaluateFeatureSelection:
     """ Evaluation of online Feature Selection algorithms
     using the prequential evaluation method or interleaved test-then-train method.
+
+    Reduced version of PrequentialEvaluation from scikit-multiflow, optimized for online feature selection
     """
 
     def __init__(self,
@@ -18,157 +26,151 @@ class EvaluateFeatureSelection:
                  batch_size=1,
                  pretrain_size=200,
                  max_time=float("inf"),
-                 metric=None,
+                 predictive_metric=None,
+                 fs_metric=None,
+                 streaming_features=None,
                  output_file=None,
-                 show_plot=False,
+                 show_plot=True,
+                 show_live_plot=False,
                  restart_stream=True):
 
-        self.n_wait = n_wait
-        self.max_samples = max_samples
-        self.pretrain_size = pretrain_size
-        self.batch_size = batch_size
-        self.max_time = max_time
-        self.metric = metric
-        self.output_file = output_file
-        self.show_plot = show_plot
-        self.restart_stream = restart_stream
-        self.n_sliding = n_wait
-
-        # Initialize later
-        # Todo: substitute None with appropriate data type
+        # Scikit-multiflow parameters
+        # self.n_sliding = n_wait  # Todo: consider using sliding window for performance measurement
+        self.max_samples = max_samples  # max samples to draw from stream
+        self.pretrain_size = pretrain_size  # number of samples to pretrain model at t=0
+        self.batch_size = batch_size  # size of data batch at time t
+        self.max_time = max_time  # max time to run the experiment
+        self.output_file = output_file  # path of the output file
+        self.restart_stream = restart_stream  # restarting stream at end of simulation
         self.stream = None
-        self.fs = None
-        self.model = None
-        self.fs_names = None
-        self.model_names = None
 
-    def evaluate(self, stream, fs, model, fs_names=None, model_names=None):
+        # Prediction related parameters
+        self.predictive_model = None
+        self.predictive_model_name = None
+        self.predictions = None
+
+        # Visualization related parameters
+        self.show_plot = show_plot
+        self.show_live_plot = show_live_plot
+
+        # Feature Selection related parameters
+        self.fs_model = None
+        self.fs_model_name = None
+        self.feature_weights = None  # feature weights for every time t Todo: Store in Feature Selector
+        self.selected_features = None  # selected features for every time t
+        self.streaming_features = streaming_features  # time/feature-pairs for simulation of streaming features
+        self.active_features = None  # currently active features
+
+        # Metric related parameters
+        self.metrics = {'predictive': predictive_metric,
+                        'training_time': TimeMetric,
+                        'testing_time': TimeMetric,
+                        'fs': fs_metric,
+                        'fs_time': TimeMetric}
+
+        # Further general parameters
+        self.time = 1  # logical time/iteration of data stream
+        self.global_sample_count = 0  # count all seen samples
+        self.results = dict()  # storage for all results and metrics
+        self._start_time = 0  # global start time
+
+    def evaluate(self, stream, fs_model, predictive_model, fs_model_name=None, predictive_model_name=None):
         """ Evaluate a feature selection algorithm
         In future: compare multiple feature selection algorithms
         """
+        self._start_time = timer()  # start experiment
+
         self.stream = stream
-        self.fs = fs
-        self.model = model
-        self.fs_names = fs_names
-        self.model_names = model_names
+        self.fs_model = fs_model
+        self.predictive_model = predictive_model
+        self.fs_model_name = fs_model_name
+        self.predictive_model_name = predictive_model_name
 
-        self.results = self._train_and_test()
+        # check if specified models are valid
+        self.__check_configuration()
 
-        # Todo normalize feature weights
-        # self.weights = MinMaxScaler().fit_transform(w_unscaled.reshape(-1, 1)).flatten()
+        if self.pretrain_size > 0:
+            self.__pretrain_predictive_model()  # pretrain model at time t=0
 
-        return self.results
+        # Simulate stream with feature selection using prequential evaluation
+        self.__train_and_test()
 
-    def _train_and_test(self):
-        """ Method to control the prequential evaluation.
-        Returns
-        -------
-        BaseClassifier extension or list of BaseClassifier extensions
-            The trained classifiers.
-        Notes
-        -----
-        The classifier parameter should be an extension from the BaseClassifier. In
-        the future, when BaseRegressor is created, it could be an extension from that
-        class as well.
-        """
-        self._start_time = timer()
-        self._end_time = timer()
+    def __check_configuration(self):
+        if not isinstance(self.stream, Stream):
+            raise InvalidModelError('Specified data stream is not of type Stream (scikit-multiflow data type)')
+        if not isinstance(self.fs_model, BaseFeatureSelector):
+            raise InvalidModelError('Specified feature selection model is not of type BaseFeatureSelector '
+                                    '(pystreamfs data type)')
+        if not isinstance(self.predictive_model, StreamEvaluator):
+            raise InvalidModelError('Specified predictive model is not of type StreamEvaluator '
+                                    '(scikit-multiflow data type)')
+
+    def __pretrain_predictive_model(self):
+        print('Pre-training on {} sample(s).'.format(self.pretrain_size))  # Todo: what if no pretraining???
+
+        x, y = self.stream.next_sample(self.pretrain_size)
+
+        # Prediction WITHOUT feature selection and computation of metrics
+        self.predictive_model.partial_fit(X=x, y=y, classes=self.stream.target_values)
+
+        # Increase global sample count
+        self.global_sample_count += self.pretrain_size
+
+    def __train_and_test(self):
+        """ Prequential evaluation """
         print('Prequential Evaluation')
         print('Evaluating {} target(s).'.format(self.stream.n_targets))
 
-        actual_max_samples = self.stream.n_remaining_samples()
-        if actual_max_samples == -1 or actual_max_samples > self.max_samples:
-            actual_max_samples = self.max_samples
-
-        first_run = True
-        if self.pretrain_size > 0:
-            print('Pre-training on {} sample(s).'.format(self.pretrain_size))
-
-            X, y = self.stream.next_sample(self.pretrain_size)
-
-            for i in range(self.n_models):
-                if self._task_type == constants.CLASSIFICATION:
-                    # Training time computation
-                    self.running_time_measurements[i].compute_training_time_begin()
-                    self.model[i].partial_fit(X=X, y=y, classes=self.stream.target_values)
-                    self.running_time_measurements[i].compute_training_time_end()
-                elif self._task_type == constants.MULTI_TARGET_CLASSIFICATION:
-                    self.running_time_measurements[i].compute_training_time_begin()
-                    self.model[i].partial_fit(X=X, y=y, classes=unique(self.stream.target_values))
-                    self.running_time_measurements[i].compute_training_time_end()
-                else:
-                    self.running_time_measurements[i].compute_training_time_begin()
-                    self.model[i].partial_fit(X=X, y=y)
-                    self.running_time_measurements[i].compute_training_time_end()
-                self.running_time_measurements[i].update_time_measurements(self.pretrain_size)
-            self.global_sample_count += self.pretrain_size
-            first_run = False
-
-        update_count = 0
         print('Evaluating...')
-        while ((self.global_sample_count < actual_max_samples) & (self._end_time - self._start_time < self.max_time)
+        while ((self.global_sample_count < self.max_samples) & (timer() - self._start_time < self.max_time)
                & (self.stream.has_more_samples())):
             try:
-                X, y = self.stream.next_sample(self.batch_size)
+                # Load batch
+                x, y = self.stream.next_sample(self.batch_size)
 
-                if X is not None and y is not None:
-                    # Test
-                    prediction = [[] for _ in range(self.n_models)]
-                    for i in range(self.n_models):
-                        try:
-                            # Testing time
-                            self.running_time_measurements[i].compute_testing_time_begin()
-                            prediction[i].extend(self.model[i].predict(X))
-                            self.running_time_measurements[i].compute_testing_time_end()
-                        except TypeError:
-                            raise TypeError("Unexpected prediction value from {}"
-                                            .format(type(self.model[i]).__name__))
+                if x is not None and y is not None:
+                    # Streaming Features
+                    if self.time in self.streaming_features:
+                        self.active_features = self.streaming_features[self.time]
+                    elif self.active_features is None:
+                        self.active_features = np.arange(x[1])  # all features are active
+
+                    # Feature Selection
+                    start = timer()
+                    self.fs_model.weight_features(x, y, self.active_features)
+                    self.metrics['fs_time'].compute(start, timer())
+                    self.fs_model.select_features()
+                    self.metrics['fs'].compute(self.selected_features, self.fs_model.n_total_ftr)
+                    # Todo: store in feature selection object
+                    self.feature_weights.append(self.fs_model.weights)
+                    self.selected_features.append(self.fs_model.selection)
+
+                    # Sparsify batch
+                    sparse_matrix = np.zeros(x.shape())
+                    sparse_matrix[:, self.fs_model.selection] = x
+                    x = sparse_matrix
+
+                    # Testing
+                    start = timer()
+                    prediction = self.predictive_model.predict(x)
+                    self.predictions.append(prediction)
+                    self.metrics['prediction'].compute(y, prediction)  # Todo: How to generalize??
+                    self.metrics['testing_time'].compute(start, timer())
+
+                    # Training
+                    start = timer()
+                    self.model.partial_fit(x, y, self.stream.target_values)
+                    self.metrics['training_time'].compute(start, timer())
+
+                    # Update global sample count and time
+                    self.time += 1
                     self.global_sample_count += self.batch_size
 
-                    for j in range(self.n_models):
-                        for i in range(len(prediction[0])):
-                            self.mean_eval_measurements[j].add_result(y[i], prediction[j][i])
-                            self.current_eval_measurements[j].add_result(y[i], prediction[j][i])
-                    self._check_progress(actual_max_samples)
-
-                    # Train
-                    if first_run:
-                        for i in range(self.n_models):
-                            if self._task_type != constants.REGRESSION and \
-                               self._task_type != constants.MULTI_TARGET_REGRESSION:
-                                # Accounts for the moment of training beginning
-                                self.running_time_measurements[i].compute_training_time_begin()
-                                self.model[i].partial_fit(X, y, self.stream.target_values)
-                                # Accounts the ending of training
-                                self.running_time_measurements[i].compute_training_time_end()
-                            else:
-                                self.running_time_measurements[i].compute_training_time_begin()
-                                self.model[i].partial_fit(X, y)
-                                self.running_time_measurements[i].compute_training_time_end()
-
-                            # Update total running time
-                            self.running_time_measurements[i].update_time_measurements(self.batch_size)
-                        first_run = False
-                    else:
-                        for i in range(self.n_models):
-                            self.running_time_measurements[i].compute_training_time_begin()
-                            self.model[i].partial_fit(X, y)
-                            self.running_time_measurements[i].compute_training_time_end()
-                            self.running_time_measurements[i].update_time_measurements(self.batch_size)
-
-                    if ((self.global_sample_count % self.n_wait) == 0 or
-                            (self.global_sample_count >= self.max_samples) or
-                            (self.global_sample_count / self.n_wait > update_count + 1)):
-                        if prediction is not None:
-                            self._update_metrics()
-                        update_count += 1
-
-                self._end_time = timer()
             except BaseException as exc:
                 print(exc)
-                if exc is KeyboardInterrupt:
-                    self._update_metrics()
                 break
+
+        # Todo: continue here!
 
         # Flush file buffer, in case it contains data
         self._flush_file_buffer()
@@ -183,57 +185,18 @@ class EvaluateFeatureSelection:
 
         return self.model
 
-    def partial_fit(self, X, y, classes=None, sample_weight=None):
-        """ Partially fit all the models on the given data.
-        Parameters
-        ----------
-        X: Numpy.ndarray of shape (n_samples, n_features)
-            The data upon which the algorithm will create its model.
-        y: Array-like
-            An array-like containing the classification labels / target values for all samples in X.
-        classes: list
-            Stores all the classes that may be encountered during the classification task. Not used for regressors.
-        sample_weight: Array-like
-            Samples weight. If not provided, uniform weights are assumed.
-        Returns
-        -------
-        EvaluatePrequential
-            self
-        """
-        if self.model is not None:
-            for i in range(self.n_models):
-                if self._task_type == constants.CLASSIFICATION or \
-                        self._task_type == constants.MULTI_TARGET_CLASSIFICATION:
-                    self.model[i].partial_fit(X=X, y=y, classes=classes, sample_weight=sample_weight)
-                else:
-                    self.model[i].partial_fit(X=X, y=y, sample_weight=sample_weight)
-            return self
-        else:
-            return self
-
-    def predict(self, X):
-        """ Predicts with the estimator(s) being evaluated.
-        Parameters
-        ----------
-        X: Numpy.ndarray of shape (n_samples, n_features)
-            All the samples we want to predict the label for.
-        Returns
-        -------
-        list of numpy.ndarray
-            Model(s) predictions
-        """
-        predictions = None
-        if self.model is not None:
-            predictions = []
-            for i in range(self.n_models):
-                predictions.append(self.model[i].predict(X))
-
-        return predictions
-
-    def get_info(self):
+    def get_info(self):  # Todo: what about this?
         info = self.__repr__()
         if self.output_file is not None:
             _, filename = os.path.split(self.output_file)
             info = re.sub(r"output_file=(.\S+),", "output_file='{}',".format(filename), info)
 
         return info
+
+    def update_progress_bar(curr, total, steps, time):  # Todo: what about this?
+        progress = curr / total
+        progress_bar = round(progress * steps)
+        print('\r', '#' * progress_bar + '-' * (steps - progress_bar),
+              '[{:.0%}] [{:.2f}s]'.format(progress, time), end='')
+        sys.stdout.flush()  # Force flush to stdout
+
