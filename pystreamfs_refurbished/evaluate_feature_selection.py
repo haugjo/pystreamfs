@@ -1,16 +1,13 @@
-import os
-import re
 import sys
 from timeit import default_timer as timer
 import numpy as np
 
-from skmultiflow.utils import constants
 from skmultiflow.data.base_stream import Stream
-from skmultiflow.evaluation.base_evaluator import StreamEvaluator
+from skmultiflow.core.base import ClassifierMixin
 
-from pystreamfs_refurbished.metrics import TimeMetric
+from pystreamfs_refurbished.metrics.time_metric import TimeMetric
 from pystreamfs_refurbished.exceptions import InvalidModelError
-from pystreamfs_refurbished.feature_selectors import BaseFeatureSelector
+from pystreamfs_refurbished.feature_selectors.base_feature_selection import BaseFeatureSelector
 
 
 class EvaluateFeatureSelection:
@@ -21,7 +18,6 @@ class EvaluateFeatureSelection:
     """
 
     def __init__(self,
-                 n_wait=200,
                  max_samples=100000,
                  batch_size=1,
                  pretrain_size=200,
@@ -47,7 +43,7 @@ class EvaluateFeatureSelection:
         # Prediction related parameters
         self.predictive_model = None
         self.predictive_model_name = None
-        self.predictions = None
+        self.predictions = []
 
         # Visualization related parameters
         self.show_plot = show_plot
@@ -56,17 +52,21 @@ class EvaluateFeatureSelection:
         # Feature Selection related parameters
         self.fs_model = None
         self.fs_model_name = None
-        self.feature_weights = None  # feature weights for every time t Todo: Store in Feature Selector
-        self.selected_features = None  # selected features for every time t
+        self.feature_weights = []  # feature weights for every time t Todo: Store in Feature Selector
+        self.selected_features = []  # selected features for every time t
+
         self.streaming_features = streaming_features  # time/feature-pairs for simulation of streaming features
+        if streaming_features is None:
+            self.streaming_features = dict()
+
         self.active_features = None  # currently active features
 
         # Metric related parameters
         self.metrics = {'predictive': predictive_metric,
-                        'training_time': TimeMetric,
-                        'testing_time': TimeMetric,
+                        'training_time': TimeMetric(),
+                        'testing_time': TimeMetric(),
                         'fs': fs_metric,
-                        'fs_time': TimeMetric}
+                        'fs_time': TimeMetric()}
 
         # Further general parameters
         self.time = 1  # logical time/iteration of data stream
@@ -86,6 +86,10 @@ class EvaluateFeatureSelection:
         self.fs_model_name = fs_model_name
         self.predictive_model_name = predictive_model_name
 
+        # Specify true max samples
+        if self.max_samples > self.stream.n_samples:
+            self.max_samples = self.stream.n_samples
+
         # check if specified models are valid
         self.__check_configuration()
 
@@ -101,8 +105,8 @@ class EvaluateFeatureSelection:
         if not isinstance(self.fs_model, BaseFeatureSelector):
             raise InvalidModelError('Specified feature selection model is not of type BaseFeatureSelector '
                                     '(pystreamfs data type)')
-        if not isinstance(self.predictive_model, StreamEvaluator):
-            raise InvalidModelError('Specified predictive model is not of type StreamEvaluator '
+        if not isinstance(self.predictive_model, ClassifierMixin):
+            raise InvalidModelError('Specified predictive model is not of type ClassifierMixin '
                                     '(scikit-multiflow data type)')
 
     def __pretrain_predictive_model(self):
@@ -126,77 +130,66 @@ class EvaluateFeatureSelection:
                & (self.stream.has_more_samples())):
             try:
                 # Load batch
-                x, y = self.stream.next_sample(self.batch_size)
+                if self.global_sample_count + self.batch_size <= self.max_samples:
+                    samples = self.batch_size
+                else:
+                    samples = self.max_samples - self.global_sample_count
+                x, y = self.stream.next_sample(samples)
 
                 if x is not None and y is not None:
                     # Streaming Features
                     if self.time in self.streaming_features:
                         self.active_features = self.streaming_features[self.time]
                     elif self.active_features is None:
-                        self.active_features = np.arange(x[1])  # all features are active
+                        self.active_features = np.arange(self.stream.n_features)  # all features are active
 
                     # Feature Selection
                     start = timer()
                     self.fs_model.weight_features(x, y, self.active_features)
                     self.metrics['fs_time'].compute(start, timer())
                     self.fs_model.select_features()
-                    self.metrics['fs'].compute(self.selected_features, self.fs_model.n_total_ftr)
                     # Todo: store in feature selection object
                     self.feature_weights.append(self.fs_model.weights)
                     self.selected_features.append(self.fs_model.selection)
 
+                    self.metrics['fs'].compute(self.selected_features, self.fs_model.n_total_ftr)
+
                     # Sparsify batch
-                    sparse_matrix = np.zeros(x.shape())
-                    sparse_matrix[:, self.fs_model.selection] = x
+                    sparse_matrix = np.zeros(x.shape)
+                    sparse_matrix[:, self.fs_model.selection] = x[:, self.fs_model.selection]
                     x = sparse_matrix
 
                     # Testing
                     start = timer()
                     prediction = self.predictive_model.predict(x)
                     self.predictions.append(prediction)
-                    self.metrics['prediction'].compute(y, prediction)  # Todo: How to generalize??
+                    self.metrics['predictive'].compute(y, prediction)  # Todo: How to generalize??
                     self.metrics['testing_time'].compute(start, timer())
 
                     # Training
                     start = timer()
-                    self.model.partial_fit(x, y, self.stream.target_values)
+                    self.predictive_model.partial_fit(x, y, self.stream.target_values)
                     self.metrics['training_time'].compute(start, timer())
 
                     # Update global sample count and time
                     self.time += 1
-                    self.global_sample_count += self.batch_size
+                    self.global_sample_count += samples
+                    self.__update_progress_bar()
 
             except BaseException as exc:
                 print(exc)
                 break
 
-        # Todo: continue here!
+        # Flush file buffer, in case it contains data Todo: print to file
+        # self._flush_file_buffer()
 
-        # Flush file buffer, in case it contains data
-        self._flush_file_buffer()
-
-        if len(set(self.metrics).difference({constants.DATA_POINTS})) > 0:
-            self.evaluation_summary()
-        else:
-            print('Done')
+        # self.evaluation_summary() Todo: print summary to console
 
         if self.restart_stream:
             self.stream.restart()
 
-        return self.model
-
-    def get_info(self):  # Todo: what about this?
-        info = self.__repr__()
-        if self.output_file is not None:
-            _, filename = os.path.split(self.output_file)
-            info = re.sub(r"output_file=(.\S+),", "output_file='{}',".format(filename), info)
-
-        return info
-
-    def update_progress_bar(curr, total, steps, time):  # Todo: what about this?
-        progress = curr / total
-        progress_bar = round(progress * steps)
-        print('\r', '#' * progress_bar + '-' * (steps - progress_bar),
-              '[{:.0%}] [{:.2f}s]'.format(progress, time), end='')
-        sys.stdout.flush()  # Force flush to stdout
-
+    def __update_progress_bar(self):
+        j = self.global_sample_count / self.max_samples
+        sys.stdout.write('\r')
+        sys.stdout.write("[%-20s] %d%%" % ('=' * int(20 * j), 100 * j))
+        sys.stdout.flush()

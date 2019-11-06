@@ -1,10 +1,10 @@
-from pystreamfs_refurbished.metrics import BaseMetric
+from pystreamfs_refurbished.metrics.base_metric import BaseMetric
 import numpy as np
 
 
 class NogueiraStabilityMetric(BaseMetric):
     def __init__(self, sliding_window):
-        super().__init__(self)
+        super().__init__()
         self.sliding_window = sliding_window
 
     def compute(self, selection, n_total_ftr):
@@ -23,13 +23,15 @@ class NogueiraStabilityMetric(BaseMetric):
 
         OUTPUT: The stability of the feature selection procedure
         '''
+        try:
+            M, d = Z.shape
+            hatPF = np.mean(Z, axis=0)
+            kbar = np.sum(hatPF)
+            denom = (kbar / d) * (1 - kbar / d)
+            stability_measure = 1 - (M / (M - 1)) * np.mean(np.multiply(hatPF, 1 - hatPF)) / denom
 
-        M, d = Z.shape
-        hatPF = np.mean(Z, axis=0)
-        kbar = np.sum(hatPF)
-        denom = (kbar / d) * (1 - kbar / d)
-        stability_measure = 1 - (M / (M - 1)) * np.mean(np.multiply(hatPF, 1 - hatPF)) / denom
+            '''END ORIGINAL CODE'''
+        except ZeroDivisionError:
+            stability_measure = 0  # metric requires at least 2 measurements and thus runs an error at t=1
 
-        '''END ORIGINAL CODE'''
-
-        self.measures.extend(stability_measure)
+        self.measures.extend([stability_measure])

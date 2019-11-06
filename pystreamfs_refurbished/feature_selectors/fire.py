@@ -1,12 +1,12 @@
-from pystreamfs_refurbished.feature_selectors import BaseFeatureSelector
+from pystreamfs_refurbished.feature_selectors.base_feature_selection import BaseFeatureSelector
 from pystreamfs_refurbished.exceptions import InvalidModelError
 import numpy as np
 from scipy.stats import norm
 
 
 class FIREFeatureSelector(BaseFeatureSelector):
-    def __init__(self, n_total_ftr, sigma_init, epochs, batch_size, lr_mu, lr_sigma, lr_weights, lr_lamb, lamb, model='probit'):
-        super().__init__(self, n_total_ftr, False, True, True)
+    def __init__(self, n_total_ftr, n_selected_ftr, sigma_init, epochs, batch_size, lr_mu, lr_sigma, lr_weights, lr_lamb, lamb_init, model='probit'):
+        super().__init__(n_total_ftr, n_selected_ftr, False, True, True)
 
         self.mu = np.zeros(n_total_ftr)
         self.sigma = np.ones(n_total_ftr) * sigma_init
@@ -16,7 +16,7 @@ class FIREFeatureSelector(BaseFeatureSelector):
         self.lr_sigma = lr_sigma
         self.lr_weights = lr_weights
         self.lr_lamb = lr_lamb
-        self.lamb = lamb
+        self.lamb = lamb_init
         self.model = model
 
     def weight_features(self, x, y, active_features):  # Todo: handle active features
