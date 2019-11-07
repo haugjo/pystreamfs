@@ -1,16 +1,16 @@
-from pystreamfs_refurbished.metrics.base_metric import BaseMetric
+from pystreamfs_refurbished.metrics.fs_metrics.fs_metric import FSMetric
 import numpy as np
 
 
-class NogueiraStabilityMetric(BaseMetric):
+class NogueiraStabilityMetric(FSMetric):
     def __init__(self, sliding_window):
         super().__init__()
         self.sliding_window = sliding_window
 
-    def compute(self, selection, n_total_ftr):
+    def compute(self, fs_model):  # Todo: check if this still works
         # Construct Z matrix: indicates which features were selected at each time step
-        Z = np.zeros([min(len(selection), self.sliding_window), n_total_ftr])
-        for row, col in enumerate(selection[-self.sliding_window:]):
+        Z = np.zeros([min(len(fs_model.selection), self.sliding_window), fs_model.n_total_ftr])
+        for row, col in enumerate(fs_model.selection[-self.sliding_window:]):
             Z[row, col] = 1
 
         ''' START ORIGINAL CODE

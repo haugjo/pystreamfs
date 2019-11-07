@@ -13,9 +13,10 @@ class BaseFeatureSelector(metaclass=ABCMeta):
     def __init__(self, n_total_ftr, n_selected_ftr, supports_multi_class=False, supports_streaming_features=False, supports_concept_drift_detection=False):
         self.n_total_ftr = n_total_ftr
         self.n_selected_ftr = n_selected_ftr
-        self.weights = np.zeros(n_total_ftr)
-        self.selection = None
-        self.concept_drifts = None
+        self.weights = []
+        self.weight_development = []
+        self.selection = []
+        self.concept_drifts = []
         self.supports_multi_class = supports_multi_class
         self.supports_streaming_features = supports_streaming_features
         self.supports_concept_drift_detection = supports_concept_drift_detection
@@ -38,7 +39,8 @@ class BaseFeatureSelector(metaclass=ABCMeta):
         else:
             scaled_weights = self.weights
 
-        self.selection = np.argsort(scaled_weights)[::-1][:self.n_selected_ftr]
+        self.weight_development.append(scaled_weights)
+        self.selection.append(np.argsort(scaled_weights)[::-1][:self.n_selected_ftr])
 
     @abstractmethod
     def detect_concept_drift(self):

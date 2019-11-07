@@ -1,6 +1,6 @@
 from pystreamfs_refurbished.evaluate_feature_selection import EvaluateFeatureSelection
-from pystreamfs_refurbished.metrics.stability_metric import NogueiraStabilityMetric
-from pystreamfs_refurbished.metrics.base_metric import BaseMetric
+from pystreamfs_refurbished.metrics.fs_metrics.stability_metric import NogueiraStabilityMetric
+from pystreamfs_refurbished.metrics.predictive_metrics.predictive_metric import PredictiveMetric
 from pystreamfs_refurbished.feature_selectors.fire import FIREFeatureSelector
 
 from skmultiflow.trees import HoeffdingTree
@@ -26,7 +26,7 @@ fs = FIREFeatureSelector(n_total_ftr=stream.n_features,
 
 stability = NogueiraStabilityMetric(20)
 
-Accuracy = type('ScikitMetric', (BaseMetric,), {'compute': lambda self, true, predicted: self.measures.append([accuracy_score(true, predicted)])})
+Accuracy = type('ScikitAccuracy', (PredictiveMetric,), {'compute': lambda self, true, predicted: self.measures.append([accuracy_score(true, predicted)])})
 accuracy = Accuracy()
 
 eval = EvaluateFeatureSelection(max_samples=100000, batch_size=100, pretrain_size=200, max_time=float("inf"),
