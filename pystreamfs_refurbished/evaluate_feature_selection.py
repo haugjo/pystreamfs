@@ -1,6 +1,7 @@
 import sys
 from timeit import default_timer as timer
 import numpy as np
+from tabulate import tabulate
 
 from skmultiflow.data.base_stream import Stream
 from skmultiflow.core.base import ClassifierMixin
@@ -193,6 +194,7 @@ class EvaluateFeatureSelection:
         sys.stdout.flush()
 
     def __evaluation_summary(self):
+        # Todo: use tabulate for nicer formatting
         print('Finished Evaluation on {} samples.'.format(self.global_sample_count))
         print('Feature Selection results for {}'.format(self.fs_model_name))
         print('Final Feature Set (size {}): {}'.format(self.fs_model.n_selected_ftr, self.fs_model.selection[-1:]))
@@ -201,6 +203,6 @@ class EvaluateFeatureSelection:
         print('Avg. Time for Feature Selection: {}'.format(self.fs_time.get_mean()))
         print('---------------------------------------')
         print('Prediction results for {}'.format(self.predictive_model_name))
-        print('Avg. predictive metric ({}): {}'.format(type(self.predictive_model), self.predictive_metric.get_mean()))
+        print('Avg. predictive metric ({}): {}'.format(type(self.predictive_model).__name__, self.predictive_metric.get_mean()))
         print('Avg. Testing Time: {}'.format(self.testing_time.get_mean()))
-        print('Avg. Training Time: {}').format(self.training_time.get_mean())
+        print('Avg. Training Time: {}'.format(self.training_time.get_mean()))
