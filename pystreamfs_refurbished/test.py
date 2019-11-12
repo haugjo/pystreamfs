@@ -7,7 +7,7 @@ from skmultiflow.trees import HoeffdingTree
 from skmultiflow.data import FileStream
 from sklearn.metrics import accuracy_score
 
-stream = FileStream('../datasets/spambase.csv', target_idx=0)
+stream = FileStream('../datasets/moa.csv', target_idx=0)
 stream.prepare_for_use()
 
 ht = HoeffdingTree()
@@ -28,7 +28,7 @@ stability = NogueiraStabilityMetric(sliding_window=20)
 
 accuracy = PredictiveMetric.sklearn_metric(metric=accuracy_score, name='Accuracy')
 
-eval = EvaluateFeatureSelection(max_samples=100000, batch_size=100, pretrain_size=200, max_time=float("inf"),
+evaluator = EvaluateFeatureSelection(max_samples=100000, batch_size=100, pretrain_size=100, max_time=float("inf"),
                                 pred_metric=accuracy, fs_metric=stability)
 
-eval.evaluate(stream, fs, ht, predictive_model_name='hoeffding tree')
+evaluator.evaluate(stream, fs, ht, predictive_model_name='HoeffdingTree')

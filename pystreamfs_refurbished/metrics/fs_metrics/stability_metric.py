@@ -4,7 +4,7 @@ import numpy as np
 
 class NogueiraStabilityMetric(FSMetric):
     def __init__(self, sliding_window):
-        super().__init__(name='FS Stability')
+        super().__init__(name='NogueiraStability')
         self.sliding_window = sliding_window
 
     def compute(self, fs_model):  # Todo: check if this still works

@@ -6,7 +6,7 @@ from scipy.stats import norm
 
 class FIREFeatureSelector(BaseFeatureSelector):
     def __init__(self, n_total_ftr, n_selected_ftr, sigma_init, epochs, batch_size, lr_mu, lr_sigma, lr_weights, lr_lamb, lamb_init, model='probit'):
-        super().__init__(n_total_ftr, n_selected_ftr, False, True, True)
+        super().__init__('FIRE', n_total_ftr, n_selected_ftr, False, True, True)
 
         self.mu = np.zeros(n_total_ftr)
         self.sigma = np.ones(n_total_ftr) * sigma_init

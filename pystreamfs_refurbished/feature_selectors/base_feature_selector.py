@@ -12,7 +12,8 @@ class BaseFeatureSelector(metaclass=ABCMeta):
     Inherit from this class to implement your own feature selection algorithm
 
     """
-    def __init__(self, n_total_ftr, n_selected_ftr, supports_multi_class=False, supports_streaming_features=False, supports_concept_drift_detection=False):
+    def __init__(self, name, n_total_ftr, n_selected_ftr, supports_multi_class=False, supports_streaming_features=False, supports_concept_drift_detection=False):
+        self.name = name
         self.n_total_ftr = n_total_ftr
         self.n_selected_ftr = n_selected_ftr
         self.raw_weight_vector = np.zeros(self.n_total_ftr)  # holds current weights (unscaled, as produced by feature selector)

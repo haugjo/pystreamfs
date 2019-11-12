@@ -23,8 +23,8 @@ class EvaluateFeatureSelection:
 
     def __init__(self,
                  max_samples=100000,
-                 batch_size=1,
-                 pretrain_size=200,
+                 batch_size=100,
+                 pretrain_size=100,
                  max_time=float("inf"),
                  pred_metric=None,
                  fs_metric=None,
@@ -85,16 +85,16 @@ class EvaluateFeatureSelection:
             self.max_samples = self.stream.n_samples
 
         # Validate class parameters
-        self.__check_configuration()
+        self._check_configuration()
 
         # Pretrain predictive model at time t=0
         if self.pretrain_size > 0:
-            self.__pretrain_predictive_model()
+            self._pretrain_predictive_model()
 
         # Simulate stream with feature selection using prequential evaluation
-        self.__train_and_test()
+        self._test_then_train()
 
-    def __check_configuration(self):  # Todo: enhance
+    def _check_configuration(self):  # Todo: enhance
         if not isinstance(self.stream, Stream):
             raise InvalidModelError('Specified data stream is not of type Stream (scikit-multiflow data type)')
         if not isinstance(self.feature_selector, BaseFeatureSelector):
@@ -110,7 +110,7 @@ class EvaluateFeatureSelection:
             raise InvalidModelError('Specified feature selection metric is not of type FSMetric(BaseMetric) '
                                     '(pystreamfs data type)')
 
-    def __pretrain_predictive_model(self):
+    def _pretrain_predictive_model(self):
         print('Pre-training on {} sample(s).'.format(self.pretrain_size))  # Todo: what if no pretraining???
 
         x, y = self.stream.next_sample(self.pretrain_size)
@@ -121,7 +121,7 @@ class EvaluateFeatureSelection:
         # Increase global sample count
         self._global_sample_count += self.pretrain_size
 
-    def __train_and_test(self):
+    def _test_then_train(self):
         """ Prequential evaluation """
         print('Evaluating...')
         while ((self._global_sample_count < self.max_samples) & (timer() - self._start_time < self.max_time)
@@ -137,7 +137,7 @@ class EvaluateFeatureSelection:
                 if x is not None and y is not None:
                     # Get active features
                     if self._iteration in self.streaming_features and self.feature_selector.supports_streaming_features:
-                        x = self.__sparsify_x(x, self.streaming_features[self._iteration])
+                        x = self._sparsify_x(x, self.streaming_features[self._iteration])
                         print('Detected streaming features at t={}'.format(self._iteration))
 
                     # Feature Selection
@@ -152,7 +152,7 @@ class EvaluateFeatureSelection:
                         self.feature_selector.detect_concept_drift(x, y)
 
                     # Sparsify batch x -> retain selected features
-                    x = self.__sparsify_x(x, self.feature_selector.selection[-1])
+                    x = self._sparsify_x(x, self.feature_selector.selection[-1])
 
                     # Testing
                     start = timer()
@@ -169,7 +169,7 @@ class EvaluateFeatureSelection:
                     # Update global sample count and iteration/logical time
                     self._iteration += 1
                     self._global_sample_count += samples
-                    self.__update_progress_bar()
+                    self._update_progress_bar()
 
             except BaseException as exc:  # Todo: check where the exception happens
                 print(exc)
@@ -178,12 +178,13 @@ class EvaluateFeatureSelection:
         # Flush file buffer, in case it contains data Todo: print results to file
         # self._flush_file_buffer()
 
-        self.__evaluation_summary()
+        self._evaluation_summary()
 
         if self.restart_stream:
             self.stream.restart()
 
-    def __sparsify_x(self, x, retained_features):
+    @staticmethod
+    def _sparsify_x(x, retained_features):
         """Set given features to zero
         This is done to specify active features in a feature stream and to specify the currently active features
         Todo: this is not the clean way! Find alternative implementation
@@ -192,20 +193,23 @@ class EvaluateFeatureSelection:
         sparse_matrix[:, retained_features] = x[:, retained_features]
         return sparse_matrix
 
-    def __update_progress_bar(self):
+    def _update_progress_bar(self):
         j = self._global_sample_count / self.max_samples
         sys.stdout.write('\r')
         sys.stdout.write("[%-20s] %d%%" % ('=' * int(20 * j), 100 * j))
         sys.stdout.flush()
 
-    def __evaluation_summary(self):
+    def _evaluation_summary(self):
         # Feature selection related results
         fs_stats = dict()
         fs_stats['name'] = self.feature_selector.name
         fs_stats['n_selected_ftr'] = self.feature_selector.n_selected_ftr
-        fs_stats['selected_ftr_weights'] = self.feature_selector.weights[self.feature_selector.selection]
-        fs_stats['weight_development'] = self.feature_selector.weight_development
-        fs_stats['time'] = self.feature_selector.comp_time
+        fs_stats['n_total_ftr'] = self.feature_selector.n_total_ftr
+        fs_stats['selection'] = self.feature_selector.selection
+        fs_stats['weights'] = self.feature_selector.weights
+        fs_stats['time_measures'] = self.feature_selector.comp_time.measures
+        fs_stats['time_mean'] = self.feature_selector.comp_time.mean
+        fs_stats['time_var'] = self.feature_selector.comp_time.var
         fs_stats[self.feature_selector_metric.name + '_measures'] = self.feature_selector_metric.measures
         fs_stats[self.feature_selector_metric.name + '_mean'] = self.feature_selector_metric.mean
         fs_stats[self.feature_selector_metric.name + '_var'] = self.feature_selector_metric.var
@@ -215,11 +219,41 @@ class EvaluateFeatureSelection:
         pred_stats = dict()
         pred_stats['name'] = self.predictor.name
         pred_stats['predictions'] = self.predictor.predictions
-        pred_stats['testing_time'] = self.predictor.testing_time
-        pred_stats['training_time'] = self.predictor.training_time
+        pred_stats['testing_time_measures'] = self.predictor.testing_time.measures
+        pred_stats['testing_time_mean'] = self.predictor.testing_time.mean
+        pred_stats['testing_time_var'] = self.predictor.testing_time.var
+        pred_stats['training_time_measures'] = self.predictor.training_time.measures
+        pred_stats['training_time_mean'] = self.predictor.training_time.mean
+        pred_stats['training_time_var'] = self.predictor.training_time.var
         pred_stats[self.predictor_metric.name + '_measures'] = self.predictor_metric.measures
         pred_stats[self.predictor_metric.name + '_mean'] = self.predictor_metric.mean
         pred_stats[self.predictor_metric.name + '_var'] = self.predictor_metric.var
+        self.results['prediction'] = pred_stats
+
+        # Todo: print results to json file
+
+        self._print_summary()
+
+    def _print_summary(self):
+        print('\n################################## SUMMARY ##################################')
+        print('Evaluation finished after {}s'.format(timer() - self._start_time))
+        print('Processed {} instances in batches of {}'.format(self._global_sample_count, self.batch_size))
+        print('----------------------')
+        print('Feature Selection ({}/{} features):'.format(self.feature_selector.n_selected_ftr, self.feature_selector.n_total_ftr))
+        print(tabulate({
+            'Model': [self.feature_selector.name],
+            'Avg. Time': [self.feature_selector.comp_time.mean],
+            'Avg. {}'.format(self.feature_selector_metric.name): [self.feature_selector_metric.mean]
+        }, headers="keys", tablefmt='github'))
+        print('----------------------')
+        print('Prediction:')
+        print(tabulate({
+            'Model': [self.predictor.name],
+            'Avg. Test Time': [self.predictor.testing_time.mean],
+            'Avg. Train Time': [self.predictor.training_time.mean],
+            'Avg. {}'.format(self.predictor_metric.name): [self.predictor_metric.mean]
+        }, headers="keys", tablefmt='github'))
+        print('#############################################################################')
 
 
 class _BasePredictiveModel(metaclass=ABCMeta):
