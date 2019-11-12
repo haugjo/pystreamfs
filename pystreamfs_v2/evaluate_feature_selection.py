@@ -7,11 +7,11 @@ from abc import ABCMeta
 from skmultiflow.data.base_stream import Stream
 from skmultiflow.core.base import ClassifierMixin
 
-from pystreamfs_refurbished.metrics.time_metric import TimeMetric
-from pystreamfs_refurbished.metrics.fs_metrics.fs_metric import FSMetric
-from pystreamfs_refurbished.metrics.predictive_metrics.predictive_metric import PredictiveMetric
-from pystreamfs_refurbished.exceptions import InvalidModelError
-from pystreamfs_refurbished.feature_selectors.base_feature_selector import BaseFeatureSelector
+from pystreamfs_v2.metrics.time_metric import TimeMetric
+from pystreamfs_v2.metrics.fs_metrics.fs_metric import FSMetric
+from pystreamfs_v2.metrics.predictive_metrics.predictive_metric import PredictiveMetric
+from pystreamfs_v2.exceptions import InvalidModelError
+from pystreamfs_v2.feature_selectors.base_feature_selector import BaseFeatureSelector
 
 
 class EvaluateFeatureSelection:
@@ -111,7 +111,7 @@ class EvaluateFeatureSelection:
                                     '(pystreamfs data type)')
 
     def _pretrain_predictive_model(self):
-        print('Pre-training on {} sample(s).'.format(self.pretrain_size))  # Todo: what if no pretraining???
+        print('Pre-training on {} sample(s).'.format(self.pretrain_size))
 
         x, y = self.stream.next_sample(self.pretrain_size)
 
@@ -171,7 +171,7 @@ class EvaluateFeatureSelection:
                     self._global_sample_count += samples
                     self._update_progress_bar()
 
-            except BaseException as exc:  # Todo: check where the exception happens
+            except BaseException as exc:
                 print(exc)
                 break
 

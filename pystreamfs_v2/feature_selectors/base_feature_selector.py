@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
-from pystreamfs_refurbished.metrics.time_metric import TimeMetric
+from pystreamfs_v2.metrics.time_metric import TimeMetric
 
 
 class BaseFeatureSelector(metaclass=ABCMeta):

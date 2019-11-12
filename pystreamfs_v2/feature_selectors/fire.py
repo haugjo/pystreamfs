@@ -1,5 +1,5 @@
-from pystreamfs_refurbished.feature_selectors.base_feature_selector import BaseFeatureSelector
-from pystreamfs_refurbished.exceptions import InvalidModelError
+from pystreamfs_v2.feature_selectors.base_feature_selector import BaseFeatureSelector
+from pystreamfs_v2.exceptions import InvalidModelError
 import numpy as np
 from scipy.stats import norm
 

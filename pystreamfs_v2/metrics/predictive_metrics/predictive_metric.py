@@ -1,4 +1,4 @@
-from pystreamfs_refurbished.metrics.base_metric import BaseMetric
+from pystreamfs_v2.metrics.base_metric import BaseMetric
 from abc import ABCMeta, abstractmethod
 
 

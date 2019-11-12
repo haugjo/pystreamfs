@@ -1,4 +1,4 @@
-from pystreamfs_refurbished.metrics.fs_metrics.fs_metric import FSMetric
+from pystreamfs_v2.metrics.fs_metrics.fs_metric import FSMetric
 import numpy as np
 
 
