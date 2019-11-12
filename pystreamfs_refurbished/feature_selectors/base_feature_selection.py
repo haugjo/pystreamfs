@@ -43,6 +43,6 @@ class BaseFeatureSelector(metaclass=ABCMeta):
         self.selection.append(np.argsort(scaled_weights)[::-1][:self.n_selected_ftr])
 
     @abstractmethod
-    def detect_concept_drift(self):
+    def detect_concept_drift(self, **kwargs):
         """ Check for concept drift at current time step"""
         pass

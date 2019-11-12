@@ -57,7 +57,6 @@ class EvaluateFeatureSelection:
 
         # Feature Selection related parameters
         self.fs_model = None
-        self.fs_model_name = None
         self.fs_metric = fs_metric  # Todo: think about more than one metric
         self.fs_time = TimeMetric()
 
@@ -71,9 +70,9 @@ class EvaluateFeatureSelection:
         self.time = 1  # logical time/iteration of data stream
         self._start_time = 0  # global start time
         self.global_sample_count = 0  # count all seen samples
-        self.results = None  # storage for all results and metrics
+        self.results = dict()  # storage for all results and metrics
 
-    def evaluate(self, stream, fs_model, predictive_model, fs_model_name=None, predictive_model_name=None):
+    def evaluate(self, stream, fs_model, predictive_model, predictive_model_name=None):
         """ Evaluate a feature selection algorithm
         In future: compare multiple feature selection algorithms
         """
@@ -82,7 +81,6 @@ class EvaluateFeatureSelection:
         self.stream = stream
         self.fs_model = fs_model
         self.predictive_model = predictive_model
-        self.fs_model_name = fs_model_name
         self.predictive_model_name = predictive_model_name
 
         # Specify true max samples
@@ -194,7 +192,18 @@ class EvaluateFeatureSelection:
         sys.stdout.flush()
 
     def __evaluation_summary(self):
-        # Todo: use tabulate for nicer formatting
+        # Collect all results
+        # feature selection
+        fs_stats = dict()
+        fs_stats['name'] = self.fs_model.name
+        fs_stats['n_selected_ftr'] = self.fs_model.n_selected_ftr
+        fs_stats['selected_ftr_weights'] = None  # Todo
+        fs_stats['weight_development'] = self.fs_model.weight_development
+        fs_stats['time'] = self.fs_time
+        fs_stats[self.fs_metric.name + '_development'] = self.fs_metric.measures
+        fs_stats[self.fs_metric.name + '_mean'] = self.fs_metric.get_mean
+        self.results['fs'] = fs_stats
+
         print('Finished Evaluation on {} samples.'.format(self.global_sample_count))
         print('Feature Selection results for {}'.format(self.fs_model_name))
         print('Final Feature Set (size {}): {}'.format(self.fs_model.n_selected_ftr, self.fs_model.selection[-1:]))

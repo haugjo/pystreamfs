@@ -4,7 +4,7 @@ import numpy as np
 
 class NogueiraStabilityMetric(FSMetric):
     def __init__(self, sliding_window):
-        super().__init__()
+        super().__init__(name='FS Stability')
         self.sliding_window = sliding_window
 
     def compute(self, fs_model):  # Todo: check if this still works
@@ -35,3 +35,4 @@ class NogueiraStabilityMetric(FSMetric):
             stability_measure = 0  # metric requires at least 2 measurements and thus runs an error at t=1
 
         self.measures.extend([stability_measure])
+        super().compute(None)  # update sufficient statistics

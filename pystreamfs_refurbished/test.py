@@ -24,12 +24,11 @@ fs = FIREFeatureSelector(n_total_ftr=stream.n_features,
                          lamb_init=1,
                          model='probit')
 
-stability = NogueiraStabilityMetric(20)
+stability = NogueiraStabilityMetric(sliding_window=20)
 
-Accuracy = type('ScikitAccuracy', (PredictiveMetric,), {'compute': lambda self, true, predicted: self.measures.append([accuracy_score(true, predicted)])})
-accuracy = Accuracy()
+accuracy = PredictiveMetric.sklearn_metric(metric=accuracy_score, name='Accuracy')
 
 eval = EvaluateFeatureSelection(max_samples=100000, batch_size=100, pretrain_size=200, max_time=float("inf"),
                                 predictive_metric=accuracy, fs_metric=stability)
 
-eval.evaluate(stream, fs, ht, fs_model_name='fire', predictive_model_name='hoeffding tree')
+eval.evaluate(stream, fs, ht, predictive_model_name='hoeffding tree')

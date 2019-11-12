@@ -3,21 +3,19 @@ import numpy as np
 
 
 class BaseMetric(metaclass=ABCMeta):
-    """ Based Metric
+    """ Base Metric
     Base Class for any kind of metric
-    >>> # Create dynamic class for scikit learn metric accuracy_score
-    >>> Accuracy = type('ScikitMetric', (BaseMetric,), {'compute': lambda self, true, predicted: self.measures.append([accuracy_score(true, predicted)])})
-    >>> accuracy = Accuracy()
     """
-    def __init__(self):
+    def __init__(self, name):
         self.measures = []
+        self.name = name
         self.mean = None
+        self.var = None
 
     @abstractmethod
     def compute(self, **kwargs):
-        """ Compute metric given inputs at current time step and append self.measures"""
-        pass
-
-    def get_mean(self):
+        """ Compute metric given inputs at current time step and append self.measures
+        + compute current mean and variance
+        """
         self.mean = np.mean(self.measures)
-        return self.mean
+        self.var = np.var(self.measures)
