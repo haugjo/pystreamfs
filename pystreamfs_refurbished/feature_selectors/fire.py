@@ -1,4 +1,4 @@
-from pystreamfs_refurbished.feature_selectors.base_feature_selection import BaseFeatureSelector
+from pystreamfs_refurbished.feature_selectors.base_feature_selector import BaseFeatureSelector
 from pystreamfs_refurbished.exceptions import InvalidModelError
 import numpy as np
 from scipy.stats import norm
@@ -19,7 +19,7 @@ class FIREFeatureSelector(BaseFeatureSelector):
         self.lamb = lamb_init
         self.model = model
 
-    def weight_features(self, x, y, active_features):  # Todo: handle active features
+    def weight_features(self, x, y):
         # Update estimates of mu and sigma given the model
         if self.model == 'probit':
             self.__probit(x, y)
@@ -70,8 +70,8 @@ class FIREFeatureSelector(BaseFeatureSelector):
         sigma /= np.sum(np.abs(sigma))
 
         # Compute derivative of weight and lambda +  update with gradient ascent
-        w_update = np.abs(mu) - 2 * self.lamb * (self.weights * sigma ** 2) - 2 * self.weights
-        self.weights += self.lr_weights * w_update
+        w_update = np.abs(mu) - 2 * self.lamb * (self.raw_weight_vector * sigma ** 2) - 2 * self.raw_weight_vector
+        self.raw_weight_vector += self.lr_weights * w_update
 
-        lamb_update = -np.dot(self.weights ** 2, sigma ** 2)
+        lamb_update = -np.dot(self.raw_weight_vector ** 2, sigma ** 2)
         self.lamb += self.lr_lamb * lamb_update
