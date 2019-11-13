@@ -47,8 +47,8 @@ class BaseFeatureSelector(metaclass=ABCMeta):
         else:
             scaled_weights = self.raw_weight_vector
 
-        self.weights.append(scaled_weights)
-        self.selection.append(np.argsort(scaled_weights)[::-1][:self.n_selected_ftr])
+        self.weights.append(list(scaled_weights))
+        self.selection.append(list(np.argsort(scaled_weights)[::-1][:self.n_selected_ftr]))
 
     @abstractmethod
     def detect_concept_drift(self, x, y):
