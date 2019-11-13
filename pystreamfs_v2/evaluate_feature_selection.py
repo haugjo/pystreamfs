@@ -11,7 +11,9 @@ from pystreamfs_v2.metrics.predictive_metrics.predictive_metric import Predictiv
 from pystreamfs_v2.utils.exceptions import InvalidModelError
 from pystreamfs_v2.feature_selectors.base_feature_selector import BaseFeatureSelector
 from pystreamfs_v2.utils.base_event import Event
-from pystreamfs_v2.utils.event_handlers import update_progress_bar, update_live_plot, summarize_evaluation
+from pystreamfs_v2.utils.event_handlers import update_data_buffer, update_progress_bar, update_live_plot, summarize_evaluation
+from pystreamfs_v2.visualization.visualizer import Visualizer
+from pystreamfs_v2.utils.base_data_buffer import DataBuffer
 
 
 class EvaluateFeatureSelection:
@@ -23,8 +25,9 @@ class EvaluateFeatureSelection:
     # Class variables
     # Events and event handlers
     on_one_iteration = Event()
+    on_one_iteration.append(update_data_buffer)
     on_one_iteration.append(update_progress_bar)
-    # on_one_iteration.append(update_live_plot) # Todo: add
+    on_one_iteration.append(update_live_plot)
     on_finished_evaluation = Event()
     on_finished_evaluation.append(summarize_evaluation)
 
@@ -38,7 +41,7 @@ class EvaluateFeatureSelection:
                  streaming_features=None,
                  check_concept_drift=False,
                  output_file_path=None,
-                 show_plot=True,
+                 show_final_plot=True,
                  show_live_plot=False,
                  restart_stream=True):
 
@@ -72,18 +75,26 @@ class EvaluateFeatureSelection:
         self.predictor_metric = pred_metric  # Todo: think about more than one metric
 
         # Visualization related parameters
-        self.show_plot = show_plot
-        self.show_live_plot = show_live_plot
+        self.data_buffer = DataBuffer()
+        self.visualizer = Visualizer(show_final_plot, show_live_plot)
 
     def evaluate(self, stream, fs_model, predictive_model, predictive_model_name=None):
         """ Evaluate a feature selection algorithm
         In future: compare multiple feature selection algorithms
         """
-        self._start_time = timer()  # start experiment
+        self.start_time = timer()  # start experiment
 
         self.stream = stream
         self.feature_selector = fs_model
         self.predictor = _BasePredictiveModel(name=predictive_model_name, model=predictive_model)  # Wrap scikit-multiflow evaluator
+
+        # Initialize data buffer
+        self.data_buffer.set_elements(fs_name=self.feature_selector.name,
+                                      fs_metric_name=self.feature_selector_metric.name,
+                                      n_selected_ftr=self.feature_selector.n_selected_ftr,
+                                      n_total_ftr=self.feature_selector.n_total_ftr,
+                                      predictor_name=predictive_model_name,
+                                      predictor_metric_name=self.predictor_metric.name)
 
         # Validate class parameters
         self._check_configuration()
@@ -129,7 +140,7 @@ class EvaluateFeatureSelection:
     def _test_then_train(self):
         """ Prequential evaluation """
         print('Evaluating...')
-        while ((self.global_sample_count < self.max_samples) & (timer() - self._start_time < self.max_time)
+        while ((self.global_sample_count < self.max_samples) & (timer() - self.start_time < self.max_time)
                & (self.stream.has_more_samples())):
             try:
                 # Load batch

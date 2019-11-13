@@ -6,6 +6,29 @@ import numpy as np
 from datetime import datetime
 
 
+def update_data_buffer(evaluator):
+    evaluator.data_buffer.set_elements(
+        ftr_weights=evaluator.feature_selector.weights,
+        ftr_selection=evaluator.feature_selector.selection,
+        concept_drifts=evaluator.feature_selector.concept_drifts,
+        fs_time_measures=evaluator.feature_selector.comp_time.measures,
+        fs_time_mean=evaluator.feature_selector.comp_time.mean,
+        fs_time_var=evaluator.feature_selector.comp_time.var,
+        fs_metric_measures=evaluator.feature_selector_metric.measures,
+        fs_metric_mean=evaluator.feature_selector_metric.mean,
+        fs_metric_var=evaluator.feature_selector_metric.var,
+        test_time_measures=evaluator.predictor.testing_time.measures,
+        test_time_mean=evaluator.predictor.testing_time.mean,
+        test_time_var=evaluator.predictor.testing_time.var,
+        train_time_measures=evaluator.predictor.training_time.measures,
+        train_time_mean=evaluator.predictor.training_time.measures,
+        train_time_var=evaluator.predictor.training_time.measures,
+        predictor_metric_measures=evaluator.predictor_metric.measures,
+        predictor_metric_mean=evaluator.predictor_metric.mean,
+        predictor_metric_var=evaluator.predictor_metric.var
+    )
+
+
 def update_progress_bar(evaluator):
     j = evaluator.global_sample_count / evaluator.max_samples
     sys.stdout.write('\r')
@@ -14,22 +37,22 @@ def update_progress_bar(evaluator):
 
 
 def update_live_plot(evaluator):  # Todo
-    raise NotImplementedError
+    pass
 
 
 def summarize_evaluation(evaluator):
     _print_to_console(evaluator)
     if evaluator.output_file_path is not None:
         _save_to_json(evaluator)
-    # _print_final_plot(evaluator)  Todo:add
+    _print_final_plot(evaluator)
 
 
 def _print_final_plot(evaluator):  # Todo
-    raise NotImplementedError
+    pass
 
 
 def _save_to_json(evaluator):
-    results = dict()
+    results = dict()  # Todo: substitute by file buffer
 
     # Feature selection related results
     fs_stats = dict()
