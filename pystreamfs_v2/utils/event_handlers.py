@@ -2,7 +2,6 @@ import sys
 from tabulate import tabulate
 from timeit import default_timer as timer
 import json
-import numpy as np
 from datetime import datetime
 
 from skmultiflow.data.base_stream import Stream
@@ -12,6 +11,7 @@ from pystreamfs_v2.metrics.fs_metrics.fs_metric import FSMetric
 from pystreamfs_v2.metrics.predictive_metrics.predictive_metric import PredictiveMetric
 from pystreamfs_v2.utils.exceptions import InvalidModelError
 from pystreamfs_v2.feature_selectors.base_feature_selector import BaseFeatureSelector
+from pystreamfs_v2.visualization.visualizer import Visualizer
 
 
 def init_data_buffer(evaluator):
@@ -21,12 +21,16 @@ def init_data_buffer(evaluator):
         n_selected_ftr=evaluator.feature_selector.n_selected_ftr,
         n_total_ftr=evaluator.feature_selector.n_total_ftr,
         predictor_name=evaluator.predictor.name,
-        predictor_metric_name=evaluator.predictor_metric.name
+        predictor_metric_name=evaluator.predictor_metric.name,
+        batch_size=evaluator.batch_size,
+        max_samples=evaluator.max_samples,
+        pretrain_size=evaluator.pretrain_size,
+        iteration=evaluator.iteration
     )
 
 
 def update_data_buffer(evaluator):
-    evaluator.data_buffer.set_elements(
+    evaluator.data_buffer.set_elements(  # Todo: is it possible just to add the last element instead of saving the whole arrays again?
         ftr_weights=evaluator.feature_selector.weights.copy(),
         ftr_selection=evaluator.feature_selector.selection.copy(),
         concept_drifts=evaluator.feature_selector.concept_drifts.copy(),
@@ -65,6 +69,11 @@ def check_configuration(evaluator):  # Todo: enhance
                                 '(pystreamfs data type)')
 
 
+def init_visualizer(evaluator):
+    if evaluator.show_live_plot:
+        evaluator.visualizer = Visualizer(evaluator.data_buffer)
+
+
 def update_progress_bar(evaluator):
     j = evaluator.global_sample_count / evaluator.max_samples
     sys.stdout.write('\r')
@@ -72,8 +81,9 @@ def update_progress_bar(evaluator):
     sys.stdout.flush()
 
 
-def update_live_plot(evaluator):  # Todo
-    pass
+def update_live_plot(evaluator):
+    if hasattr(evaluator, 'visualizer'):
+        evaluator.visualizer.update(evaluator.data_buffer)
 
 
 def summarize_evaluation(evaluator):
