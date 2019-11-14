@@ -2,16 +2,9 @@ from timeit import default_timer as timer
 import numpy as np
 from abc import ABCMeta
 
-from skmultiflow.data.base_stream import Stream
-from skmultiflow.core.base import ClassifierMixin
-
 from pystreamfs_v2.metrics.time_metric import TimeMetric
-from pystreamfs_v2.metrics.fs_metrics.fs_metric import FSMetric
-from pystreamfs_v2.metrics.predictive_metrics.predictive_metric import PredictiveMetric
-from pystreamfs_v2.utils.exceptions import InvalidModelError
-from pystreamfs_v2.feature_selectors.base_feature_selector import BaseFeatureSelector
 from pystreamfs_v2.utils.base_event import Event
-from pystreamfs_v2.utils.event_handlers import update_data_buffer, update_progress_bar, update_live_plot, summarize_evaluation
+from pystreamfs_v2.utils.event_handlers import init_data_buffer, update_data_buffer, check_configuration, update_progress_bar, update_live_plot, summarize_evaluation
 from pystreamfs_v2.visualization.visualizer import Visualizer
 from pystreamfs_v2.utils.base_data_buffer import DataBuffer
 
@@ -24,11 +17,15 @@ class EvaluateFeatureSelection:
     """
     # Class variables
     # Events and event handlers
+    on_start_evaluation = Event()
+    on_start_evaluation.append(init_data_buffer)
+    on_start_evaluation.append(check_configuration)
     on_one_iteration = Event()
     on_one_iteration.append(update_data_buffer)
     on_one_iteration.append(update_progress_bar)
     on_one_iteration.append(update_live_plot)
     on_finished_evaluation = Event()
+    on_finished_evaluation.append(update_data_buffer)
     on_finished_evaluation.append(summarize_evaluation)
 
     def __init__(self,
@@ -88,16 +85,8 @@ class EvaluateFeatureSelection:
         self.feature_selector = fs_model
         self.predictor = _BasePredictiveModel(name=predictive_model_name, model=predictive_model)  # Wrap scikit-multiflow evaluator
 
-        # Initialize data buffer
-        self.data_buffer.set_elements(fs_name=self.feature_selector.name,
-                                      fs_metric_name=self.feature_selector_metric.name,
-                                      n_selected_ftr=self.feature_selector.n_selected_ftr,
-                                      n_total_ftr=self.feature_selector.n_total_ftr,
-                                      predictor_name=predictive_model_name,
-                                      predictor_metric_name=self.predictor_metric.name)
-
-        # Validate class parameters
-        self._check_configuration()
+        # Fire event
+        self.on_start_evaluation(self)
 
         # Specify true max samples
         if self.max_samples > self.stream.n_samples:
@@ -110,21 +99,11 @@ class EvaluateFeatureSelection:
         # Simulate stream with feature selection using prequential evaluation
         self._test_then_train()
 
-    def _check_configuration(self):  # Todo: enhance
-        if not isinstance(self.stream, Stream):
-            raise InvalidModelError('Specified data stream is not of type Stream (scikit-multiflow data type)')
-        if not isinstance(self.feature_selector, BaseFeatureSelector):
-            raise InvalidModelError('Specified feature selection model is not of type BaseFeatureSelector '
-                                    '(pystreamfs data type)')
-        if not isinstance(self.predictor.model, ClassifierMixin):
-            raise InvalidModelError('Specified predictive model is not of type ClassifierMixin '
-                                    '(scikit-multiflow data type)')
-        if not isinstance(self.predictor_metric, PredictiveMetric):
-            raise InvalidModelError('Specified predictive metric is not of type BaseMetric '
-                                    '(pystreamfs data type)')
-        if not isinstance(self.feature_selector_metric, FSMetric):
-            raise InvalidModelError('Specified feature selection metric is not of type FSMetric(BaseMetric) '
-                                    '(pystreamfs data type)')
+        if self.restart_stream:
+            self.stream.restart()
+
+        # Fire event
+        self.on_finished_evaluation(self)
 
     def _pretrain_predictive_model(self):
         print('Pre-training on {} sample(s).'.format(self.pretrain_size))
@@ -172,7 +151,7 @@ class EvaluateFeatureSelection:
 
                     # Testing
                     start = timer()
-                    prediction = list(self.predictor.model.predict(x))
+                    prediction = self.predictor.model.predict(x).tolist()
                     self.predictor.predictions.append(prediction)
                     self.predictor_metric.compute(y, prediction)
                     self.predictor.testing_time.compute(start, timer())
@@ -192,12 +171,6 @@ class EvaluateFeatureSelection:
             except BaseException as exc:
                 print(exc)
                 break
-
-        if self.restart_stream:
-            self.stream.restart()
-
-        # Fire event
-        self.on_finished_evaluation(self)
 
     @staticmethod
     def _sparsify_x(x, retained_features):
