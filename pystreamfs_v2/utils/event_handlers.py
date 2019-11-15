@@ -11,7 +11,6 @@ from pystreamfs_v2.metrics.fs_metrics.fs_metric import FSMetric
 from pystreamfs_v2.metrics.predictive_metrics.predictive_metric import PredictiveMetric
 from pystreamfs_v2.utils.exceptions import InvalidModelError
 from pystreamfs_v2.feature_selectors.base_feature_selector import BaseFeatureSelector
-from pystreamfs_v2.visualization.visualizer import Visualizer
 
 
 def init_data_buffer(evaluator):
@@ -69,21 +68,11 @@ def check_configuration(evaluator):  # Todo: enhance
                                 '(pystreamfs data type)')
 
 
-def init_visualizer(evaluator):
-    if evaluator.show_live_plot:
-        evaluator.visualizer = Visualizer(evaluator.data_buffer)
-
-
 def update_progress_bar(evaluator):
     j = evaluator.global_sample_count / evaluator.max_samples
     sys.stdout.write('\r')
     sys.stdout.write("[%-20s] %d%%" % ('=' * int(20 * j), 100 * j))
     sys.stdout.flush()
-
-
-def update_live_plot(evaluator):
-    if hasattr(evaluator, 'visualizer'):
-        evaluator.visualizer.update(evaluator.data_buffer)
 
 
 def summarize_evaluation(evaluator):

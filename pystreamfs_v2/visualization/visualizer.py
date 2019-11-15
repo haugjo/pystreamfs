@@ -84,7 +84,7 @@ class Visualizer:
         self.fs_time_mean.set_xdata(x_data)
         self.fs_time_mean.set_ydata(np.append(self.fs_time_mean.get_ydata(), data_buffer.fs_time_mean))
 
-        plt.draw()
+        return [self.fs_time_measures, self.fs_time_mean]
 
         # Todo update rest!
 

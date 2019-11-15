@@ -2,10 +2,14 @@ from timeit import default_timer as timer
 import numpy as np
 from abc import ABCMeta
 
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
 from pystreamfs_v2.metrics.time_metric import TimeMetric
 from pystreamfs_v2.utils.base_event import Event
-from pystreamfs_v2.utils.event_handlers import init_data_buffer, update_data_buffer, check_configuration, update_progress_bar, update_live_plot, summarize_evaluation, init_visualizer
+from pystreamfs_v2.utils.event_handlers import init_data_buffer, update_data_buffer, check_configuration, update_progress_bar, summarize_evaluation
 from pystreamfs_v2.utils.base_data_buffer import DataBuffer
+from pystreamfs_v2.visualization.visualizer import Visualizer
 
 
 class EvaluateFeatureSelection:
@@ -19,11 +23,9 @@ class EvaluateFeatureSelection:
     on_start_evaluation = Event()
     on_start_evaluation.append(check_configuration)
     on_start_evaluation.append(init_data_buffer)
-    on_start_evaluation.append(init_visualizer)
     on_one_iteration = Event()
     on_one_iteration.append(update_data_buffer)
     on_one_iteration.append(update_progress_bar)
-    on_one_iteration.append(update_live_plot)
     on_finished_evaluation = Event()
     on_finished_evaluation.append(update_data_buffer)
     on_finished_evaluation.append(summarize_evaluation)
@@ -75,6 +77,7 @@ class EvaluateFeatureSelection:
         self.data_buffer = DataBuffer()
         self.show_final_plot = show_final_plot
         self.show_live_plot = show_live_plot
+        self.visualizer = None  # placeholder for visualizer
 
     def evaluate(self, stream, fs_model, predictive_model, predictive_model_name=None):
         """ Evaluate a feature selection algorithm
@@ -97,6 +100,15 @@ class EvaluateFeatureSelection:
         if self.pretrain_size > 0:
             self._pretrain_predictive_model()
 
+        # Todo: setup FuncAnimation
+        """
+        if self.show_live_plot:
+            self.visualizer = Visualizer(self.data_buffer)
+
+            animation.FuncAnimation(self.visualizer.fig, self.visualizer.update, self._test_then_train, blit=True, interval=10,
+                                    repeat=False)
+            plt.show()
+        """
         # Simulate stream with feature selection using prequential evaluation
         self._test_then_train()
 
@@ -122,7 +134,7 @@ class EvaluateFeatureSelection:
         print('Evaluating...')
         while ((self.global_sample_count < self.max_samples) & (timer() - self.start_time < self.max_time)
                & (self.stream.has_more_samples())):
-            # try:
+            try:
                 # Load batch
                 if self.global_sample_count + self.batch_size <= self.max_samples:
                     samples = self.batch_size
@@ -169,9 +181,11 @@ class EvaluateFeatureSelection:
                     # Fire event
                     self.on_one_iteration(self)
 
-            # except BaseException as exc:
-            #    print(exc)
-            #    break
+                    # Todo: yield data for generator
+
+            except BaseException as exc:
+                print(exc)
+                break
 
     @staticmethod
     def _sparsify_x(x, retained_features):
