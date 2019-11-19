@@ -89,28 +89,31 @@ class EvaluateFeatureSelection:
         self.feature_selector = fs_model
         self.predictor = _BasePredictiveModel(name=predictive_model_name, model=predictive_model)  # Wrap scikit-multiflow evaluator
 
-        # Fire event
-        self.on_start_evaluation(self)
-
         # Specify true max samples
         if self.max_samples > self.stream.n_samples:
             self.max_samples = self.stream.n_samples
+
+        # Fire event
+        self.on_start_evaluation(self)
 
         # Pretrain predictive model at time t=0
         if self.pretrain_size > 0:
             self._pretrain_predictive_model()
 
-        # Todo: setup FuncAnimation
-        """
+        # Todo: check FuncAnimation
         if self.show_live_plot:
             self.visualizer = Visualizer(self.data_buffer)
-
-            animation.FuncAnimation(self.visualizer.fig, self.visualizer.update, self._test_then_train, blit=True, interval=10,
-                                    repeat=False)
+            ani = animation.FuncAnimation(fig=self.visualizer.fig,
+                                          func=self.visualizer.func,
+                                          init_func=self.visualizer.init,
+                                          frames=self._test_then_train,
+                                          blit=False,
+                                          interval=20,
+                                          repeat=False)
             plt.show()
-        """
-        # Simulate stream with feature selection using prequential evaluation
-        self._test_then_train()
+        else:
+            # Simulate stream with feature selection using prequential evaluation
+            self._test_then_train()
 
         if self.restart_stream:
             self.stream.restart()
@@ -182,6 +185,7 @@ class EvaluateFeatureSelection:
                     self.on_one_iteration(self)
 
                     # Todo: yield data for generator
+                    yield self.data_buffer
 
             except BaseException as exc:
                 print(exc)

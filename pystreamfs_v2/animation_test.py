@@ -1,56 +1,94 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from matplotlib.animation import FuncAnimation
+import mpl_toolkits.axes_grid1
+import matplotlib.widgets
 
-def data_gen():
-    t = data_gen.t
-    cnt = 0
-    while cnt < 1000:
-        cnt+=1
-        t += 0.05
-        y1 = np.sin(2*np.pi*t) * np.exp(-t/10.)
-        y2 = np.cos(2*np.pi*t) * np.exp(-t/10.)
-        # adapted the data generator to yield both sin and cos
-        yield t, y1, y2
+class Player(FuncAnimation):
+    def __init__(self, fig, func, frames=None, init_func=None, fargs=None,
+                 save_count=None, mini=0, maxi=100, pos=(0.125, 0.92), **kwargs):
+        self.i = 0
+        self.min=mini
+        self.max=maxi
+        self.runs = True
+        self.forwards = True
+        self.fig = fig
+        self.func = func
+        self.setup(pos)
+        FuncAnimation.__init__(self,self.fig, self.func, frames=self.play(),
+                                           init_func=init_func, fargs=fargs,
+                                           save_count=save_count, **kwargs )
 
-data_gen.t = 0
+    def play(self):
+        while self.runs:
+            self.i = self.i+self.forwards-(not self.forwards)
+            if self.i > self.min and self.i < self.max:
+                yield self.i
+            else:
+                self.stop()
+                yield self.i
 
-# create a figure with two subplots
-fig, (ax1, ax2) = plt.subplots(2,1)
+    def start(self):
+        self.runs=True
+        self.event_source.start()
 
-# intialize two line objects (one in each axes)
-line1, = ax1.plot([], [], lw=2)
-line2, = ax2.plot([], [], lw=2, color='r')
-line = [line1, line2]
+    def stop(self, event=None):
+        self.runs = False
+        self.event_source.stop()
 
-# the same axes initalizations as before (just now we do it for both of them)
-for ax in [ax1, ax2]:
-    ax.set_ylim(-1.1, 1.1)
-    ax.set_xlim(0, 5)
-    ax.grid()
+    def forward(self, event=None):
+        self.forwards = True
+        self.start()
+    def backward(self, event=None):
+        self.forwards = False
+        self.start()
+    def oneforward(self, event=None):
+        self.forwards = True
+        self.onestep()
+    def onebackward(self, event=None):
+        self.forwards = False
+        self.onestep()
 
-# initialize the data arrays
-xdata, y1data, y2data = [], [], []
-def run(data):
-    # update the data
-    t, y1, y2 = data
-    xdata.append(t)
-    y1data.append(y1)
-    y2data.append(y2)
+    def onestep(self):
+        if self.i > self.min and self.i < self.max:
+            self.i = self.i+self.forwards-(not self.forwards)
+        elif self.i == self.min and self.forwards:
+            self.i+=1
+        elif self.i == self.max and not self.forwards:
+            self.i-=1
+        self.func(self.i)
+        self.fig.canvas.draw_idle()
 
-    # axis limits checking. Same as before, just for both axes
-    for ax in [ax1, ax2]:
-        xmin, xmax = ax.get_xlim()
-        if t >= xmax:
-            ax.set_xlim(xmin, 2*xmax)
-            ax.figure.canvas.draw()
+    def setup(self, pos):
+        playerax = self.fig.add_axes([pos[0],pos[1], 0.22, 0.04])
+        divider = mpl_toolkits.axes_grid1.make_axes_locatable(playerax)
+        bax = divider.append_axes("right", size="80%", pad=0.05)
+        sax = divider.append_axes("right", size="80%", pad=0.05)
+        fax = divider.append_axes("right", size="80%", pad=0.05)
+        ofax = divider.append_axes("right", size="100%", pad=0.05)
+        self.button_oneback = matplotlib.widgets.Button(playerax, label=u'$\u29CF$')
+        self.button_back = matplotlib.widgets.Button(bax, label=u'$\u25C0$')
+        self.button_stop = matplotlib.widgets.Button(sax, label=u'$\u25A0$')
+        self.button_forward = matplotlib.widgets.Button(fax, label=u'$\u25B6$')
+        self.button_oneforward = matplotlib.widgets.Button(ofax, label=u'$\u29D0$')
+        self.button_oneback.on_clicked(self.onebackward)
+        self.button_back.on_clicked(self.backward)
+        self.button_stop.on_clicked(self.stop)
+        self.button_forward.on_clicked(self.forward)
+        self.button_oneforward.on_clicked(self.oneforward)
 
-    # update the data of both line objects
-    line[0].set_data(xdata, y1data)
-    line[1].set_data(xdata, y2data)
+### using this class is as easy as using FuncAnimation:
 
-    return line
+fig, ax = plt.subplots()
+x = np.linspace(0,6*np.pi, num=100)
+y = np.sin(x)
 
-ani = animation.FuncAnimation(fig, run, data_gen, blit=True, interval=10,
-    repeat=False)
+ax.plot(x,y)
+point, = ax.plot([],[], marker="o", color="crimson", ms=15)
+
+def update(i):
+    point.set_data(x[i],y[i])
+
+ani = Player(fig, update, maxi=len(y)-1)
+
 plt.show()
