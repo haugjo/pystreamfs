@@ -1,13 +1,14 @@
 from pystreamfs_v2.evaluate_feature_selection import EvaluateFeatureSelection
 from pystreamfs_v2.metrics.fs_metrics.stability_metric import NogueiraStabilityMetric
 from pystreamfs_v2.metrics.predictive_metrics.predictive_metric import PredictiveMetric
-from pystreamfs_v2.feature_selectors.fire import FIREFeatureSelector
+from pystreamfs_v2.feature_selectors.fires import FIRESFeatureSelector
 from pystreamfs_v2.feature_selectors.ofs import OFSFeatureSelector
 from pystreamfs_v2.feature_selectors.efs import EFSFeatureSelector
 from pystreamfs_v2.feature_selectors.fsds import FSDSFeatureSelector
 from pystreamfs_v2.feature_selectors.cancelout import CancelOutFeatureSelector
 
-from skmultiflow.trees import HoeffdingTree
+from skmultiflow.trees import HoeffdingTree, HATT, HAT
+from skmultiflow.neural_networks.perceptron import PerceptronMask
 from skmultiflow.data import FileStream
 from sklearn.metrics import accuracy_score
 
@@ -18,16 +19,7 @@ ht = HoeffdingTree()
 
 """
 fs = FIREFeatureSelector(n_total_ftr=stream.n_features,
-                         n_selected_ftr=10,
-                         sigma_init=1,
-                         epochs=10,
-                         batch_size=20,
-                         lr_mu=0.1,
-                         lr_sigma=0.1,
-                         lr_weights=0.1,
-                         lr_lamb=0.1,
-                         lamb_init=1,
-                         model='probit')
+                         n_selected_ftr=10)
 
 fs = OFSFeatureSelector(n_total_ftr=stream.n_features,
                         n_selected_ftr=10)
@@ -37,9 +29,12 @@ fs = EFSFeatureSelector(n_total_ftr=stream.n_features,
                         
 fs = FSDSFeatureSelector(n_total_ftr=stream.n_features,
                          n_selected_ftr=10)
-"""
+                         
 fs = CancelOutFeatureSelector(n_total_ftr=stream.n_features,
                               n_selected_ftr=10)
+"""
+fs = FIRESFeatureSelector(n_total_ftr=stream.n_features,
+                          n_selected_ftr=20)
 
 stability = NogueiraStabilityMetric(sliding_window=20)
 

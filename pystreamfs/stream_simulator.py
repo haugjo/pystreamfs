@@ -102,7 +102,8 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
 
         # Memory and time taking
         tim = time.perf_counter() - start_tim
-        mem = psutil.Process(os.getpid()).memory_full_info().uss
+        # mem = psutil.Process(os.getpid()).memory_full_info().uss
+        mem = 0
 
         # Classify samples
         model, perf_score = classify(X, Y, i, selected_ftr, model, metric, param)

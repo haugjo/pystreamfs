@@ -106,7 +106,7 @@ class EvaluateFeatureSelection:
                                           init_func=self.visualizer.init,
                                           frames=self.visualizer.data_generator(self),
                                           blit=False,
-                                          interval=20,
+                                          interval=5,
                                           repeat=False)
             plt.show()
         else:  # no live visualization
@@ -156,14 +156,14 @@ class EvaluateFeatureSelection:
 
             # Feature Selection
             start = timer()
-            self.feature_selector.weight_features(x, y)
+            self.feature_selector.weight_features(x.copy(), y.copy())
             self.feature_selector.comp_time.compute(start, timer())
             self.feature_selector.select_features()
             self.feature_selector_metric.compute(self.feature_selector)
 
             # Concept Drift Detection by Feature Selector
             if self.check_concept_drift and self.feature_selector.supports_concept_drift_detection:
-                self.feature_selector.detect_concept_drift(x, y)
+                self.feature_selector.detect_concept_drift(x.copy(), y.copy())
 
             # Sparsify batch x -> retain selected features
             x = self._sparsify_x(x, self.feature_selector.selection[-1])

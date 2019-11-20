@@ -11,7 +11,7 @@ from pystreamfs.visualizer import Visualizer
 param = dict()
 
 # Load a dataset
-dataset = pd.read_csv('./datasets/har_binary.csv')
+dataset = pd.read_csv('./datasets/moa.csv')
 param['label_idx'] = 0
 param['shuffle_data'] = False
 
@@ -41,9 +41,9 @@ fs_algorithm = FeatureSelector('iufes', fs_prop)
 visual = Visualizer(live=False)
 
 # Generate Pipeline
-param['live_visual'] = False  # Todo: implement live visualization
+param['is_live'] = False  # Todo: implement live visualization
 param['batch_size'] = 100
-param['num_features'] = 5
+param['num_features'] = 25
 param['max_timesteps'] = 10
 param['font_scale'] = 0.8
 param['r'] = 25  # shifting window range for computation of stability

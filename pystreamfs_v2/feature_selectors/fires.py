@@ -4,9 +4,9 @@ import numpy as np
 from scipy.stats import norm
 
 
-class FIREFeatureSelector(BaseFeatureSelector):
-    def __init__(self, n_total_ftr, n_selected_ftr, sigma_init, epochs, batch_size, lr_mu, lr_sigma, lr_weights, lr_lamb, lamb_init, model='probit'):
-        super().__init__('FIRE', n_total_ftr, n_selected_ftr, False, True, True)
+class FIRESFeatureSelector(BaseFeatureSelector):
+    def __init__(self, n_total_ftr, n_selected_ftr, sigma_init=1, epochs=5, batch_size=20, lr_mu=0.1, lr_sigma=0.1, lr_weights=0.1, lr_lamb=0.1, lamb_init=1, model='probit'):
+        super().__init__('FIRES', n_total_ftr, n_selected_ftr, False, True, True)
 
         self.mu = np.zeros(n_total_ftr)
         self.sigma = np.ones(n_total_ftr) * sigma_init
@@ -36,7 +36,10 @@ class FIREFeatureSelector(BaseFeatureSelector):
 
     def __probit(self, x, y):
         for epoch in range(self.epochs):  # SGD
-            np.random.shuffle(x)
+            # Shuffle sample
+            random_idx = np.random.permutation(len(y))
+            x = x[random_idx]
+            y = y[random_idx]
 
             for i in range(0, x.shape[0], self.batch_size):
                 # Load mini batch
