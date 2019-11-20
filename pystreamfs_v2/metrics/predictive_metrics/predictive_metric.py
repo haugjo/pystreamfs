@@ -20,7 +20,7 @@ class PredictiveMetric(BaseMetric, metaclass=ABCMeta):
 
         # Specify compute() function
         def computations(self, true, predicted):
-            self.measures.append([metric(true, predicted)])
+            self.measures.append(metric(true, predicted))
             super().compute()  # update sufficient statistics
 
         # Create class and object

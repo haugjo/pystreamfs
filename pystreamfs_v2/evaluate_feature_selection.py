@@ -106,7 +106,7 @@ class EvaluateFeatureSelection:
             ani = animation.FuncAnimation(fig=self.visualizer.fig,
                                           func=self.visualizer.func,
                                           init_func=self.visualizer.init,
-                                          frames=self._test_then_train,
+                                          frames=self.visualizer.data_generator(self),
                                           blit=False,
                                           interval=20,
                                           repeat=False)
@@ -138,58 +138,57 @@ class EvaluateFeatureSelection:
         while ((self.global_sample_count < self.max_samples) & (timer() - self.start_time < self.max_time)
                & (self.stream.has_more_samples())):
             try:
-                # Load batch
-                if self.global_sample_count + self.batch_size <= self.max_samples:
-                    samples = self.batch_size
-                else:
-                    samples = self.max_samples - self.global_sample_count  # all remaining samples
-                x, y = self.stream.next_sample(samples)
-
-                if x is not None and y is not None:
-                    # Get active features
-                    if self.iteration in self.streaming_features and self.feature_selector.supports_streaming_features:
-                        x = self._sparsify_x(x, self.streaming_features[self.iteration])
-                        print('Detected streaming features at t={}'.format(self.iteration))
-
-                    # Feature Selection
-                    start = timer()
-                    self.feature_selector.weight_features(x, y)
-                    self.feature_selector.comp_time.compute(start, timer())
-                    self.feature_selector.select_features()
-                    self.feature_selector_metric.compute(self.feature_selector)
-
-                    # Concept Drift Detection by Feature Selector
-                    if self.check_concept_drift and self.feature_selector.supports_concept_drift_detection:
-                        self.feature_selector.detect_concept_drift(x, y)
-
-                    # Sparsify batch x -> retain selected features
-                    x = self._sparsify_x(x, self.feature_selector.selection[-1])
-
-                    # Testing
-                    start = timer()
-                    prediction = self.predictor.model.predict(x).tolist()
-                    self.predictor.predictions.append(prediction)
-                    self.predictor_metric.compute(y, prediction)
-                    self.predictor.testing_time.compute(start, timer())
-
-                    # Training
-                    start = timer()
-                    self.predictor.model.partial_fit(x, y, self.stream.target_values)
-                    self.predictor.training_time.compute(start, timer())
-
-                    # Update global sample count and iteration/logical time
-                    self.iteration += 1
-                    self.global_sample_count += samples
-
-                    # Fire event
-                    self.on_one_iteration(self)
-
-                    # Todo: yield data for generator
-                    yield self.data_buffer
-
+                self.one_training_iteration()
             except BaseException as exc:
                 print(exc)
                 break
+
+    def one_training_iteration(self):
+        # Load batch
+        if self.global_sample_count + self.batch_size <= self.max_samples:
+            samples = self.batch_size
+        else:
+            samples = self.max_samples - self.global_sample_count  # all remaining samples
+        x, y = self.stream.next_sample(samples)
+
+        if x is not None and y is not None:
+            # Get active features
+            if self.iteration in self.streaming_features and self.feature_selector.supports_streaming_features:
+                x = self._sparsify_x(x, self.streaming_features[self.iteration])
+                print('Detected streaming features at t={}'.format(self.iteration))
+
+            # Feature Selection
+            start = timer()
+            self.feature_selector.weight_features(x, y)
+            self.feature_selector.comp_time.compute(start, timer())
+            self.feature_selector.select_features()
+            self.feature_selector_metric.compute(self.feature_selector)
+
+            # Concept Drift Detection by Feature Selector
+            if self.check_concept_drift and self.feature_selector.supports_concept_drift_detection:
+                self.feature_selector.detect_concept_drift(x, y)
+
+            # Sparsify batch x -> retain selected features
+            x = self._sparsify_x(x, self.feature_selector.selection[-1])
+
+            # Testing
+            start = timer()
+            prediction = self.predictor.model.predict(x).tolist()
+            self.predictor.predictions.append(prediction)
+            self.predictor_metric.compute(y, prediction)
+            self.predictor.testing_time.compute(start, timer())
+
+            # Training
+            start = timer()
+            self.predictor.model.partial_fit(x, y, self.stream.target_values)
+            self.predictor.training_time.compute(start, timer())
+
+            # Update global sample count and iteration/logical time
+            self.iteration += 1
+            self.global_sample_count += samples
+
+            # Fire event
+            self.on_one_iteration(self)
 
     @staticmethod
     def _sparsify_x(x, retained_features):
