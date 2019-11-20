@@ -29,6 +29,6 @@ stability = NogueiraStabilityMetric(sliding_window=20)
 accuracy = PredictiveMetric.sklearn_metric(metric=accuracy_score, name='Accuracy')
 
 evaluator = EvaluateFeatureSelection(max_samples=100000, batch_size=100, pretrain_size=100, max_time=float("inf"),
-                                pred_metric=accuracy, fs_metric=stability, output_file_path='', show_live_plot=True)
+                                pred_metric=accuracy, fs_metric=stability, output_file_path=None, show_plot=True)
 
 evaluator.evaluate(stream, fs, ht, predictive_model_name='HoeffdingTree')

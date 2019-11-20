@@ -77,13 +77,8 @@ def update_progress_bar(evaluator):
 
 def summarize_evaluation(evaluator):
     _print_to_console(evaluator)
-    # if evaluator.output_file_path is not None:
-        # _save_to_json(evaluator) Todo: enable again
-    _print_final_plot(evaluator)
-
-
-def _print_final_plot(evaluator):  # Todo
-    pass
+    if evaluator.output_file_path is not None:
+        _save_to_json(evaluator)
 
 
 def _save_to_json(evaluator):

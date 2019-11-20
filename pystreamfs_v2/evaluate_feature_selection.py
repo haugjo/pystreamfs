@@ -40,8 +40,7 @@ class EvaluateFeatureSelection:
                  streaming_features=None,
                  check_concept_drift=False,
                  output_file_path=None,
-                 show_final_plot=True,
-                 show_live_plot=False,
+                 show_plot=False,
                  restart_stream=True):
 
         # General parameters
@@ -75,8 +74,7 @@ class EvaluateFeatureSelection:
 
         # Visualization related parameters
         self.data_buffer = DataBuffer()
-        self.show_final_plot = show_final_plot
-        self.show_live_plot = show_live_plot
+        self.show_plot = show_plot
         self.visualizer = None  # placeholder for visualizer
 
     def evaluate(self, stream, fs_model, predictive_model, predictive_model_name=None):
@@ -100,8 +98,8 @@ class EvaluateFeatureSelection:
         if self.pretrain_size > 0:
             self._pretrain_predictive_model()
 
-        # Todo: check FuncAnimation
-        if self.show_live_plot:
+        # Evaluation
+        if self.show_plot:
             self.visualizer = Visualizer(self.data_buffer)
             ani = animation.FuncAnimation(fig=self.visualizer.fig,
                                           func=self.visualizer.func,
@@ -111,8 +109,7 @@ class EvaluateFeatureSelection:
                                           interval=20,
                                           repeat=False)
             plt.show()
-        else:
-            # Simulate stream with feature selection using prequential evaluation
+        else:  # no live visualization
             self._test_then_train()
 
         if self.restart_stream:
