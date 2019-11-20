@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import warnings
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
 
 from pystreamfs_v2.metrics.time_metric import TimeMetric
 
@@ -38,17 +37,18 @@ class BaseFeatureSelector(metaclass=ABCMeta):
     def select_features(self):
         """Select features with highest absolute weights"""
 
-        # Check if feature weights are normalized in range [0,1]
-        if np.any((self.raw_weight_vector < 0) | (self.raw_weight_vector > 1)):
-            scaled_weights = MinMaxScaler().fit_transform(self.raw_weight_vector.reshape(-1, 1)).flatten()
+        # Check if feature weights are negative
+        if np.any(self.raw_weight_vector < 0):
+            # Choose absolute weights
+            abs_weights = abs(self.raw_weight_vector)
             if not self._auto_scale:
-                warnings.warn('Feature weights are automatically scaled to range [0,1] before selection.')
+                warnings.warn('Absolute feature weights are used for selection.')
                 self._auto_scale = True
         else:
-            scaled_weights = self.raw_weight_vector
+            abs_weights = self.raw_weight_vector
 
-        self.weights.append(scaled_weights.tolist())
-        self.selection.append(np.argsort(scaled_weights)[::-1][:self.n_selected_ftr].tolist())
+        self.weights.append(abs_weights.tolist())
+        self.selection.append(np.argsort(abs_weights)[::-1][:self.n_selected_ftr].tolist())
 
     @abstractmethod
     def detect_concept_drift(self, x, y):

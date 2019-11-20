@@ -2,6 +2,10 @@ from pystreamfs_v2.evaluate_feature_selection import EvaluateFeatureSelection
 from pystreamfs_v2.metrics.fs_metrics.stability_metric import NogueiraStabilityMetric
 from pystreamfs_v2.metrics.predictive_metrics.predictive_metric import PredictiveMetric
 from pystreamfs_v2.feature_selectors.fire import FIREFeatureSelector
+from pystreamfs_v2.feature_selectors.ofs import OFSFeatureSelector
+from pystreamfs_v2.feature_selectors.efs import EFSFeatureSelector
+from pystreamfs_v2.feature_selectors.fsds import FSDSFeatureSelector
+from pystreamfs_v2.feature_selectors.cancelout import CancelOutFeatureSelector
 
 from skmultiflow.trees import HoeffdingTree
 from skmultiflow.data import FileStream
@@ -12,6 +16,7 @@ stream.prepare_for_use()
 
 ht = HoeffdingTree()
 
+"""
 fs = FIREFeatureSelector(n_total_ftr=stream.n_features,
                          n_selected_ftr=10,
                          sigma_init=1,
@@ -23,6 +28,18 @@ fs = FIREFeatureSelector(n_total_ftr=stream.n_features,
                          lr_lamb=0.1,
                          lamb_init=1,
                          model='probit')
+
+fs = OFSFeatureSelector(n_total_ftr=stream.n_features,
+                        n_selected_ftr=10)
+
+fs = EFSFeatureSelector(n_total_ftr=stream.n_features,
+                        n_selected_ftr=10)
+                        
+fs = FSDSFeatureSelector(n_total_ftr=stream.n_features,
+                         n_selected_ftr=10)
+"""
+fs = CancelOutFeatureSelector(n_total_ftr=stream.n_features,
+                              n_selected_ftr=10)
 
 stability = NogueiraStabilityMetric(sliding_window=20)
 
