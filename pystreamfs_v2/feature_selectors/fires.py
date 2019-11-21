@@ -8,7 +8,8 @@ from torch import nn
 
 class FIRESFeatureSelector(BaseFeatureSelector):
     def __init__(self, n_total_ftr, n_selected_ftr, sigma_init=1, epochs=5, batch_size=20, lr_mu=0.1, lr_sigma=0.1,
-                 lr_weights=0.1, lr_lamb=0.1, lamb_init=1, model='probit', hidden_dim=100, output_dim=2, mc_samples=10, lr_optimizer=0.01):
+                 lr_weights=0.1, lr_lamb=0.1, lamb_init=1, model='probit', hidden_dim=100, hidden_layers=1, output_dim=2,
+                 mc_samples=10, lr_optimizer=0.01):
         if model == 'probit':
             supports_multi_class = False
             supports_streaming_features = False
@@ -36,6 +37,7 @@ class FIRESFeatureSelector(BaseFeatureSelector):
 
         # Neural Net model specific paramters
         if self.model == 'neural_net':
+            self.hidden_layers = hidden_layers
             self.hidden_dim = hidden_dim
             self.output_dim = output_dim
             self.input_dim = n_total_ftr
@@ -86,13 +88,13 @@ class FIRESFeatureSelector(BaseFeatureSelector):
                 self.mu += self.lr_mu * np.mean(nabla_mu, axis=1)
                 self.sigma += self.lr_sigma * np.mean(nabla_sigma, axis=1)
 
+                # limit sigma to range [0, inf]
+                self.sigma[self.sigma < 0] = 0
+
     def __neural_net(self, x, y):
         ########################################
         # 1. DATA PREPARATION
         ########################################
-        # Dimensionality of Y
-        output_dim = len(np.unique(y))  # Todo check if this can be retrieved at different point
-
         # Format sample as tensor
         x = torch.from_numpy(x).float()  # format sample as tensor
         y = torch.from_numpy(y).long()
@@ -100,8 +102,6 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         ########################################
         # 2. CHANGING FEATURES AND/OR CLASSES
         ########################################
-        # Detect new features
-        new_features = 0  # number of new features
         if x.size()[1] > self.input_dim:
             # mu_1, sigma_1, param, new_features = _new_input_dim(x.size()[1], mu_1, sigma_1, param)  # init new input nodes Todo
             print('New feature detected')
@@ -114,7 +114,7 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         ########################################
         # 3. MONTE CARLO SAMPLING
         ########################################
-        theta, epsilon = self._monte_carlo_sampling((self.input_dim, self.hidden_dim))  # Sample first layer weights
+        theta, epsilon = self._monte_carlo_sampling((self.hidden_dim, self.input_dim))  # Sample first layer weights
 
         ########################################
         # 4. TRAINING THE NET
@@ -123,10 +123,10 @@ class FIRESFeatureSelector(BaseFeatureSelector):
 
         for l in range(self.mc_samples):  # For all samples L
             # Initialize gradient of theta for current sample l
-            nabla_theta[l] = torch.zeros(theta[l].size())
+            nabla_theta[l] = torch.zeros_like(theta[l])
 
             # Initialize Neural Net, loss function and optimizer
-            model = _Net(self.input_dim, self.hidden_dim, self.output_dim)  # Todo allow multiple hidden layers
+            model = _Net(self.input_dim, self.hidden_dim, self.hidden_layers, self.output_dim)
             model.init_weights(theta[l].clone())  # set weights theta
             criterion = nn.NLLLoss()  # Negative Log Likelihood loss for classification
             optimizer = torch.optim.SGD(model.parameters(), lr=self.lr_optimizer)  # specify optimizer, here SGD
@@ -153,14 +153,8 @@ class FIRESFeatureSelector(BaseFeatureSelector):
                     loss.backward()
                     optimizer.step()
 
-                    if model.linear1.weight.grad.sum().item() == 0:  # TODO: delete when certain
-                        print('Gradient is zero at')
-
                     # Add gradient of current mini batch
-                    nabla_theta[l] += model.linear1.weight.grad
-
-            # average gradients for epochs and mini-batches
-            nabla_theta[l] /= (self.epochs * self.batch_size)
+                    nabla_theta[l] += model.linear_in.weight.grad
 
         ########################################
         # 5. COMPUTE GRADIENT ON MU AND SIGMA
@@ -172,7 +166,7 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         for l in range(self.mc_samples):
             # According to gradients in paper:
             nabla_mu += nabla_theta[l]
-            nabla_sigma += nabla_theta[l] * epsilon[l]  # Todo: check if multiplication works
+            nabla_sigma += nabla_theta[l] * epsilon[l]
 
         nabla_mu /= self.mc_samples  # average for L samples
         nabla_sigma /= self.mc_samples
@@ -183,12 +177,12 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         self.mu_layer -= self.lr_mu * nabla_mu
         self.sigma_layer -= self.lr_sigma * nabla_sigma
 
-        # minimal value of sigma is 0
-        # self.sigma_layer[self.sigma_layer < 0] = 0  # Todo: check if necessary
+        # limit sigma to range [0, inf]
+        self.sigma_layer[self.sigma_layer < 0] = 0
 
-        # Merge mu and sigma matrix to 1-D vectors TODO: CONTINUE WITH CHECK OF NN
-        self.mu = torch.mean(self.mu_layer, 0)  # check if correct mean is build
-        self.sigma = torch.mean(self.sigma_layer, 0)
+        # Merge mu and sigma matrix to 1-D vectors
+        self.mu = torch.mean(self.mu_layer, 0).numpy()  # check if correct mean is build
+        self.sigma = torch.mean(self.sigma_layer, 0).numpy()
 
     def __update_weights(self):
         mu = self.mu.copy()
@@ -219,8 +213,8 @@ class FIRESFeatureSelector(BaseFeatureSelector):
 
         for l in range(self.mc_samples):
             # Xavier weight initialization
-            epsilon[l] = torch.distributions.normal.Normal(0, np.sqrt(2 / (self.input_dim + self.output_dim))).sample((size[0], size[1]))
-            theta[l] = self.sigma * epsilon[l] + self.mu
+            epsilon[l] = torch.distributions.normal.Normal(0, np.sqrt(2 / (self.input_dim + self.output_dim))).sample(size)
+            theta[l] = epsilon[l] * torch.from_numpy(self.sigma).float() + torch.from_numpy(self.mu).float()
 
         return theta, epsilon
 
@@ -292,20 +286,32 @@ class _Net(nn.Module):
     - with softplus activation of the hidden nodes
     - with softmax activation of the output nodes
     """
-    def __init__(self, input_dim, hidden_dim, output_dim):
+    def __init__(self, input_dim, hidden_dim, hidden_layers, output_dim):
         super(_Net, self).__init__()
-        self.linear1 = nn.Linear(input_dim, hidden_dim, bias=False)  # define input to hidden layer
+        self.linear_in = nn.Linear(input_dim, hidden_dim, bias=False)  # define input to hidden layer
         self.softplus = nn.Softplus()
-        self.linear2 = nn.Linear(hidden_dim, output_dim, bias=False)  # define hidden to output layer
-        self.logsoftmax = nn.LogSoftmax()
+
+        self.linear_hidden = nn.ModuleList()
+        self.softplus_hidden = nn.ModuleList()
+        for h in range(hidden_layers - 1):  # minus 1 because 1 hidden layer is implemented per se
+            self.linear_hidden.append(nn.Linear(hidden_dim, hidden_dim, bias=False))
+            self.softplus_hidden.append(nn.Softplus())
+
+        self.linear_out = nn.Linear(hidden_dim, output_dim, bias=False)  # define hidden to output layer
+        self.logsoftmax = nn.LogSoftmax(dim=1)
 
     def forward(self, x):
-        h_linear = self.linear1(x)
-        h_activation = self.softplus(h_linear)
-        out_linear = self.linear2(h_activation)
+        input_hidden = self.linear_in(x)
+        hidden = self.softplus(input_hidden)
+
+        for layer, activation in zip(self.linear_hidden, self.softplus_hidden):
+            hidden = layer(hidden)
+            hidden = activation(hidden)
+
+        out_linear = self.linear_out(hidden)
         y_pred = self.logsoftmax(out_linear)
         return y_pred
 
     def init_weights(self, theta):
         # initialize weights of first layer
-        self.linear1.weight = nn.Parameter(theta)
+        self.linear_in.weight = nn.Parameter(theta)
