@@ -4,12 +4,13 @@ import numpy as np
 from scipy.stats import norm
 import torch
 from torch import nn
+from sklearn.ensemble import RandomForestClassifier
 
 
 class FIRESFeatureSelector(BaseFeatureSelector):
     def __init__(self, n_total_ftr, n_selected_ftr, sigma_init=1, epochs=5, batch_size=20, lr_mu=0.1, lr_sigma=0.1,
                  lr_weights=0.1, lr_lamb=0.1, lamb_init=1, model='probit', hidden_dim=100, hidden_layers=1, output_dim=2,
-                 mc_samples=10, lr_optimizer=0.01):
+                 mc_samples=10, lr_optimizer=0.01, n_trees=10, tree_depth=5):
         if model == 'probit':
             supports_multi_class = False
             supports_streaming_features = False
@@ -17,6 +18,10 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         elif model == 'neural_net':
             supports_multi_class = True
             supports_streaming_features = True
+            supports_concept_drift_detection = True
+        elif model == 'forest':
+            supports_multi_class = False
+            supports_streaming_features = False
             supports_concept_drift_detection = True
         else:
             print('FIRES model does not exist!')
@@ -40,11 +45,16 @@ class FIRESFeatureSelector(BaseFeatureSelector):
             self.hidden_layers = hidden_layers
             self.hidden_dim = hidden_dim
             self.output_dim = output_dim
-            self.input_dim = n_total_ftr
+            self.input_dim = n_total_ftr  # Todo: remove redundancy?
             self.mc_samples = mc_samples
             self.lr_optimizer = lr_optimizer
             self.mu_layer = torch.zeros((hidden_dim, n_total_ftr))  # mu of weigths in first layer
             self.sigma_layer = torch.ones((hidden_dim, n_total_ftr))  # Todo: * sigma_init  # sigma of weigths in first layer
+
+        # Random forest specific parameters
+        if self.model == 'forest':
+            self.n_trees = n_trees
+            self.tree_depth = tree_depth
 
     def weight_features(self, x, y):
         # Update estimates of mu and sigma given the model
@@ -52,6 +62,8 @@ class FIRESFeatureSelector(BaseFeatureSelector):
             self.__probit(x, y)
         elif self.model == 'neural_net':
             self.__neural_net(x, y)
+        elif self.model == 'forest':
+            self.__forest(x, y)
         else:
             raise InvalidModelError('FIRE Feature Selection: The chosen model is not specified.')
 
@@ -183,6 +195,12 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         # Merge mu and sigma matrix to 1-D vectors
         self.mu = torch.mean(self.mu_layer, 0).numpy()  # check if correct mean is build
         self.sigma = torch.mean(self.sigma_layer, 0).numpy()
+
+    def __forest(self, x, y):
+        for l in range(self.mc_samples):  # Train RF L times Todo: correct way?
+            rf = RandomForestClassifier(n_estimators=self.n_trees, max_depth=self.tree_depth, random_state=0)
+            rf.fit(x, y)
+            theta = rf.feature_importances_
 
     def __update_weights(self):
         mu = self.mu.copy()
