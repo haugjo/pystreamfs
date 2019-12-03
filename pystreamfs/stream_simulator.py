@@ -3,6 +3,17 @@ import psutil
 import os
 import warnings
 import time
+import seaborn as sns
+from pystreamfs import visualizer as vis
+from pystreamfs import live_visualizer as lv
+from matplotlib import style
+import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib.pyplot import figure, draw, pause
+from matplotlib import pyplot
+from matplotlib.animation import FuncAnimation
+from matplotlib.animation import TimedAnimation
 
 
 def prepare_data(data, target, shuffle):
@@ -63,6 +74,42 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
     else:  # if generator is defined
         total_samples = param['max_timesteps'] * param['batch_size']
 
+    ###################################################################################
+    # Set up window for plotting
+    # Ex 1
+    sns.set_context('paper')
+    plt.style.use('seaborn-darkgrid')
+    palette = ['#1f78b4', '#33a02c', '#fdbf6f', '#e31a1c']
+    delay = 1
+
+    # Lists for the plotted values
+    # time
+    x = []
+    # time measures per timestep
+    y_time = []
+    # Mean time step
+    y_time_mean = []
+    # memory per timestep
+    y_mem = []
+    # Mean mem step
+    y_mem_mean = []
+    # best features
+    y_features = []
+
+    fig, axs = plt.subplots(3, 2, figsize=(10, 8))
+    fig.canvas.set_window_title('Pystreamfs')
+    plt.subplots_adjust(left=0.125, right=0.9, top=0.9, bottom=0.1)
+
+    gs1 = gridspec.GridSpec(6, 2)
+    gs1.update(wspace=0.2, hspace=0.6)
+
+    # plt.rcParams.update({'font.size': 12 * param['font_scale']})
+    # ax = fig.add_subplot(111)
+    # line1, = ax.plot(x, y, 'r-')
+
+
+    #########################################################################################
+    # start data generation
     for i in range(0, total_samples, param['batch_size']):  # for generated data
         t = i / param['batch_size']  # time window
         param['t'] = t
@@ -108,6 +155,30 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
         if t >= 1:
             stability = nogueira_stability(X.shape[1], stats['features'], param['r'])
             stats['stab_measures'].append(stability)
+
+        # Life visualization
+        if param['is_live']:
+
+
+            # Append the data at each timestep to plot it afterwards
+            x.append(t)
+            y_time.append(stats['time_measures'][int(t)])
+            y_time_mean.append(sum(y_time)/(t+1))
+            y_mem.append(stats['memory_measures'][int(t)])
+            y_mem_mean.append(sum(y_mem)/(t+1))
+
+            # Call the different visualization plots (adapted from visualizer, methods in live_visualizer)
+            lv.text_subplot(plt.subplot(gs1[0, :]), delay)
+            # lv.regular_subplot(plt.subplot(gs1[1, 0]), x, y_time, 'Time $t$', 'Comp. Time (ms)', 'Time Consumption')
+            lv.regular_subplot_mean(plt.subplot(gs1[1, 0]), x, y_time, 'Time $t$', 'Comp. Time (ms)', 'Time Consumption'
+                                    , y_time_mean)
+            # lv.regular_subplot(plt.subplot(gs1[1, 1]), x, y_mem, 'Time $t$', 'Memory usage (KB)', 'Memory usage')
+            lv.regular_subplot_mean(plt.subplot(gs1[1, 1]), x, y_mem, 'Time $t$', 'Memory usage (KB)', 'Memory usage'
+                               , y_mem_mean)
+
+            plt.show(block=False)
+            plt.pause(delay)
+            # plt.close()
 
     # end of stream simulation
 
