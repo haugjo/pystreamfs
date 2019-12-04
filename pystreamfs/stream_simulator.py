@@ -93,8 +93,12 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
     y_mem = []
     # Mean mem step
     y_mem_mean = []
-    # best features
-    y_features = []
+    # performance
+    y_performance = []
+    #performance mean
+    y_performance_mean = []
+    # feature stability
+    y_feature_stability = []
 
     fig, axs = plt.subplots(3, 2, figsize=(11, 9))
     fig.canvas.set_window_title('Pystreamfs')
@@ -164,6 +168,8 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
             y_time_mean.append(sum(y_time)/(t+1))
             y_mem.append(stats['memory_measures'][int(t)])
             y_mem_mean.append(sum(y_mem)/(t+1))
+            y_performance.append(perf_score)
+            y_performance_mean.append(sum(y_performance)/(t+1))
 
             # TODO: andere progressbar wenn aus CSV gelesen wird
             # Call the different visualization plots (adapted from visualizer, methods in live_visualizer)
@@ -172,10 +178,10 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
                                     , y_time_mean)
             lv.regular_subplot_mean(plt.subplot(gs1[1, 1]), x, y_mem, 'Time $t$', 'Memory (KB)', 'Memory usage'
                                , y_mem_mean)
-            lv.feature_subplot(plt.subplot(gs1[2, :]), selected_ftr, stats['weights'][int(t)], 'Feature',
+            lv.regular_subplot_mean(plt.subplot(gs1[2, :]), x, y_performance, 'Time $t$', 'Accuracy score',
+                                    'Learning Performance', y_performance_mean)
+            lv.feature_subplot(plt.subplot(gs1[3, :]), selected_ftr, stats['weights'][int(t)], 'Feature',
                                'Weight', 'Weights of sel features')
-            lv.progress_bar(plt.subplot(gs1[3, :]), x_current_percentage, 'Progress (%)', t,
-                            param['max_timesteps'], 'Current progress')
             lv.progress_bar(plt.subplot(gs1[4, :]), x_current_percentage, 'Progress (%)', t,
                             param['max_timesteps'], 'Current progress')
 

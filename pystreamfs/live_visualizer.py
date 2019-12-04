@@ -42,7 +42,6 @@ def text_subplot(ax, delay):
 def feature_subplot(ax, features, weights, xlabel, ylabel, title):
     y_pos = np.arange(len(features))
     feature_weights = weights[0:len(features)]
-    print(feature_weights)
     ax.bar(y_pos, feature_weights, color='#1f78b4')
     ax.set_ylim(0,1)
     ax.set_xticks(y_pos)
