@@ -96,16 +96,12 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
     # best features
     y_features = []
 
-    fig, axs = plt.subplots(3, 2, figsize=(10, 8))
+    fig, axs = plt.subplots(3, 2, figsize=(11, 9))
     fig.canvas.set_window_title('Pystreamfs')
     plt.subplots_adjust(left=0.125, right=0.9, top=0.9, bottom=0.1)
 
     gs1 = gridspec.GridSpec(6, 2)
-    gs1.update(wspace=0.2, hspace=0.6)
-
-    # plt.rcParams.update({'font.size': 12 * param['font_scale']})
-    # ax = fig.add_subplot(111)
-    # line1, = ax.plot(x, y, 'r-')
+    gs1.update(wspace=0.2, hspace=2.0)
 
 
     #########################################################################################
@@ -156,25 +152,33 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
             stability = nogueira_stability(X.shape[1], stats['features'], param['r'])
             stats['stab_measures'].append(stability)
 
+        # print(str(selected_ftr) + '     '+ str(stats['weights'][int(t)]))
+
         # Life visualization
         if param['is_live']:
 
-
             # Append the data at each timestep to plot it afterwards
-            x.append(t)
+            x.append(int(t))
+            x_current_percentage = (t/param['max_timesteps']*100 + 10)
             y_time.append(stats['time_measures'][int(t)])
             y_time_mean.append(sum(y_time)/(t+1))
             y_mem.append(stats['memory_measures'][int(t)])
             y_mem_mean.append(sum(y_mem)/(t+1))
 
+            # TODO: andere progressbar wenn aus CSV gelesen wird
             # Call the different visualization plots (adapted from visualizer, methods in live_visualizer)
             lv.text_subplot(plt.subplot(gs1[0, :]), delay)
-            # lv.regular_subplot(plt.subplot(gs1[1, 0]), x, y_time, 'Time $t$', 'Comp. Time (ms)', 'Time Consumption')
-            lv.regular_subplot_mean(plt.subplot(gs1[1, 0]), x, y_time, 'Time $t$', 'Comp. Time (ms)', 'Time Consumption'
+            lv.regular_subplot_mean(plt.subplot(gs1[1, 0]), x, y_time, 'Time $t$', 'Comp. Time (ms)', 'Time/timestep'
                                     , y_time_mean)
-            # lv.regular_subplot(plt.subplot(gs1[1, 1]), x, y_mem, 'Time $t$', 'Memory usage (KB)', 'Memory usage')
-            lv.regular_subplot_mean(plt.subplot(gs1[1, 1]), x, y_mem, 'Time $t$', 'Memory usage (KB)', 'Memory usage'
+            lv.regular_subplot_mean(plt.subplot(gs1[1, 1]), x, y_mem, 'Time $t$', 'Memory (KB)', 'Memory usage'
                                , y_mem_mean)
+            lv.feature_subplot(plt.subplot(gs1[2, :]), selected_ftr, stats['weights'][int(t)], 'Feature',
+                               'Weight', 'Weights of sel features')
+            lv.progress_bar(plt.subplot(gs1[3, :]), x_current_percentage, 'Progress (%)', t,
+                            param['max_timesteps'], 'Current progress')
+            lv.progress_bar(plt.subplot(gs1[4, :]), x_current_percentage, 'Progress (%)', t,
+                            param['max_timesteps'], 'Current progress')
+
 
             plt.show(block=False)
             plt.pause(delay)
