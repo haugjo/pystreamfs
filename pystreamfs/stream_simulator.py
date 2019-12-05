@@ -4,16 +4,12 @@ import os
 import warnings
 import time
 import seaborn as sns
-from pystreamfs import visualizer as vis
 from pystreamfs import live_visualizer as lv
 from matplotlib import style
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 from matplotlib.pyplot import figure, draw, pause
 from matplotlib import pyplot
-from matplotlib.animation import FuncAnimation
-from matplotlib.animation import TimedAnimation
 
 
 def prepare_data(data, target, shuffle):
@@ -99,8 +95,10 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
     y_performance_mean = []
     # feature stability
     y_feature_stability = []
+    # feature stability mean
+    y_feature_stability_mean = []
 
-    fig, axs = plt.subplots(3, 2, figsize=(11, 9))
+    fig, axs = plt.subplots(4, 2, figsize=(11, 9))
     fig.canvas.set_window_title('Pystreamfs')
     plt.subplots_adjust(left=0.125, right=0.9, top=0.9, bottom=0.1)
 
@@ -156,22 +154,29 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
             stability = nogueira_stability(X.shape[1], stats['features'], param['r'])
             stats['stab_measures'].append(stability)
 
-        # print(str(selected_ftr) + '     '+ str(stats['weights'][int(t)]))
+        print(t)
+        print(i)
+        print(total_samples)
+        print(param['max_timesteps'])
 
         # Life visualization
         if param['is_live']:
 
             # Append the data at each timestep to plot it afterwards
             x.append(int(t))
-            x_current_percentage = (t/param['max_timesteps']*100 + 10)
+            if dataset is not None:
+                x_current_percentage = (i + param['batch_size'])/total_samples*100
+                param['max_timesteps'] = int(total_samples/param['batch_size'])
+            else:
+                x_current_percentage = (t + 1)/param['max_timesteps']*100
             y_time.append(stats['time_measures'][int(t)])
-            y_time_mean.append(sum(y_time)/(t+1))
+            y_time_mean.append(np.mean(y_time))
             y_mem.append(stats['memory_measures'][int(t)])
-            y_mem_mean.append(sum(y_mem)/(t+1))
+            y_mem_mean.append(np.mean(y_mem))
             y_performance.append(perf_score)
-            y_performance_mean.append(sum(y_performance)/(t+1))
+            y_performance_mean.append(np.mean(y_performance))
+            y_feature_stability_mean.append(np.mean(stats['stab_measures']))
 
-            # TODO: andere progressbar wenn aus CSV gelesen wird
             # Call the different visualization plots (adapted from visualizer, methods in live_visualizer)
             lv.text_subplot(plt.subplot(gs1[0, :]), delay)
             lv.regular_subplot_mean(plt.subplot(gs1[1, 0]), x, y_time, 'Time $t$', 'Comp. Time (ms)', 'Time/timestep'
@@ -182,13 +187,14 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
                                     'Learning Performance', y_performance_mean)
             lv.feature_subplot(plt.subplot(gs1[3, :]), selected_ftr, stats['weights'][int(t)], 'Feature',
                                'Weight', 'Weights of sel features')
-            lv.progress_bar(plt.subplot(gs1[4, :]), x_current_percentage, 'Progress (%)', t,
+            lv.regular_subplot(plt.subplot(gs1[4, :]), x, y_feature_stability_mean, 'Time $t$', 'Stability',
+                               'Mean of the feature stability')
+            lv.progress_bar(plt.subplot(gs1[5, :]), x_current_percentage, 'Progress (%)', t,
                             param['max_timesteps'], 'Current progress')
 
 
             plt.show(block=False)
             plt.pause(delay)
-            # plt.close()
 
     # end of stream simulation
 
@@ -207,6 +213,9 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
         # Todo: needed only during experiments, can be removed afterwards
         stats['mu_measures'] = param['mu_measures']
         stats['sigma_measures'] = param['sigma_measures']
+
+    # Close the live visualization since the final plot will appear
+    # plt.close()
 
     return stats
 

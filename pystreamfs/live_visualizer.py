@@ -41,6 +41,7 @@ def text_subplot(ax, delay):
 # Create the feature bar plot with their weights
 def feature_subplot(ax, features, weights, xlabel, ylabel, title):
     y_pos = np.arange(len(features))
+    weights.sort(reverse=True)
     feature_weights = weights[0:len(features)]
     ax.bar(y_pos, feature_weights, color='#1f78b4')
     ax.set_ylim(0,1)
