@@ -71,39 +71,37 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
         total_samples = param['max_timesteps'] * param['batch_size']
 
     ###################################################################################
-    # Set up window for plotting
-    # Ex 1
-    sns.set_context('paper')
-    plt.style.use('seaborn-darkgrid')
-    palette = ['#1f78b4', '#33a02c', '#fdbf6f', '#e31a1c']
-    delay = 1
+    if param['is_live']:
+        # Set up window for live plotting
+        sns.set_context('paper')
+        plt.style.use('seaborn-darkgrid')
+        palette = ['#1f78b4', '#33a02c', '#fdbf6f', '#e31a1c']
+        delay = 1
 
-    # Lists for the plotted values
-    # time
-    x = []
-    # time measures per timestep
-    y_time = []
-    # Mean time step
-    y_time_mean = []
-    # memory per timestep
-    y_mem = []
-    # Mean mem step
-    y_mem_mean = []
-    # performance
-    y_performance = []
-    #performance mean
-    y_performance_mean = []
-    # feature stability
-    y_feature_stability = []
-    # feature stability mean
-    y_feature_stability_mean = []
+        # Lists for the plotted values
+        # time
+        x = []
+        # time measures per timestep
+        y_time = []
+        # Mean time step
+        y_time_mean = []
+        # memory per timestep
+        y_mem = []
+        # Mean mem step
+        y_mem_mean = []
+        # performance
+        y_performance = []
+        #performance mean
+        y_performance_mean = []
+        # feature stability mean
+        y_feature_stability_mean = []
 
-    fig, axs = plt.subplots(4, 2, figsize=(11, 9))
-    fig.canvas.set_window_title('Pystreamfs')
-    plt.subplots_adjust(left=0.125, right=0.9, top=0.9, bottom=0.1)
+        fig, axs = plt.subplots(4, 2, figsize=(11, 9))
+        fig.canvas.set_window_title('Pystreamfs')
+        plt.subplots_adjust(left=0.125, right=0.9, top=0.9, bottom=0.1)
 
-    gs1 = gridspec.GridSpec(6, 2)
-    gs1.update(wspace=0.2, hspace=2.0)
+        gs1 = gridspec.GridSpec(6, 2)
+        gs1.update(wspace=0.2, hspace=2.0)
 
 
     #########################################################################################
@@ -153,11 +151,6 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
         if t >= 1:
             stability = nogueira_stability(X.shape[1], stats['features'], param['r'])
             stats['stab_measures'].append(stability)
-
-        print(t)
-        print(i)
-        print(total_samples)
-        print(param['max_timesteps'])
 
         # Life visualization
         if param['is_live']:
