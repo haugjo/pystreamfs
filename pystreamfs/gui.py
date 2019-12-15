@@ -113,7 +113,7 @@ class GUI:
         layout = \
             [[sg.Image(r'../logo_scaled.png')],
              [sg.Menu(menu_def, tearoff=True, key='menu_action')],
-             [sg.Text('Chose your FS algorithms and parameters', justification='center', font=("Helvetica", 16))],
+             [sg.Text('Choose your FS algorithms and parameters', justification='center', font=("Helvetica", 16))],
 
              # Select FS algorithm
              [sg.Text('FS algorithm:')],
@@ -143,14 +143,14 @@ class GUI:
 
              # Begin frame for data options
              [sg.Frame(layout=[
-                 [sg.Radio('Chose a generator to create data', "RADIO1", default=True, size=(40, 1), key='_use_generator_'),
-                  sg.InputCombo(('Agrawal', 'Rbf', 'Sine'), size=(30, 1), key='_data_generator_')],
-                 [sg.Radio('Use one of the existing datasets', "RADIO1", size=(40, 1), key='_load_data_CSV_'),
+                 [sg.Radio('Chose a generator to create data', "RADIO1", default=True, size=(24, 1), key='_use_generator_'),
+                  sg.InputCombo(('Agrawal', 'Rbf', 'Sine'), size=(14, 1), key='_data_generator_')],
+                 [sg.Radio('Use one of the existing datasets', "RADIO1", size=(24, 1), key='_load_data_CSV_'),
                   sg.InputCombo(('Credit', 'Drift', 'Har', 'KDD', 'MOA', 'Spambase', 'Usenet'), size=(30, 1),
                                 key='_use_dataset_path_')],
-                 [sg.Radio('Enter a CSV with your data', "RADIO1", size=(40, 1), key='_load_data_path_'),
+                 [sg.Radio('Enter a CSV with your data', "RADIO1", size=(24, 1), key='_load_data_path_'),
                   sg.Input(), sg.FileBrowse(key='_file_path_'), ],
-                 [sg.Checkbox('Shuffle dataset', size=(25, 1), default=False, key='_shuffle_data_')],
+                 [sg.Checkbox('Shuffle dataset', size=(19, 1), default=False, key='_shuffle_data_')],
                  [sg.Text('Label index: '), sg.Input(default_text=0, key='_label_index_', size=(6, 1))],
              ],
                  title='Data', title_color='red', relief=sg.RELIEF_SUNKEN)],
@@ -158,12 +158,12 @@ class GUI:
 
              # Begin frame for output options
              [sg.Frame(layout=[
-                 [sg.Text('Font scale:                             '),
+                 [sg.Text('Font scale:                           '),
                   sg.Input(default_text=0.8, key='_font_scale_', size=(6, 1))],
-                 [sg.Text('Delay live visualization:            '),
+                 [sg.Text('Delay live visualization:          '),
                   sg.Input(default_text=1.0, key='_delay_', size=(6, 1))],
                  [sg.Checkbox('Live visualization', default=True, key='_live_visualization_')],
-                 [sg.Checkbox('Save results:', size=(20, 1), default=True,
+                 [sg.Checkbox('Save results:', size=(19, 1), default=True,
                               key='_save_results_'),
                   sg.Input('../pystreamfs/output_results', key='_file_path_saving_'), sg.FolderBrowse(),],],
                  title='Output options', title_color='red', relief=sg.RELIEF_SUNKEN,
