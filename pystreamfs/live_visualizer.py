@@ -49,7 +49,7 @@ def feature_subplot(ax, features, weights, xlabel, ylabel, title):
     ax.set_xticklabels(features)
     ax.set_ylabel(ylabel)
     ax.set_xlabel(xlabel, )
-    ax.set_title(title)
+    ax.set_title(title, weight='bold')
 
 
 # Create the progress bar
@@ -59,4 +59,4 @@ def progress_bar(ax, x_val, xlabel, timestep, max_timesteps, title):
     ax.set_yticks(ticks=())
     ax.set_ylabel('Step: ' + str(int(timestep+1)) + '/' + str(max_timesteps))
     ax.set_xlabel(xlabel)
-    ax.set_title(title)
+    ax.set_title(title, weight='bold')

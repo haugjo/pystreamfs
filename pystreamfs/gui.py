@@ -55,18 +55,20 @@ class GUI:
         # Create the dict with all default values
         self.values = {
             '_fs_algorithm_': 'Cancelout',
+            '_delay_': 1.0,
             '_no_features_': 5,
             '_batch_size_': 50,
             '_max_timesteps_': 10,
             '_shifting_window_range_': 20,
             '_file_path_': '../datasets/credit.csv',
+            '_file_path_saving_': '../pystreamfs/output_results',
             '_data_generator_': 'Agrawal',
             '_use_dataset_path_': '../datasets/credit.csv',
             '_shuffle_data_': False,
             '_label_index_': 0,
             '_font_scale_': 0.8,
-            '_summation_': True,
-            '_life_visualization_': True,
+            '_save_results_': True,
+            '_live_visualization_': True,
             '_efs_u_': None,
             '_efs_v_': None,
             '_efs_alpha_': 1.5,
@@ -141,13 +143,13 @@ class GUI:
 
              # Begin frame for data options
              [sg.Frame(layout=[
-                 [sg.Radio('Enter a CSV with your data', "RADIO1", default=True, size=(40, 1), key='_load_data_path_'),
-                  sg.Input(), sg.FileBrowse(key='_file_path_'), ],
-                 [sg.Radio('Chose a generator to create data', "RADIO1", size=(40, 1), key='_use_generator_'),
+                 [sg.Radio('Chose a generator to create data', "RADIO1", default=True, size=(40, 1), key='_use_generator_'),
                   sg.InputCombo(('Agrawal', 'Rbf', 'Sine'), size=(30, 1), key='_data_generator_')],
                  [sg.Radio('Use one of the existing datasets', "RADIO1", size=(40, 1), key='_load_data_CSV_'),
                   sg.InputCombo(('Credit', 'Drift', 'Har', 'KDD', 'MOA', 'Spambase', 'Usenet'), size=(30, 1),
                                 key='_use_dataset_path_')],
+                 [sg.Radio('Enter a CSV with your data', "RADIO1", size=(40, 1), key='_load_data_path_'),
+                  sg.Input(), sg.FileBrowse(key='_file_path_'), ],
                  [sg.Checkbox('Shuffle dataset', size=(25, 1), default=False, key='_shuffle_data_')],
                  [sg.Text('Label index: '), sg.Input(default_text=0, key='_label_index_', size=(6, 1))],
              ],
@@ -156,10 +158,14 @@ class GUI:
 
              # Begin frame for output options
              [sg.Frame(layout=[
-                 [sg.Text('Font scale: '),
+                 [sg.Text('Font scale:                             '),
                   sg.Input(default_text=0.8, key='_font_scale_', size=(6, 1))],
-                 [sg.Checkbox('Sum up results', size=(20, 1), default=True, key='_summation_'),
-                  sg.Checkbox('Live visualization', default=True, key='_life_visualization_')], ],
+                 [sg.Text('Delay live visualization:            '),
+                  sg.Input(default_text=1.0, key='_delay_', size=(6, 1))],
+                 [sg.Checkbox('Live visualization', default=True, key='_live_visualization_')],
+                 [sg.Checkbox('Save results:', size=(20, 1), default=True,
+                              key='_save_results_'),
+                  sg.Input('../pystreamfs/output_results', key='_file_path_saving_'), sg.FolderBrowse(),],],
                  title='Output options', title_color='red', relief=sg.RELIEF_SUNKEN,
                  tooltip='Set these options to customize your output')],
              # End frame for output options
@@ -289,7 +295,7 @@ class GUI:
 
     def run_pipeline(self):
         """
-        Run the pipeline with the selected parameter from the gui
+        Run the pipeline with the selected parameters from the gui
 
         """
 
@@ -377,13 +383,17 @@ class GUI:
         param['max_timesteps'] = int(self.values['_max_timesteps_'])
         param['font_scale'] = float(self.values['_font_scale_'])
         param['r'] = int(self.values['_shifting_window_range_'])
-        param['is_live'] = self.values['_life_visualization_']
+        param['is_live'] = self.values['_live_visualization_']
+        param['time_delay'] = float(self.values['_delay_'])
+        param['save_results'] = self.values['_save_results_']
+        param['save_path'] = self.values['_file_path_saving_']
+        param['fs_algo'] = self.values['_fs_algorithm_']
 
         # Use the feature selector on the chosen algorithm
         fs_algorithm = FeatureSelector(self.values['_fs_algorithm_'].lower(), fs_prop)
 
         # Generate Visualizer
-        visual = Visualizer(self.values['_life_visualization_'])
+        visual = Visualizer(self.values['_live_visualization_'])
 
         pipe = Pipeline(dataset, generator, fs_algorithm, visual, Perceptron(), accuracy_score, param)
 
@@ -396,13 +406,13 @@ class GUI:
 
 
 # Create the GUi object and collect its parameters as a dict
-test_gui = GUI()
-test_gui.create_gui()
+pysteamfs_gui = GUI()
+pysteamfs_gui.create_gui()
 
 # Check whether the pipeline should be started and print the parameters
-if test_gui.values['_final_event_'] == 'Submit':
+if pysteamfs_gui.values['_final_event_'] == 'Submit':
     print('The chosen parameters are: ')
-    for k, v in test_gui.values.items():
-        print('Keys: ' + str(k) + ', values: ' + str(type(v)))
+    for k, v in pysteamfs_gui.values.items():
+        print('Keys: ' + str(k) + ', value: ' + str(v))
     print('Starting the pipeline.')
-    test_gui.run_pipeline()
+    pysteamfs_gui.run_pipeline()

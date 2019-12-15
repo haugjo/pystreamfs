@@ -5,11 +5,9 @@ import warnings
 import time
 import seaborn as sns
 from pystreamfs import live_visualizer as lv
-from matplotlib import style
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
-from matplotlib.pyplot import figure, draw, pause
-from matplotlib import pyplot
+import json
 
 
 def prepare_data(data, target, shuffle):
@@ -75,8 +73,7 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
         # Set up window for live plotting
         sns.set_context('paper')
         plt.style.use('seaborn-darkgrid')
-        palette = ['#1f78b4', '#33a02c', '#fdbf6f', '#e31a1c']
-        delay = 1
+        delay = param['time_delay']
 
         # Lists for the plotted values
         # time
@@ -179,7 +176,7 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
             lv.regular_subplot_mean(plt.subplot(gs1[2, :]), x, y_performance, 'Time $t$', 'Accuracy score',
                                     'Learning Performance', y_performance_mean)
             lv.feature_subplot(plt.subplot(gs1[3, :]), selected_ftr, stats['weights'][int(t)], 'Feature',
-                               'Weight', 'Weights of sel features')
+                               'Weight', 'Weights of sel. features')
             lv.regular_subplot(plt.subplot(gs1[4, :]), x, y_feature_stability_mean, 'Time $t$', 'Stability',
                                'Mean of the feature stability')
             lv.progress_bar(plt.subplot(gs1[5, :]), x_current_percentage, 'Progress (%)', t,
@@ -207,8 +204,56 @@ def simulate_stream(dataset, generator, feature_selector, model, metric, param):
         stats['mu_measures'] = param['mu_measures']
         stats['sigma_measures'] = param['sigma_measures']
 
+    # save the results in a .json file
+    if 'save_results' in param:
+        # create the data correctly formatted for the json file
+        data = {}
+        data['fs algorithm'] = param['fs_algo']
+        data['time measures'] = []
+        data['memory measures'] = []
+        data['selected features'] = []
+        data['selected weights'] = []
+        data['performance measures'] = []
+
+        for x, val in enumerate(stats['time_measures']):
+            data['time measures'].append({
+                'timestep '+ str(x) : val
+            })
+            data['memory measures'].append({
+                'timestep '+ str(x) : stats['memory_measures'][x]
+            })
+            data['selected features'].append({
+                'timestep '+ str(x) : stats['features'][x]
+            })
+            data['selected weights'].append({
+                'timestep '+ str(x) : stats['weights'][x]
+            })
+            data['performance measures'].append({
+                'timestep '+ str(x) : stats['perf_measures'][x]
+            })
+
+        # add the average valeus to the .json file
+        data['time average'] = [stats['time_avg']]
+        data['memory average'] = [stats['memory_avg']]
+        data['performance average'] = [stats['perf_avg']]
+        data['stability average'] = [stats['stab_avg']]
+
+        # create the filename
+        timestr = time.strftime("%Y-%m-%d-%H-%M-%S")
+        filepath = param['save_path'] + '/' + timestr + '.json'
+
+        # create the file
+        file = open(filepath, "w")
+        file.write(' ')
+        file.close()
+
+        # save the data in the file
+        with open(filepath, 'w') as outfile:
+            json.dump(data, outfile, indent=2)
+
     # Close the live visualization since the final plot will appear
     # plt.close()
+
 
     return stats
 
