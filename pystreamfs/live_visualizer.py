@@ -32,7 +32,7 @@ def regular_subplot(ax, x_data, y_data, x_label, y_label, title):
 # Create The description
 def text_subplot(ax, delay):
     ax.axis('off')
-    ax.text(0, 1, 'Life visualization', weight='bold', size='xx-large')
+    ax.text(0, 1, 'Live visualization', weight='bold', size='xx-large')
     ax.axhline(0.9, color='black')
     ax.text(0, 0.5, 'Update speed: Time taken by the OFS algorithm + time delay of ' + str(delay) + ' s.')
     ax.text(0, 0.1, 'The delay can be changed in the GUI.')

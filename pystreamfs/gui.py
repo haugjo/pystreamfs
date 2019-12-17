@@ -135,8 +135,6 @@ class GUI:
                  [sg.Text('Batch size:                   '), sg.Input(default_text=50, key='_batch_size_', size=(6, 1))],
                  [sg.Text('Shifting window range:   '),
                   sg.Input(default_text=20, key='_shifting_window_range_', size=(6, 1))],
-                 [sg.Text('Timesteps generator:     '),
-                  sg.Input(default_text=10, key='_max_timesteps_', size=(6, 1))],
              ],
                  title='Feature selection parameters', title_color='red', relief=sg.RELIEF_SUNKEN)],
              # End frame for data options
@@ -151,7 +149,9 @@ class GUI:
                  [sg.Radio('Enter a CSV with your data', "RADIO1", size=(24, 1), key='_load_data_path_'),
                   sg.Input(), sg.FileBrowse(key='_file_path_'), ],
                  [sg.Checkbox('Shuffle dataset', size=(19, 1), default=False, key='_shuffle_data_')],
-                 [sg.Text('Label index: '), sg.Input(default_text=0, key='_label_index_', size=(6, 1))],
+                 [sg.Text('Timesteps generator:'),
+                  sg.Input(default_text=10, key='_max_timesteps_', size=(6, 1))],
+                 [sg.Text('Label index:             '), sg.Input(default_text=0, key='_label_index_', size=(6, 1))],
              ],
                  title='Data', title_color='red', relief=sg.RELIEF_SUNKEN)],
              # End frame for data options
@@ -395,6 +395,7 @@ class GUI:
         # Generate Visualizer
         visual = Visualizer(self.values['_live_visualization_'])
 
+        # Create the pipeline with the necessary parameters and options
         pipe = Pipeline(dataset, generator, fs_algorithm, visual, Perceptron(), accuracy_score, param)
 
         # Start Pipeline
