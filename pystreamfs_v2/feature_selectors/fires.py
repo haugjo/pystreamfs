@@ -5,6 +5,7 @@ from scipy.stats import norm
 import torch
 from torch import nn
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import MinMaxScaler
 
 
 class FIRESFeatureSelector(BaseFeatureSelector):
@@ -80,27 +81,27 @@ class FIRESFeatureSelector(BaseFeatureSelector):
             x = x[random_idx]
             y = y[random_idx]
 
+            # Transfer label 0 to label -1
+            y[y == 0] = -1
+
             for i in range(0, len(y), self.batch_size):
                 # Load mini batch
                 x_batch = x[i:i + self.batch_size]
                 y_batch = y[i:i + self.batch_size]
 
-                # Sub-functions
-                dot_x_mu = np.dot(x_batch, self.mu)  # x . mu
-                dot_x_sigma = np.dot(x_batch ** 2, self.sigma ** 2)  # x^2 . sigma^2
+                # Helper functions
+                dot_mu_x = np.dot(x_batch, self.mu)
+                rho = np.sqrt(1 + np.dot(x_batch**2, self.sigma**2))
 
-                # Partial derivatives of log likelihood with respect to mu and sigma
-                nabla_mu = norm.pdf(dot_x_mu / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y_batch) * (
-                        x_batch.T / np.sqrt(1 + dot_x_sigma))
+                # Gradients
+                nabla_mu = norm.pdf(y_batch/rho * dot_mu_x) * (y_batch/rho * x_batch.T)
+                nabla_sigma = norm.pdf(y_batch/rho * dot_mu_x) * (- y_batch/(2 * rho**3) * 2 * (x_batch**2 * self.sigma).T * dot_mu_x)
 
-                nabla_sigma = norm.pdf((-1) ** (1 - y_batch) * dot_x_mu / np.sqrt(1 + dot_x_sigma)) * (-1) ** (1 - y_batch) * (
-                        (2 * x_batch ** 2 * self.sigma).T * dot_x_mu) / (-2 * np.sqrt(1 + dot_x_sigma) ** 3)
-
-                # update parameters
+                # Update parameters
                 self.mu += self.lr_mu * np.mean(nabla_mu, axis=1)
                 self.sigma += self.lr_sigma * np.mean(nabla_sigma, axis=1)
 
-                # limit sigma to range [0, inf]
+                # Limit sigma to range [0, inf]
                 self.sigma[self.sigma < 0] = 0
 
     def __neural_net(self, x, y):
@@ -207,15 +208,21 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         sigma = self.sigma.copy()
 
         # Scale mu and sigma -> to avoid exploding gradient
-        mu /= np.sum(np.abs(mu))
-        sigma /= np.sum(np.abs(sigma))
+        # mu /= np.sum(np.abs(mu))
+        # sigma /= np.sum(np.abs(sigma))
 
         # Compute derivative of weight and lambda +  update with gradient ascent
-        w_update = np.abs(mu) - 2 * self.lamb * (self.raw_weight_vector * sigma ** 2) - 2 * self.raw_weight_vector
-        self.raw_weight_vector += self.lr_weights * w_update
+        # w_update = np.abs(mu) - 2 * self.lamb * (self.raw_weight_vector * sigma ** 2) - 2 * self.raw_weight_vector
+        # self.raw_weight_vector += self.lr_weights * w_update
 
-        lamb_update = -np.dot(self.raw_weight_vector ** 2, sigma ** 2)
-        self.lamb += self.lr_lamb * lamb_update
+        # lamb_update = -np.dot(self.raw_weight_vector ** 2, sigma ** 2)
+        # self.lamb += self.lr_lamb * lamb_update
+
+        # New closed form solution!!!
+        self.raw_weight_vector = 0.5 * mu**2 - (np.dot(mu**2, sigma**2) / (4 * np.dot(sigma**2, sigma**2))) * sigma**2
+
+        # Rescale to [0,1] -> we need positive weights for feature selection but want to maintain the rankings
+        self.raw_weight_vector = MinMaxScaler().fit_transform(self.raw_weight_vector.reshape(-1, 1)).flatten()
 
     ########################################
     # Helper Functions for Neural Net Todo: consider move to separate file

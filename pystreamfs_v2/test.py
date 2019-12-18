@@ -18,8 +18,10 @@ stream.prepare_for_use()
 ht = HoeffdingTree()
 
 """
-fs = FIREFeatureSelector(n_total_ftr=stream.n_features,
-                         n_selected_ftr=10)
+fs = FIRESFeatureSelector(n_total_ftr=stream.n_features,
+                          n_selected_ftr=10,
+                          model='probit',
+                          hidden_layers=5)
 
 fs = OFSFeatureSelector(n_total_ftr=stream.n_features,
                         n_selected_ftr=10)
@@ -35,7 +37,7 @@ fs = CancelOutFeatureSelector(n_total_ftr=stream.n_features,
 """
 fs = FIRESFeatureSelector(n_total_ftr=stream.n_features,
                           n_selected_ftr=10,
-                          model='neural_net',
+                          model='probit',
                           hidden_layers=5)
 
 stability = NogueiraStabilityMetric(sliding_window=20)
