@@ -163,7 +163,7 @@ class FIRESFeatureSelector(BaseFeatureSelector):
                     loss = criterion(y_pred, y_batch)
 
                     # Perform backpropagation and update weights
-                    loss.backward()
+                    loss.backward()  # Todo: backpropagate y_pred instead!
                     optimizer.step()
 
                     # Add gradient of current mini batch
@@ -193,9 +193,14 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         # limit sigma to range [0, inf]
         self.sigma_layer[self.sigma_layer < 0] = 0
 
-        # Merge mu and sigma matrix to 1-D vectors
-        self.mu = torch.mean(self.mu_layer, 0).numpy()  # check if correct mean is build
-        self.sigma = torch.mean(self.sigma_layer, 0).numpy()
+        ########################################
+        # 7. AGGREGATE PARAMETERS
+        ########################################
+        mean_mu_per_hidden = self.mu_layer.t() / torch.mean(self.mu_layer, 1)
+        mean_sigma_per_hidden = self.sigma_layer.t() / torch.mean(self.sigma_layer, 1)
+
+        self.mu = torch.mean(mean_mu_per_hidden, 1).numpy()  # check if correct mean is build
+        self.sigma = torch.mean(mean_sigma_per_hidden, 1).numpy()
 
     def __forest(self, x, y):
         for l in range(self.mc_samples):  # Train RF L times Todo: correct way?
