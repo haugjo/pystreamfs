@@ -5,24 +5,23 @@ import numpy as np
 from scipy.stats import norm
 import torch
 from torch import nn
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import MinMaxScaler
 
 
 class FIRESFeatureSelector(BaseFeatureSelector):
     def __init__(self, n_total_ftr, n_selected_ftr, sigma_init=1, epochs=5, batch_size=20, lr_mu=0.1, lr_sigma=0.1,
-                 lr_weights=0.1, lr_lamb=0.1, lamb_init=1, model='probit', hidden_dim=100, hidden_layers=1, output_dim=2,
-                 mc_samples=10, lr_optimizer=0.01, n_trees=10, tree_depth=5):
+                 model='probit', hidden_dim=100, hidden_layers=3, output_dim=2, mc_samples=5, lr_optimizer=0.01,
+                 tree_depth=3, lamda=0.001):
         if model == 'probit':
             supports_multi_class = False
             supports_streaming_features = False
             supports_concept_drift_detection = True
         elif model == 'ann':
             supports_multi_class = True
-            supports_streaming_features = True
+            supports_streaming_features = False
             supports_concept_drift_detection = True
         elif model == 'sdt':
-            supports_multi_class = False
+            supports_multi_class = True
             supports_streaming_features = False
             supports_concept_drift_detection = True
         else:
@@ -37,30 +36,36 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         self.batch_size = batch_size
         self.lr_mu = lr_mu
         self.lr_sigma = lr_sigma
-        # self.lr_weights = lr_weights Todo remove
-        # self.lr_lamb = lr_lamb
-        # self.lamb = lamb_init
         self.model = model
 
         # Neural Net model specific paramters
         if self.model in ['ann', 'sdt']:
+            self.output_dim = output_dim
+            self.mc_samples = mc_samples  # Monte Carlo samples
+            self.lr_optimizer = lr_optimizer  # Learning Rate
+
+            # ANN only
             self.hidden_layers = hidden_layers
             self.hidden_dim = hidden_dim
-            self.output_dim = output_dim
-            self.input_dim = n_total_ftr  # Todo: remove redundancy?
-            self.mc_samples = mc_samples
-            self.lr_optimizer = lr_optimizer
-            self.mu_layer = torch.zeros((hidden_dim, n_total_ftr))  # mu of weigths in first layer
-            self.sigma_layer = torch.ones((hidden_dim, n_total_ftr))  # Todo: * sigma_init  # sigma of weigths in first layer
+
+            # SDT only
+            self.tree_depth = tree_depth
+            self.num_inner_nodes = 2 ** tree_depth - 1
+            self.lamda = lamda
+
+            if self.model == 'ann':  # ANN
+                self.mu_layer = torch.zeros((hidden_dim, n_total_ftr))  # mu of weights in first layer
+                self.sigma_layer = torch.ones((hidden_dim, n_total_ftr))  # Todo: * sigma_init  # sigma of weigths in first layer
+            else:  # SDT
+                self.mu_layer = torch.zeros((self.num_inner_nodes, n_total_ftr))  # mu of weights in first layer
+                self.sigma_layer = torch.ones((self.num_inner_nodes, n_total_ftr))  # Todo: * sigma_init  # sigma of weigths in first layer
 
     def weight_features(self, x, y):
         # Update estimates of mu and sigma given the model
         if self.model == 'probit':
             self.__probit(x, y)
-        elif self.model == 'ann':
-            self.__ann(x, y)
-        elif self.model == 'sdt':
-            self.__sdt(x, y)
+        elif self.model in ['ann', 'sdt']:
+            self.__nonlinear(x, y, self.model)
         else:
             raise InvalidModelError('FIRE Feature Selection: The chosen model is not specified.')
 
@@ -100,7 +105,7 @@ class FIRESFeatureSelector(BaseFeatureSelector):
                 # Limit sigma to range [0, inf]
                 self.sigma[self.sigma < 0] = 0
 
-    def __ann(self, x, y):
+    def __nonlinear(self, x, y, type):
         ########################################
         # 1. DATA PREPARATION
         ########################################
@@ -109,27 +114,25 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         y = torch.from_numpy(y).long()
 
         ########################################
-        # 2. CHANGING FEATURES AND/OR CLASSES
+        # 2. MONTE CARLO SAMPLING
         ########################################
-        if x.size()[1] > self.input_dim:  # Todo
-            print('New feature detected')
+        if type == 'ann':  # ANN
+            size = (self.hidden_dim, self.n_total_ftr)
+            xavier = True
+        else:  # SDT
+            size = (self.num_inner_nodes, self.n_total_ftr)
+            xavier = True  # Todo: Do we really want this?
 
-        # Detect new classes
-        if len(y.unique()) > self.output_dim:  # Todo
-            print("New class detected")
-
-        ########################################
-        # 3. MONTE CARLO SAMPLING
-        ########################################
         theta, epsilon = monte_carlo_sampling(mc_samples=self.mc_samples,  # Sample the first layer weights
                                               mu=self.mu,
                                               sigma=self.sigma,
-                                              size=(self.hidden_dim, self.input_dim),
-                                              input_dim=self.input_dim,
-                                              output_dim=self.output_dim)
+                                              size=size,
+                                              input_dim=self.n_total_ftr,
+                                              output_dim=self.output_dim,
+                                              xavier=xavier)
 
         ########################################
-        # 4. TRAINING THE NET
+        # 3. TRAINING ANN OR SDT
         ########################################
         nabla_theta = dict()
 
@@ -137,12 +140,18 @@ class FIRESFeatureSelector(BaseFeatureSelector):
             # Initialize gradient of theta for current sample l
             nabla_theta[l] = torch.zeros_like(theta[l])
 
-            # Initialize Neural Net, loss function and optimizer
-            model = Net(self.input_dim, self.hidden_dim, self.hidden_layers, self.output_dim)
-            model.init_weights(theta[l].clone())  # set weights theta
-            criterion = nn.NLLLoss()  # Negative Log Likelihood loss for classification
-            optimizer = torch.optim.SGD(model.parameters(), lr=self.lr_optimizer)  # specify optimizer, here SGD
+            if type == 'ann':  # ANN
+                # Initialize Neural Net, loss function and optimizer
+                model = Net(self.n_total_ftr, self.hidden_dim, self.hidden_layers, self.output_dim)
+                criterion = nn.NLLLoss()  # Negative Log Likelihood loss for classification
+            else:  # SDT
+                model = SDT(depth=self.tree_depth, lamda=self.lamda, input_dim=self.n_total_ftr, output_dim=self.output_dim)
+                criterion = nn.CrossEntropyLoss()
 
+            model.init_weights(theta[l].clone())  # set weights of current MC sample
+            optimizer = torch.optim.SGD(model.parameters(), lr=self.lr_optimizer)
+
+            # ITERATIVE UPDATE
             for epoch in range(self.epochs):
                 # shuffle sample
                 idx = torch.randperm(len(y))
@@ -158,18 +167,26 @@ class FIRESFeatureSelector(BaseFeatureSelector):
                     optimizer.zero_grad()
 
                     # Forward pass of neural net
-                    y_pred = model(x_batch)
-                    loss = criterion(y_pred, y_batch)
+                    if type == 'ann':
+                        y_pred = model(x_batch)
+                        loss = criterion(y_pred, y_batch)
+                    else:
+                        y_pred, penalty = model(x_batch)
+                        loss = criterion(y_pred, y_batch)
+                        loss += penalty
 
                     # Perform backpropagation and update weights
                     loss.backward()
                     optimizer.step()
 
                     # Add gradient of current mini batch
-                    nabla_theta[l] += model.linear_in.weight.grad
+                    if type == 'ann':  # ANN
+                        nabla_theta[l] += model.linear_in.weight.grad
+                    else:  # SDT
+                        nabla_theta[l] += model.inner_nodes.linear.weight.grad
 
         ########################################
-        # 5. COMPUTE GRADIENT ON MU AND SIGMA
+        # 4. COMPUTE GRADIENT ON MU AND SIGMA
         ########################################
         # Initialize the gradients
         nabla_mu = torch.zeros(theta[0].size())
@@ -184,7 +201,7 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         nabla_sigma /= self.mc_samples
 
         ########################################
-        # 6. UPDATE MU AND SIGMA
+        # 5. UPDATE MU AND SIGMA
         ########################################
         self.mu_layer -= self.lr_mu * nabla_mu
         self.sigma_layer -= self.lr_sigma * nabla_sigma
@@ -193,37 +210,15 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         self.sigma_layer[self.sigma_layer < 0] = 0
 
         ########################################
-        # 7. AGGREGATE PARAMETERS
+        # 6. AGGREGATE PARAMETERS
         ########################################
-        self.mu = torch.sum(self.mu_layer, 0).numpy() / self.hidden_dim
-        self.sigma = torch.sum(self.sigma_layer, 0).numpy() / self.hidden_dim
+        if type == 'ann':  # ANN
+            scaler = self.hidden_dim
+        else:  # SDT
+            scaler = self.num_inner_nodes
 
-    def __sdt(self, x, y):
-        # Format sample as tensor
-        x = torch.from_numpy(x).float()  # format sample as tensor
-        y = torch.from_numpy(y).long()
-
-        tree = SDT(depth=5, lamda=0.001, input_dim=self.input_dim, output_dim=self.output_dim, lr=self.lr_optimizer)
-        criterion = nn.CrossEntropyLoss()
-
-        for epoch in range(self.epochs):
-            # Training stage
-            tree.train()
-            for i in range(0, len(y), self.batch_size):
-                # Load mini batch
-                x_batch = x[i:i + self.batch_size]
-                y_batch = y[i:i + self.batch_size]
-
-                output, penalty = tree.forward(x_batch)
-
-                tree.optimizer.zero_grad()
-                loss = criterion(output, y_batch.view(-1))
-                loss += penalty
-                loss.backward()
-                tree.optimizer.step()
-
-        test = tree.inner_nodes.linear.weight  # Todo merge with ANN code
-        test = None
+        self.mu = torch.sum(self.mu_layer, 0).numpy() / scaler
+        self.sigma = torch.sum(self.sigma_layer, 0).numpy() / scaler
 
     def __update_weights(self):
         mu = self.mu.copy()

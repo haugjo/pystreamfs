@@ -4,7 +4,7 @@ from collections import OrderedDict
 import numpy as np
 
 
-def monte_carlo_sampling(mc_samples, mu, sigma, size, input_dim=None, output_dim=None):
+def monte_carlo_sampling(mc_samples, mu, sigma, size, input_dim=None, output_dim=None, xavier=False):
     """
     Monte Carlo sampling of theta with reparameterization trick
 
@@ -15,7 +15,7 @@ def monte_carlo_sampling(mc_samples, mu, sigma, size, input_dim=None, output_dim
     epsilon = dict()  # reparametrization parameter
 
     for l in range(mc_samples):
-        if input_dim is not None:
+        if xavier:
             # Xavier weight initialization
             epsilon[l] = torch.distributions.normal.Normal(0, np.sqrt(2 / (input_dim + output_dim))).sample(size)
         else:
@@ -66,7 +66,7 @@ class SDT(nn.Module):
     Code based on "Distilling a Neural Network Into a Soft Decision Tree" (Frosst, Hinton 2017)
     as provided at https://github.com/AaronX121/Soft-Decision-Tree/blob/master/SDT.py  (with slight changes)
     """
-    def __init__(self, depth, lamda, input_dim, output_dim, lr):
+    def __init__(self, depth, lamda, input_dim, output_dim):
         super(SDT, self).__init__()
         self.depth = depth
         self.inner_node_num = 2 ** self.depth - 1
@@ -82,12 +82,10 @@ class SDT(nn.Module):
         ]))
         self.leaf_nodes = nn.Linear(self.leaf_num, output_dim, bias=False)
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
-
     def forward(self, data):
         _mu, _penalty = self._forward(data)
-        output = self.leaf_nodes(_mu)
-        return output, _penalty
+        y_pred = self.leaf_nodes(_mu)
+        return y_pred, _penalty
 
     """ Core implementation on data forwarding in SDT """
     def _forward(self, data):
@@ -122,14 +120,9 @@ class SDT(nn.Module):
             penalty -= self.penalty_list[layer_idx] * 0.5 * (torch.log(alpha) + torch.log(1 - alpha))
         return penalty
 
-    """ Add constant 1 onto the front of each instance 
-    def _data_augment_(self, input):
-        batch_size = input.size()[0]
-        input = input.view(batch_size, -1)
-        bias = torch.ones(batch_size, 1)
-        input = torch.cat((bias, input), 1)
-        return input
-    """
+    def init_weights(self, theta):  # Attachment to original code: To enable Monte Carlo Approximation
+        # initialize weights of first layer
+        self.inner_nodes.linear.weight = nn.Parameter(theta)
 
 
 '''

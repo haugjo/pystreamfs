@@ -20,8 +20,7 @@ ht = HoeffdingTree()
 """
 fs = FIRESFeatureSelector(n_total_ftr=stream.n_features,
                           n_selected_ftr=10,
-                          model='probit',
-                          hidden_layers=5)
+                          model='probit')
 
 fs = OFSFeatureSelector(n_total_ftr=stream.n_features,
                         n_selected_ftr=10)
@@ -37,15 +36,13 @@ fs = CancelOutFeatureSelector(n_total_ftr=stream.n_features,
 """
 fs = FIRESFeatureSelector(n_total_ftr=stream.n_features,
                           n_selected_ftr=10,
-                          model='sdt',
-                          hidden_layers=5,
-                          hidden_dim=100)
+                          model='sdt')
 
 stability = NogueiraStabilityMetric(sliding_window=20)
 
 accuracy = PredictiveMetric.sklearn_metric(metric=accuracy_score, name='Accuracy')
 
 evaluator = EvaluateFeatureSelection(max_samples=100000, batch_size=100, pretrain_size=100, max_time=float("inf"),
-                                pred_metric=accuracy, fs_metric=stability, output_file_path=None, show_plot=False)
+                                     pred_metric=accuracy, fs_metric=stability, output_file_path=None, show_plot=True)
 
 evaluator.evaluate(stream, fs, ht, predictive_model_name='HoeffdingTree')
