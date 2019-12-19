@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from collections import OrderedDict
 import numpy as np
 
 
@@ -58,6 +59,77 @@ class Net(nn.Module):
     def init_weights(self, theta):
         # initialize weights of first layer
         self.linear_in.weight = nn.Parameter(theta)
+
+
+class SDT(nn.Module):
+    """
+    Code based on "Distilling a Neural Network Into a Soft Decision Tree" (Frosst, Hinton 2017)
+    as provided at https://github.com/AaronX121/Soft-Decision-Tree/blob/master/SDT.py  (with slight changes)
+    """
+    def __init__(self, depth, lamda, input_dim, output_dim, lr):
+        super(SDT, self).__init__()
+        self.depth = depth
+        self.inner_node_num = 2 ** self.depth - 1
+        self.leaf_num = 2 ** self.depth
+
+        # Different penalty coefficients for nodes in different layer
+        self.penalty_list = [lamda * (2 ** (-dp)) for dp in range(0, self.depth)]
+
+        # Initialize inner nodes and leaf nodes
+        self.inner_nodes = nn.Sequential(OrderedDict([
+            ('linear', nn.Linear(input_dim, self.inner_node_num, bias=False)),
+            ('sigmoid', nn.Sigmoid()),
+        ]))
+        self.leaf_nodes = nn.Linear(self.leaf_num, output_dim, bias=False)
+
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=lr)
+
+    def forward(self, data):
+        _mu, _penalty = self._forward(data)
+        output = self.leaf_nodes(_mu)
+        return output, _penalty
+
+    """ Core implementation on data forwarding in SDT """
+    def _forward(self, data):
+        batch_size = data.size()[0]
+        path_prob = self.inner_nodes(data)
+        path_prob = torch.unsqueeze(path_prob, dim=2)
+        path_prob = torch.cat((path_prob, 1 - path_prob), dim=2)
+        _mu = data.data.new(batch_size, 1, 1).fill_(1.)
+        _penalty = torch.tensor(0.)
+
+        begin_idx = 0
+        end_idx = 1
+
+        for layer_idx in range(0, self.depth):
+            _path_prob = path_prob[:, begin_idx:end_idx, :]
+            _penalty = _penalty + self._cal_penalty(layer_idx, _mu, _path_prob)  # extract inner nodes in current layer to calculate regularization term
+            _mu = _mu.view(batch_size, -1, 1).repeat(1, 1, 2)
+            _mu = _mu * _path_prob
+            begin_idx = end_idx
+            end_idx = begin_idx + 2 ** (layer_idx + 1)
+        mu = _mu.view(batch_size, self.leaf_num)
+        return mu, _penalty
+
+    """ Calculate penalty term for inner-nodes in different layer """
+    def _cal_penalty(self, layer_idx, _mu, _path_prob):
+        penalty = torch.tensor(0.)
+        batch_size = _mu.size()[0]
+        _mu = _mu.view(batch_size, 2 ** layer_idx)
+        _path_prob = _path_prob.view(batch_size, 2 ** (layer_idx + 1))
+        for node in range(0, 2 ** (layer_idx + 1)):
+            alpha = torch.sum(_path_prob[:, node] * _mu[:, node // 2], dim=0) / torch.sum(_mu[:, node // 2], dim=0)
+            penalty -= self.penalty_list[layer_idx] * 0.5 * (torch.log(alpha) + torch.log(1 - alpha))
+        return penalty
+
+    """ Add constant 1 onto the front of each instance 
+    def _data_augment_(self, input):
+        batch_size = input.size()[0]
+        input = input.view(batch_size, -1)
+        bias = torch.ones(batch_size, 1)
+        input = torch.cat((bias, input), 1)
+        return input
+    """
 
 
 '''

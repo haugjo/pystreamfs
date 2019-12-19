@@ -134,11 +134,11 @@ class EvaluateFeatureSelection:
         print('Evaluating...')
         while ((self.global_sample_count < self.max_samples) & (timer() - self.start_time < self.max_time)
                & (self.stream.has_more_samples())):
-            try:
-                self.one_training_iteration()
-            except BaseException as exc:
-                print(exc)
-                break
+            # try:
+            self.one_training_iteration()
+            # except BaseException as exc:
+            #    print(exc)
+            #    break
 
     def one_training_iteration(self):
         # Load batch

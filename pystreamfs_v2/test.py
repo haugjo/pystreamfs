@@ -37,7 +37,7 @@ fs = CancelOutFeatureSelector(n_total_ftr=stream.n_features,
 """
 fs = FIRESFeatureSelector(n_total_ftr=stream.n_features,
                           n_selected_ftr=10,
-                          model='neural_net',
+                          model='sdt',
                           hidden_layers=5,
                           hidden_dim=100)
 
@@ -46,6 +46,6 @@ stability = NogueiraStabilityMetric(sliding_window=20)
 accuracy = PredictiveMetric.sklearn_metric(metric=accuracy_score, name='Accuracy')
 
 evaluator = EvaluateFeatureSelection(max_samples=100000, batch_size=100, pretrain_size=100, max_time=float("inf"),
-                                pred_metric=accuracy, fs_metric=stability, output_file_path=None, show_plot=True)
+                                pred_metric=accuracy, fs_metric=stability, output_file_path=None, show_plot=False)
 
 evaluator.evaluate(stream, fs, ht, predictive_model_name='HoeffdingTree')
