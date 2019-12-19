@@ -38,7 +38,8 @@ fs = CancelOutFeatureSelector(n_total_ftr=stream.n_features,
 fs = FIRESFeatureSelector(n_total_ftr=stream.n_features,
                           n_selected_ftr=10,
                           model='neural_net',
-                          hidden_layers=5)
+                          hidden_layers=5,
+                          hidden_dim=100)
 
 stability = NogueiraStabilityMetric(sliding_window=20)
 

@@ -1,5 +1,6 @@
 from pystreamfs_v2.feature_selectors.base_feature_selector import BaseFeatureSelector
 from pystreamfs_v2.utils.exceptions import InvalidModelError
+from pystreamfs_v2.feature_selectors.fires_utils import monte_carlo_sampling, Net
 import numpy as np
 from scipy.stats import norm
 import torch
@@ -115,19 +116,22 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         ########################################
         # 2. CHANGING FEATURES AND/OR CLASSES
         ########################################
-        if x.size()[1] > self.input_dim:
-            # mu_1, sigma_1, param, new_features = _new_input_dim(x.size()[1], mu_1, sigma_1, param)  # init new input nodes Todo
+        if x.size()[1] > self.input_dim:  # Todo
             print('New feature detected')
 
         # Detect new classes
-        if len(y.unique()) > self.output_dim:
-            # mu_2, sigma_2, param = _new_output_dim(output_dim, mu_2, sigma_2, param)  # init new output nodes Todo
+        if len(y.unique()) > self.output_dim:  # Todo
             print("New class detected")
 
         ########################################
         # 3. MONTE CARLO SAMPLING
         ########################################
-        theta, epsilon = self._monte_carlo_sampling((self.hidden_dim, self.input_dim))  # Sample first layer weights
+        theta, epsilon = monte_carlo_sampling(mc_samples=self.mc_samples,  # Sample the first layer weights
+                                              mu=self.mu,
+                                              sigma=self.sigma,
+                                              size=(self.hidden_dim, self.input_dim),
+                                              input_dim=self.input_dim,
+                                              output_dim=self.output_dim)
 
         ########################################
         # 4. TRAINING THE NET
@@ -139,7 +143,7 @@ class FIRESFeatureSelector(BaseFeatureSelector):
             nabla_theta[l] = torch.zeros_like(theta[l])
 
             # Initialize Neural Net, loss function and optimizer
-            model = _Net(self.input_dim, self.hidden_dim, self.hidden_layers, self.output_dim)
+            model = Net(self.input_dim, self.hidden_dim, self.hidden_layers, self.output_dim)
             model.init_weights(theta[l].clone())  # set weights theta
             criterion = nn.NLLLoss()  # Negative Log Likelihood loss for classification
             optimizer = torch.optim.SGD(model.parameters(), lr=self.lr_optimizer)  # specify optimizer, here SGD
@@ -163,7 +167,7 @@ class FIRESFeatureSelector(BaseFeatureSelector):
                     loss = criterion(y_pred, y_batch)
 
                     # Perform backpropagation and update weights
-                    loss.backward()  # Todo: backpropagate y_pred instead!
+                    loss.backward()
                     optimizer.step()
 
                     # Add gradient of current mini batch
@@ -196,11 +200,8 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         ########################################
         # 7. AGGREGATE PARAMETERS
         ########################################
-        mean_mu_per_hidden = self.mu_layer.t() / torch.mean(self.mu_layer, 1)
-        mean_sigma_per_hidden = self.sigma_layer.t() / torch.mean(self.sigma_layer, 1)
-
-        self.mu = torch.mean(mean_mu_per_hidden, 1).numpy()  # check if correct mean is build
-        self.sigma = torch.mean(mean_sigma_per_hidden, 1).numpy()
+        self.mu = torch.sum(self.mu_layer, 0).numpy() / self.hidden_dim
+        self.sigma = torch.sum(self.sigma_layer, 0).numpy() / self.hidden_dim
 
     def __forest(self, x, y):
         for l in range(self.mc_samples):  # Train RF L times Todo: correct way?
@@ -212,136 +213,8 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         mu = self.mu.copy()
         sigma = self.sigma.copy()
 
-        # Scale mu and sigma -> to avoid exploding gradient
-        # mu /= np.sum(np.abs(mu))
-        # sigma /= np.sum(np.abs(sigma))
-
-        # Compute derivative of weight and lambda +  update with gradient ascent
-        # w_update = np.abs(mu) - 2 * self.lamb * (self.raw_weight_vector * sigma ** 2) - 2 * self.raw_weight_vector
-        # self.raw_weight_vector += self.lr_weights * w_update
-
-        # lamb_update = -np.dot(self.raw_weight_vector ** 2, sigma ** 2)
-        # self.lamb += self.lr_lamb * lamb_update
-
-        # New closed form solution!!!
+        # Closed form solution of weight objective function
         self.raw_weight_vector = 0.5 * mu**2 - (np.dot(mu**2, sigma**2) / (4 * np.dot(sigma**2, sigma**2))) * sigma**2
 
         # Rescale to [0,1] -> we need positive weights for feature selection but want to maintain the rankings
         self.raw_weight_vector = MinMaxScaler().fit_transform(self.raw_weight_vector.reshape(-1, 1)).flatten()
-
-    ########################################
-    # Helper Functions for Neural Net Todo: consider move to separate file
-    ########################################
-    def _monte_carlo_sampling(self, size):
-        """
-        Monte Carlo sampling of theta with reparameterization trick
-
-        size = (rows, columns) of weight matrix theta
-        """
-        theta = dict()
-        epsilon = dict()  # reparametrization parameter
-
-        for l in range(self.mc_samples):
-            # Xavier weight initialization
-            epsilon[l] = torch.distributions.normal.Normal(0, np.sqrt(2 / (self.input_dim + self.output_dim))).sample(size)
-            theta[l] = epsilon[l] * torch.from_numpy(self.sigma).float() + torch.from_numpy(self.mu).float()
-
-        return theta, epsilon
-
-    def _new_input_dim(self, new_dim, mu_1, sigma_1, param):
-        """
-        Adjust to new dimensionality of feature space (Feature Stream) by adding new input nodes.
-        Initialize new first layer weights.
-
-        :param int new_dim: new input dimensionality
-        :param torch.tensor mu_1: mu of first layer weights
-        :param torch.tensor sigma_1: sigma of first layer weights
-        :param dict param: parameters, includes:
-            - int d: prior input dimensionality
-        :return: mu_1, sigma_1 (including the new input nodes), param, new_features (no. of added input nodes/new features)
-        :rtype: torch.tensor, torch.tensor, dict, int
-        """
-        # number of new features
-        new_features = new_dim - param['d']
-
-        # current average of mu and sigma
-        avg_mu = torch.mean(mu_1, 1).view(-1, 1)
-        avg_sigma = torch.mean(sigma_1, 1).view(-1, 1)
-
-        cat_mu = torch.cat([avg_mu] * new_features, 1)
-        cat_sigma = torch.cat([avg_sigma] * new_features, 1)
-
-        # add input node
-        mu_1 = torch.cat((mu_1, cat_mu), 1)
-        sigma_1 = torch.cat((sigma_1, cat_sigma), 1)
-
-        param['d'] = new_dim  # update feature dimensionality
-
-        return mu_1, sigma_1, param, new_features
-
-    def _new_output_dim(new_dim, mu_2, sigma_2, param):
-        """
-        Adjust to newly appeared classes (Concept Evolution) by adding new output nodes.
-        Initialize new second layer weights.
-
-        :param int new_dim: new output dimensionality
-        :param torch.tensor mu_2: mu of second layer weights
-        :param torch.tensor sigma_2: sigma of second layer weights
-        :param dict param: parameters, includes:
-            - int classes: prior no. of classes
-        :return: mu_2, sigma_2 (including the new output nodes, param
-        :rtype: torch.tensor, torch.tensor, dict, int
-        """
-        # number of new classes
-        new_classes = new_dim - param['classes']
-
-        # current average of mu and sigma
-        avg_mu = torch.mean(mu_2, 0)
-        avg_sigma = torch.mean(sigma_2, 0)
-
-        cat_mu = torch.unsqueeze(torch.cat([avg_mu] * new_classes, 0), 0)
-        cat_sigma = torch.unsqueeze(torch.cat([avg_sigma] * new_classes, 0), 0)
-
-        # add input node
-        mu_2 = torch.cat((mu_2, cat_mu), 0)
-        sigma_2 = torch.cat((sigma_2, cat_sigma), 0)
-
-        param['classes'] = new_dim  # update number of classes
-
-        return mu_2, sigma_2, param
-
-
-class _Net(nn.Module):
-    """Feed Forward Neural net with fully connected layers
-    - with softplus activation of the hidden nodes
-    - with softmax activation of the output nodes
-    """
-    def __init__(self, input_dim, hidden_dim, hidden_layers, output_dim):
-        super(_Net, self).__init__()
-        self.linear_in = nn.Linear(input_dim, hidden_dim, bias=False)  # define input to hidden layer
-        self.softplus = nn.Softplus()
-
-        self.linear_hidden = nn.ModuleList()
-        self.softplus_hidden = nn.ModuleList()
-        for h in range(hidden_layers - 1):  # minus 1 because 1 hidden layer is implemented per se
-            self.linear_hidden.append(nn.Linear(hidden_dim, hidden_dim, bias=False))
-            self.softplus_hidden.append(nn.Softplus())
-
-        self.linear_out = nn.Linear(hidden_dim, output_dim, bias=False)  # define hidden to output layer
-        self.logsoftmax = nn.LogSoftmax(dim=1)
-
-    def forward(self, x):
-        input_hidden = self.linear_in(x)
-        hidden = self.softplus(input_hidden)
-
-        for layer, activation in zip(self.linear_hidden, self.softplus_hidden):
-            hidden = layer(hidden)
-            hidden = activation(hidden)
-
-        out_linear = self.linear_out(hidden)
-        y_pred = self.logsoftmax(out_linear)
-        return y_pred
-
-    def init_weights(self, theta):
-        # initialize weights of first layer
-        self.linear_in.weight = nn.Parameter(theta)
