@@ -8,7 +8,6 @@ from pystreamfs_v2.feature_selectors.fsds import FSDSFeatureSelector
 from pystreamfs_v2.feature_selectors.cancelout import CancelOutFeatureSelector
 
 from skmultiflow.trees import HoeffdingTree, HATT, HAT
-from skmultiflow.neural_networks.perceptron import PerceptronMask
 from skmultiflow.data import FileStream
 from sklearn.metrics import accuracy_score
 
