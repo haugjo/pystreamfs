@@ -93,7 +93,8 @@ class GUI:
             '_mcnn_max_n_': 100,
             '_mcnn_e_threshold_': 3,
             '_mcnn_max_out_of_var_bound_': 0.3,
-            '_mcnn_p_diff_threshold_': 50
+            '_mcnn_p_diff_threshold_': 50,
+            '_use_param_file_': False
         }
 
     def create_gui(self):
@@ -171,19 +172,38 @@ class GUI:
              # End frame for output options
 
              # Submit to start program, cancel to stop
-             [sg.Submit(), sg.Cancel()]]
+             [sg.Submit(), sg.Exit()]]
 
         # Set window to display your options
         window = sg.Window('PystreamFS', layout)
         # Check for the different events and perform the needed actions
         while True:
             event, w_input = window.Read()
-            if event is None or event == 'Cancel':
+            if event is None or event == 'Cancel' or event == 'Exit':
                 break
             if event == 'Submit':
                 break
             if event == 'About...':
-                sg.PopupOK("Chose your parameter you want to use for the selected feature selection algorithm")
+                sg.PopupOK('Chose the parameters you want to use for the selected feature selection algorithm.')
+
+            # Save parameters
+            if event == 'Open file with parameters':
+                try:
+                    f = open('param.txt', 'r').read()
+                    self.values = eval(f)
+                    self.values['_use_param_file_'] = True
+                    # event = 'Submit'
+                    break
+                except IOError:
+                    sg.Popup('File with parameters is not accessible')
+            if event == 'Save parameters':
+                try:
+                    f = open('param.txt', 'w')
+                    f.write(str(self.values))
+                    f.close()
+                    sg.Popup('Parameters written to param.txt')
+                except IOError:
+                    print('File not accessible')
 
             # Events for fs_selection
             if event == 'Edit parameters' and w_input['_fs_algorithm_'] == 'Cancelout':
@@ -289,9 +309,10 @@ class GUI:
         # Add the last event to the dict to check whether the pipe should be started or not
         self.values['_final_event_'] = event
 
-        # Update the values dict with the window input dict
-        self.values.update(w_input)
-        print('Update values are: ' + str(self.values))
+        # Update the values dict with the window input dict if no param file is used
+        if not self.values['_use_param_file_']:
+            self.values.update(w_input)
+        print('Values are: ' + str(self.values))
 
     def run_pipeline(self):
         """
