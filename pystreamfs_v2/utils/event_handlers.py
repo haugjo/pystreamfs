@@ -47,7 +47,8 @@ def update_data_buffer(evaluator):
         train_time_var=evaluator.predictor.training_time.var.copy(),
         predictor_metric_measures=evaluator.predictor_metric.measures.copy(),
         predictor_metric_mean=evaluator.predictor_metric.mean.copy(),
-        predictor_metric_var=evaluator.predictor_metric.var.copy()
+        predictor_metric_var=evaluator.predictor_metric.var.copy(),
+        predictions=evaluator.predictor.predictions.copy()
     )
 
 
@@ -76,7 +77,7 @@ def update_progress_bar(evaluator):
 
 
 def summarize_evaluation(evaluator):
-    _print_to_console(evaluator)
+    # _print_to_console(evaluator)  Todo: Reactivate again!!!!
     if evaluator.output_file_path is not None:
         _save_to_json(evaluator)
 

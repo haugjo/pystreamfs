@@ -225,7 +225,7 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         sigma = self.sigma.copy()
 
         # Closed form solution of weight objective function
-        self.raw_weight_vector = 0.5 * mu**2 - (np.dot(mu**2, sigma**2) / (4 * np.dot(sigma**2, sigma**2))) * sigma**2
+        self.raw_weight_vector = 0.5 * mu**2 - 0.5 * (np.dot(mu ** 2, sigma ** 2) / np.dot(sigma ** 2, sigma ** 2)) * sigma**2
 
         # Rescale to [0,1] -> we need positive weights for feature selection but want to maintain the rankings
         self.raw_weight_vector = MinMaxScaler().fit_transform(self.raw_weight_vector.reshape(-1, 1)).flatten()

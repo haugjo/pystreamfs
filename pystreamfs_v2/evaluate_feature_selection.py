@@ -88,7 +88,7 @@ class EvaluateFeatureSelection:
         self.predictor = _BasePredictiveModel(name=predictive_model_name, model=predictive_model)  # Wrap scikit-multiflow evaluator
 
         # Specify true max samples
-        if self.max_samples > self.stream.n_samples:
+        if (self.stream.n_remaining_samples() > 0) and (self.stream.n_remaining_samples() < self.max_samples):
             self.max_samples = self.stream.n_samples
 
         # Fire event
@@ -191,7 +191,6 @@ class EvaluateFeatureSelection:
     def _sparsify_x(x, retained_features):
         """Set given features to zero
         This is done to specify active features in a feature stream and to specify the currently active features
-        Todo: this is not the clean way! Find alternative implementation
         """
         sparse_matrix = np.zeros(x.shape)
         sparse_matrix[:, retained_features] = x[:, retained_features]
