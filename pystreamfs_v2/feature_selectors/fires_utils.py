@@ -4,7 +4,7 @@ from collections import OrderedDict
 import numpy as np
 
 
-def monte_carlo_sampling(mc_samples, mu, sigma, size, input_dim=None, output_dim=None, xavier=False):
+def monte_carlo_sampling(mc_samples, mu, sigma, size, input_dim=None, output_dim=None):
     """
     Monte Carlo sampling of theta with reparameterization trick
 
@@ -12,17 +12,34 @@ def monte_carlo_sampling(mc_samples, mu, sigma, size, input_dim=None, output_dim
     input_dim, output_dim = dimensions of ANN -> only needed for xavier initialization
     """
     theta = dict()
-    epsilon = dict()  # reparametrization parameter
+    epsilon = dict()  # reparameterization parameter
 
     for l in range(mc_samples):
-        if xavier:
+        theta[l] = dict()
+        epsilon[l] = dict()
+
+        for s in size.keys():
             # Xavier weight initialization
-            epsilon[l] = torch.distributions.normal.Normal(0, np.sqrt(2 / (input_dim + output_dim))).sample(size)
-        else:
-            epsilon[l] = torch.distributions.normal.Normal(0, 1).sample(size)
-        theta[l] = epsilon[l] * torch.from_numpy(sigma).float() + torch.from_numpy(mu).float()
+            epsilon[l][s] = torch.distributions.normal.Normal(0, np.sqrt(2 / (input_dim + output_dim))).sample(size[s])
+            theta[l][s] = epsilon[l][s] * sigma[s] + mu[s]
 
     return theta, epsilon
+
+
+def aggregate_weights(mu_layer, sigma_layer, input_dim):
+    mu_hidden_sum = 0
+    sigma_hidden_sum = 0
+
+    # Aggregate weights starting at output layer
+    for key in mu_layer.keys():
+        if key != 'input':
+            mu_hidden_sum += torch.mean(mu_layer[key])
+            sigma_hidden_sum += torch.mean(sigma_layer[key])
+
+    mu = torch.mean(mu_layer['input'], 0) + mu_hidden_sum
+    sigma = torch.mean(sigma_layer['input'], 0) + sigma_hidden_sum
+
+    return mu.numpy(), sigma.numpy()  # return as numpy
 
 
 class Net(nn.Module):
@@ -57,8 +74,13 @@ class Net(nn.Module):
         return y_pred
 
     def init_weights(self, theta):
-        # initialize weights of first layer
-        self.linear_in.weight = nn.Parameter(theta)
+        # initialize weights
+        self.linear_in.weight = nn.Parameter(theta['input'])
+
+        for h, h_layer in enumerate(self.linear_hidden):
+            h_layer.weight = nn.Parameter(theta['hidden{}'.format(h)])
+
+        self.linear_out.weight = nn.Parameter(theta['output'])
 
 
 class SDT(nn.Module):
@@ -122,7 +144,7 @@ class SDT(nn.Module):
 
     def init_weights(self, theta):  # Attachment to original code: To enable Monte Carlo Approximation
         # initialize weights of first layer
-        self.inner_nodes.linear.weight = nn.Parameter(theta)
+        self.inner_nodes.linear.weight = nn.Parameter(theta['inner'])
 
 
 '''
