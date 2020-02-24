@@ -42,7 +42,7 @@ fs = FIRESFeatureSelector(n_total_ftr=stream.n_features,
                           lr_sigma=0.01,
                           epochs=1,
                           batch_size=25,
-                          model='probit')
+                          model='sdt')
 
 stability = NogueiraStabilityMetric(sliding_window=10)
 

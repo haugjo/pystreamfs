@@ -113,8 +113,8 @@ class FIRESFeatureSelector(BaseFeatureSelector):
                 marginal = norm.cdf(y_batch/rho * dot_mu_x)  # Todo: Check performance for scaled weight updates
 
                 # Update parameters
-                self.mu += self.lr_mu * np.mean(nabla_mu / marginal, axis=1)
-                self.sigma += self.lr_sigma * np.mean(nabla_sigma / marginal, axis=1)
+                self.mu += self.lr_mu * np.mean(nabla_mu / marginal, axis=1)  # Todo: Check performance for scaled weight updates
+                self.sigma += self.lr_sigma * np.mean(nabla_sigma / marginal, axis=1)  # Todo: Check performance for scaled weight updates
 
                 # Limit sigma to range [0, inf]
                 self.sigma[self.sigma < 0] = 0
@@ -151,7 +151,7 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         # 3. TRAINING ANN OR SDT
         ########################################
         nabla_theta = dict()
-        prediction = dict()  # Todo: check performance of scaling
+        marginal = torch.zeros(y.shape[0])  # Todo: check performance of scaling
 
         for l in range(self.mc_samples):  # For all samples L
             nabla_theta[l] = dict()
@@ -177,6 +177,8 @@ class FIRESFeatureSelector(BaseFeatureSelector):
                 idx = torch.randperm(len(y))
                 x = x[idx]
                 y = y[idx]
+                marginal = marginal[idx]  # Todo: check performance
+                predict = torch.zeros_like(marginal)  # Todo: check performance
 
                 for i in range(0, len(y), self.batch_size):
                     # Load mini batch
@@ -195,8 +197,9 @@ class FIRESFeatureSelector(BaseFeatureSelector):
                         loss = criterion(y_pred, y_batch)
                         loss += penalty
 
-                    # Save prediction
-                    prediction[l] = y_pred  # Todo: check performance of scaling
+                    # Save prediction Todo: check performance of scaling
+                    predict[i:i + self.batch_size][y_batch == 0] = torch.exp(y_pred[:, 0])[y_batch == 0]
+                    predict[i:i + self.batch_size][y_batch == 1] = torch.exp(y_pred[:, 1])[y_batch == 1]
 
                     # Perform backpropagation and update weights
                     loss.backward()
@@ -211,12 +214,17 @@ class FIRESFeatureSelector(BaseFeatureSelector):
                     else:  # SDT
                         nabla_theta[l]['inner'] += model.inner_nodes.linear.weight.grad
 
+                marginal += predict  # Todo: check performance of scaling
         ########################################
         # 4. COMPUTE GRADIENT ON MU AND SIGMA
         ########################################
         # Initialize the gradients
         nabla_mu = dict()
         nabla_sigma = dict()
+
+        # Marginal Likelihood
+        marginal /= (self.mc_samples * self.epochs)  # Todo: check performance of scaling
+        marginal = torch.mean(marginal)  # get mean probability for whole batch
 
         for s in size.keys():
             nabla_mu[s] = torch.zeros(theta[0][s].size())
@@ -233,8 +241,8 @@ class FIRESFeatureSelector(BaseFeatureSelector):
             ########################################
             # 5. UPDATE MU AND SIGMA
             ########################################
-            self.mu_layer[s] -= self.lr_mu * nabla_mu[s]
-            self.sigma_layer[s] -= self.lr_sigma * nabla_sigma[s]
+            self.mu_layer[s] -= self.lr_mu * (nabla_mu[s] / marginal.item())  # Todo: check performance of scaling
+            self.sigma_layer[s] -= self.lr_sigma * (nabla_sigma[s] / marginal.item())  # Todo: check performance of scaling
 
             # limit sigma to range [0, inf]
             self.sigma_layer[s][self.sigma_layer[s] < 0] = 0
@@ -253,7 +261,6 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         sigma = self.sigma.copy()
 
         # Closed form solution of weight objective function
-        # self.raw_weight_vector = 0.5 * mu**2 - 0.5 * (np.dot(mu ** 2, sigma ** 2) / np.dot(sigma ** 2, sigma ** 2)) * sigma**2
         self.raw_weight_vector = (mu**2 - self.factor_sigma * sigma**2) / (2 * self.factor_reg)
 
         # Rescale to [0,1] -> we need positive weights for feature selection but want to maintain the rankings
