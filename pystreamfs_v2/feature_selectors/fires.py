@@ -110,11 +110,11 @@ class FIRESFeatureSelector(BaseFeatureSelector):
                 nabla_sigma = norm.pdf(y_batch/rho * dot_mu_x) * (- y_batch/(2 * rho**3) * 2 * (x_batch**2 * self.sigma).T * dot_mu_x)
 
                 # Marginal Likelihood
-                marginal = norm.cdf(y_batch/rho * dot_mu_x)  # Todo: Check performance for scaled weight updates
+                marginal = norm.cdf(y_batch/rho * dot_mu_x)
 
                 # Update parameters
-                self.mu += self.lr_mu * np.mean(nabla_mu / marginal, axis=1)  # Todo: Check performance for scaled weight updates
-                self.sigma += self.lr_sigma * np.mean(nabla_sigma / marginal, axis=1)  # Todo: Check performance for scaled weight updates
+                self.mu += self.lr_mu * np.mean(nabla_mu / marginal, axis=1)
+                self.sigma += self.lr_sigma * np.mean(nabla_sigma / marginal, axis=1)
 
                 # Limit sigma to range [0, inf]
                 self.sigma[self.sigma < 0] = 0
