@@ -2,12 +2,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
-from timeit import default_timer as timer
 
 
 class Visualizer:
-    """Visualization of results"""
-    def __init__(self, data_buffer):
+    """ Live visualization of the evaluation results """
+    def __init__(self, evaluator):  # Todo: enable multiple metrics
         # General parameters
         sns.set_context('paper')
         plt.style.use('seaborn-darkgrid')
@@ -25,12 +24,12 @@ class Visualizer:
 
         # Evaluation parameters -> not updated
         self.param_ax = self.fig.add_subplot(self.grid1[0, :])
-        self.param_ax = self._draw_param_plot(self.param_ax, data_buffer)
+        self.param_ax = self._draw_param_plot(self.param_ax, evaluator)
 
         # Feature Selection computation time
         self.fs_time_ax = self.fig.add_subplot(self.grid1[1, 0])
         self.fs_time_ax, self.fs_time_measures, self.fs_time_mean = self._draw_regular_subplot(self.fs_time_ax,
-                                                                                               data_buffer=data_buffer,
+                                                                                               evaluator=evaluator,
                                                                                                x_label='Time $t$',
                                                                                                y_label='Time (s)',
                                                                                                title='Feature Selection Time',
@@ -39,7 +38,7 @@ class Visualizer:
         # Predictive Model Training Time
         self.training_time_ax = self.fig.add_subplot(self.grid1[1, 1])
         self.training_time_ax, self.training_time_measures, self.training_time_mean = self._draw_regular_subplot(self.training_time_ax,
-                                                                                                                 data_buffer=data_buffer,
+                                                                                                                 evaluator=evaluator,
                                                                                                                  x_label='Time $t$',
                                                                                                                  y_label='Training Time (s)',
                                                                                                                  title='Predictive Model Training Time',
@@ -48,28 +47,30 @@ class Visualizer:
         # Performance Score
         self.predictor_metric_ax = self.fig.add_subplot(self.grid1[2, :])
         self.predictor_metric_ax, self.predictor_metric_measures, self.predictor_metric_mean = self._draw_regular_subplot(self.predictor_metric_ax,
-                                                                                                                          data_buffer=data_buffer,
+                                                                                                                          evaluator=evaluator,
                                                                                                                           x_label='Time $t$',
-                                                                                                                          y_label=data_buffer.predictor_metric_name,
+                                                                                                                          y_label=evaluator.pred_metrics[0].name,
                                                                                                                           title='Learning Performance',
                                                                                                                           palette=self.palette)
 
         # Selected features
         self.selection_ax = self.fig.add_subplot(self.grid1[3:-1, :])
         self.selection_ax, self.selection_measures = self._draw_selection_subplot(self.selection_ax,
-                                                                                  data_buffer=data_buffer,
+                                                                                  evaluator=evaluator,
                                                                                   palette=self.palette)
 
         # FS Metric -> grid2
         self.fs_metric_ax = self.fig.add_subplot(self.grid2[5, :])
         self.fs_metric_ax, self.fs_metric_measures, self.fs_metric_mean = self._draw_regular_subplot(self.fs_metric_ax,
-                                                                                                     data_buffer=data_buffer,
+                                                                                                     evaluator=evaluator,
                                                                                                      x_label='Time $t$',
-                                                                                                     y_label=data_buffer.fs_metric_name,
+                                                                                                     y_label=evaluator.fs_metrics[0].name,
                                                                                                      title=None,
                                                                                                      palette=self.palette)
 
     def init(self):
+        """ Initialize the subplot placeholders """
+
         self.fs_time_measures.set_data([], [])
         self.fs_time_mean.set_data([], [])
         self.training_time_measures.set_data([], [])
@@ -84,37 +85,41 @@ class Visualizer:
                 self.predictor_metric_measures, self.predictor_metric_mean, self.fs_metric_measures,
                 self.fs_metric_mean, self.selection_measures]
 
-    def func(self, data_buffer):
-        """function to update plots given the new frames (data_buffer)"""
+    def func(self, evaluator):
+        """ Update plots given a new frame (current evaluator)
 
-        x = np.arange(len(data_buffer.fs_time_measures))
+        :param evaluator: (EvaluateFeatureSelection) Evaluator object
+
+        """
+
+        x = np.arange(len(evaluator.fs_time_measures))
 
         # Feature Selection computation time
-        self.fs_time_ax.set_ylim(0, max(data_buffer.fs_time_measures))  # update y-lim
-        self.fs_time_measures.set_data(x, data_buffer.fs_time_measures)
-        self.fs_time_mean.set_data(x, data_buffer.fs_time_mean)
+        self.fs_time_ax.set_ylim(0, max(evaluator.feature_selector.comp_time.measures))  # update y-lim
+        self.fs_time_measures.set_data(x, evaluator.feature_selector.comp_time.measures)
+        self.fs_time_mean.set_data(x, evaluator.feature_selector.comp_time.mean)
 
         # Predictive Model Training Time
-        self.training_time_ax.set_ylim(0, max(data_buffer.train_time_measures))
-        self.training_time_measures.set_data(x, data_buffer.train_time_measures)
-        self.training_time_mean.set_data(x, data_buffer.train_time_mean)
+        self.training_time_ax.set_ylim(0, max(evaluator.predictor.training_time.measures))
+        self.training_time_measures.set_data(x, evaluator.predictor.training_time.measures)
+        self.training_time_mean.set_data(x, evaluator.predictor.training_time.mean)
 
-        # Predictor Metric
-        if max(data_buffer.predictor_metric_measures) > 1:  # update y-lim if range not in [0,1]
-            self.predictor_metric_ax.set_ylim(0, max(data_buffer.predictor_metric_measures))
-        self.predictor_metric_measures.set_data(x, data_buffer.predictor_metric_measures)
-        self.predictor_metric_mean.set_data(x, data_buffer.predictor_metric_mean)
+        # Predictor Metric Todo: add iterator for all metrics
+        if max(evaluator.pred_metrics[0].measures) > 1:  # update y-lim if range not in [0,1]
+            self.predictor_metric_ax.set_ylim(0, max(evaluator.pred_metrics[0].measures))
+        self.predictor_metric_measures.set_data(x, evaluator.pred_metrics[0].measures)
+        self.predictor_metric_mean.set_data(x, evaluator.pred_metrics[0].mean)
 
         # FS Metric
-        if max(data_buffer.fs_metric_measures) > 1:  # update y-lim if range not in [0,1]
-            self.fs_metric_ax.set_ylim(0, max(data_buffer.fs_metric_measures))
-        self.fs_metric_measures.set_data(x, data_buffer.fs_metric_measures)
-        self.fs_metric_mean.set_data(x, data_buffer.fs_metric_mean)
+        if max(evaluator.fs_metrics[0].measures) > 1:  # update y-lim if range not in [0,1]
+            self.fs_metric_ax.set_ylim(0, max(evaluator.fs_metrics[0].measures))
+        self.fs_metric_measures.set_data(x, evaluator.fs_metrics[0].measures)
+        self.fs_metric_mean.set_data(x, evaluator.fs_metrics[0].mean)
 
         # Selected features
         x = []
         y = []
-        for i, val in enumerate(data_buffer.ftr_selection):
+        for i, val in enumerate(evaluator.feature_selector.selection):
             x.extend(np.ones(len(val), dtype=int) * i)
             y.extend(val)
 
@@ -126,41 +131,68 @@ class Visualizer:
 
     @staticmethod
     def data_generator(evaluator):
-        """Regular test_then_train function but yielding a new frame for the live visualization at every iteration"""
-        print('Evaluating...')
-        while ((evaluator.global_sample_count < evaluator.max_samples) & (timer() - evaluator.start_time < evaluator.max_time)
-               & (evaluator.stream.has_more_samples())):
+        """ Yield frames for live plot Todo: check if we can call _test_then_train() directly
+
+        This function corresponds to EvaluateFeatureSelection._test_then_train() but yields a new frame (current evaluator) at every iteration.
+
+        :param evaluator: (EvaluateFeatureSelection) Evaluator object
+
+        """
+        while evaluator.global_sample_count < evaluator.max_samples:
             try:
                 evaluator.one_training_iteration()
-                yield evaluator.data_buffer  # yield new frame
+                yield evaluator
             except BaseException as exc:
                 print(exc)
                 break
 
     @staticmethod
-    def _draw_param_plot(ax, data_buffer):  # Todo move to separate file
+    def _draw_param_plot(ax, evaluator):
+        """ Draw the parameter subplot
+
+        :param ax: (plt.axis) Axis identifier on the grid
+        :param evaluator: (EvaluateFeatureSelection) Evaluator object
+        :return: ax
+        :rtype plt.axis
+
+        """
         ax.axis('off')
-        ax.text(0, 1, 'Pystreamfs Evaluation: $' + data_buffer.fs_name + '$ (Feature Selector) --- $'
-                + data_buffer.predictor_name + '$ (Predictive Model)', weight='bold', size='xx-large')
+        ax.text(0, 1, 'Pystreamfs Evaluation: $' + evaluator.feature_selector.name + '$ (Feature Selector) --- $'
+                + evaluator.predictor.name + '$ (Predictive Model)', weight='bold', size='xx-large')
 
         # Draw horizontal line as separator
         ax.axhline(0.95, color='black')
 
         # General Parameters
-        ax.text(0, 0.65, 'n_selected_ftr = ' + str(data_buffer.n_selected_ftr) + '/' + str(data_buffer.n_total_ftr))
-        ax.text(0.2, 0.65, 'batch_size = ' + str(data_buffer.batch_size))
-        ax.text(0, 0.35, 'samples = ' + str(data_buffer.max_samples))
-        ax.text(0.2, 0.35, 'pretrain_size = ' + str(data_buffer.pretrain_size))
+        ax.text(0, 0.65, 'n_selected_ftr = ' + str(evaluator.n_selected_ftr) + '/' + str(evaluator.n_total_ftr))
+        ax.text(0.2, 0.65, 'batch_size = ' + str(evaluator.batch_size))
+        ax.text(0, 0.35, 'samples = ' + str(evaluator.max_samples))
+        ax.text(0.2, 0.35, 'pretrain_size = ' + str(evaluator.pretrain_size))
 
         return ax
 
     @staticmethod
-    def _draw_regular_subplot(ax, data_buffer, x_label, y_label, title, palette):
+    def _draw_regular_subplot(ax, evaluator, x_label, y_label, title, palette):
+        """  Draw a line plot (used for illustrating metrics)
+
+        This returns a two line plots per axis (the measures and a moving average)
+
+        :param ax: (plt.axis) Axis identifier on the grid
+        :param evaluator: (EvaluateFeatureSelection) Evaluator object
+        :param x_label: (str) Label of x-axis
+        :param y_label: (str) Label of y-axis
+        :param title: (str) Plot Title
+        :param palette: (list) Color palette
+        :return: ax, measures, avg
+        :rtype plt.axis, plt.axis.plot, plt.axis.plot
+
+        """
+
         measures, = ax.plot([], [], color=palette[0])  # measures
         avg, = ax.plot([], [], color=palette[3], ls='--')  # moving average
 
         # Set x-lim
-        x_lim = (data_buffer.max_samples - data_buffer.pretrain_size)/data_buffer.batch_size
+        x_lim = (evaluator.max_samples - evaluator.pretrain_size) / evaluator.batch_size
         ax.set_xlim(0, x_lim)
 
         # Set y-lim
@@ -184,18 +216,29 @@ class Visualizer:
         return ax, measures, avg
 
     @staticmethod
-    def _draw_selection_subplot(ax, data_buffer, palette):
-        ax.set_title('Selected Features ($m=' + str(data_buffer.n_selected_ftr) + '$) & ' + data_buffer.fs_metric_name, weight='bold')
+    def _draw_selection_subplot(ax, evaluator, palette):
+        """ Draw the selected features
+
+        Returns a scatter plot of selected features at each time step
+
+        :param ax: (plt.axis) Axis identifier on the grid
+        :param evaluator: (EvaluateFeatureSelection) Evaluator object
+        :param palette: (list) Color palette
+        :return: ax, measures
+        :rtype plt.axis, plt.axis.plot
+
+        """
+        ax.set_title('Selected Features ($m=' + str(evaluator.n_selected_ftr) + '$) & ' + evaluator.fs_metric_name, weight='bold')
         ax.set_ylabel('Feature Index')
 
         # plot selected features for each time step
         measures = ax.scatter([], [], marker='_', color=palette[0])
 
         # Set x-lim
-        x_lim = (data_buffer.max_samples - data_buffer.pretrain_size) / data_buffer.batch_size
+        x_lim = (evaluator.max_samples - evaluator.pretrain_size) / evaluator.batch_size
         ax.set_xlim(0, x_lim)
 
         # Set y-lim
-        ax.set_ylim(0, data_buffer.n_total_ftr)
+        ax.set_ylim(0, evaluator.n_total_ftr)
 
         return ax, measures

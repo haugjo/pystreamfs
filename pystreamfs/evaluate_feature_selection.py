@@ -99,15 +99,14 @@ class EvaluateFeatureSelection:
 
     def _test_then_train(self):
         """ Test-then-train evaluation """
-        print('Evaluating...')
         while self.global_sample_count < self.max_samples:
             try:
-                self._one_training_iteration()
+                self.one_training_iteration()
             except BaseException as exc:
                 print(exc)
                 break
 
-    def _one_training_iteration(self):
+    def one_training_iteration(self):
         # Load data batch
         if self.global_sample_count + self.batch_size <= self.max_samples:
             samples = self.batch_size

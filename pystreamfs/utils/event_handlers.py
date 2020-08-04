@@ -6,9 +6,8 @@ from datetime import datetime
 
 from skmultiflow.data.base_stream import Stream
 
-from pystreamfs.metrics.fs_metrics.fs_metric import FSMetric
-from pystreamfs.metrics.predictive_metrics.predictive_metric import PredictiveMetric
-from pystreamfs.utils.exceptions import InvalidModelError
+from pystreamfs.metrics.fs_metric import FSMetric
+from pystreamfs.metrics.predictive_metric import PredictiveMetric
 from pystreamfs.feature_selectors.base_feature_selector import BaseFeatureSelector
 
 
@@ -56,24 +55,24 @@ def _check_configuration(evaluator):
 
     """
     if not isinstance(evaluator.stream, Stream):
-        raise InvalidModelError('Data stream must be of type skmultiflow.data.base_stream.Stream')
+        raise BaseException('Data stream must be of type skmultiflow.data.base_stream.Stream')
 
     if not isinstance(evaluator.feature_selector, BaseFeatureSelector):
-        raise InvalidModelError('Feature selection model must be of type pystreamfs.feature_selectors.base_feature_selector.BaseFeatureSelector')
+        raise BaseException('Feature selection model must be of type pystreamfs.feature_selectors.base_feature_selector.BaseFeatureSelector')
 
     if not hasattr(evaluator.predictor.model, 'partial_fit'):
-        raise InvalidModelError('Predictive model must have a function partial_fit()')
+        raise BaseException('Predictive model must have a function partial_fit()')
 
     if not hasattr(evaluator.predictor.model, 'predict'):
-        raise InvalidModelError('Predictive model must have a function predict()')
+        raise BaseException('Predictive model must have a function predict()')
 
     for metric in evaluator.pred_metrics:
         if not isinstance(metric, PredictiveMetric):
-            raise InvalidModelError('Predictive metrics must be of type pystreamfs.metrics.predictive_metrics.predictive_metric.PredictiveMetric')
+            raise BaseException('Predictive metrics must be of type pystreamfs.metrics.predictive_metrics.predictive_metric.PredictiveMetric')
 
     for metric in evaluator.fs_metrics:
         if not isinstance(metric, FSMetric):
-            raise InvalidModelError('Feature selection metrics must be of type pystreamfs.metrics.fs_metrics.fs_metric.FSMetric')
+            raise BaseException('Feature selection metrics must be of type pystreamfs.metrics.fs_metrics.fs_metric.FSMetric')
 
 
 def _pretrain_predictive_model(evaluator):

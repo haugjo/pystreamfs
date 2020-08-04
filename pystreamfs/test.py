@@ -1,17 +1,10 @@
 from pystreamfs.evaluate_feature_selection import EvaluateFeatureSelection
-from pystreamfs.metrics.fs_metrics.stability_metric import NogueiraStabilityMetric
-from pystreamfs.metrics.predictive_metrics.predictive_metric import PredictiveMetric
+from pystreamfs.metrics.nogueira_metric import NogueiraStabilityMetric
+from pystreamfs.metrics.predictive_metric import PredictiveMetric
 from pystreamfs.feature_selectors.fires import FIRESFeatureSelector
-from pystreamfs.feature_selectors.ofs import OFSFeatureSelector
-from pystreamfs.feature_selectors.efs import EFSFeatureSelector
-from pystreamfs.feature_selectors.fsds import FSDSFeatureSelector
-from pystreamfs.feature_selectors.cancelout import CancelOutFeatureSelector
 
-from skmultiflow.trees import HoeffdingTree, HATT, HAT
 from skmultiflow.data import FileStream
 from skmultiflow.neural_networks import PerceptronMask
-from skmultiflow.meta import OnlineBoosting
-from skmultiflow.bayes import NaiveBayes
 from sklearn.metrics import accuracy_score
 
 stream = FileStream('../datasets/spambase.csv', target_idx=0)
