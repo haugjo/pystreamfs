@@ -1,11 +1,10 @@
 import sys
+import json
 from tabulate import tabulate
 from timeit import default_timer as timer
-import json
 from datetime import datetime
 
 from skmultiflow.data.base_stream import Stream
-from skmultiflow.core.base import ClassifierMixin
 
 from pystreamfs.metrics.fs_metrics.fs_metric import FSMetric
 from pystreamfs.metrics.predictive_metrics.predictive_metric import PredictiveMetric
@@ -20,7 +19,6 @@ def start_evaluation_routine(evaluator):
 
     """
     _check_configuration(evaluator)
-    _init_data_buffer(evaluator)
     if evaluator.pretrain_size > 0:
         _pretrain_predictive_model(evaluator)
 
@@ -34,7 +32,6 @@ def finish_iteration_routine(evaluator, samples):
     """
     evaluator.iteration += 1
     evaluator.global_sample_count += samples
-    _update_data_buffer(evaluator)
     _update_progress_bar(evaluator)
 
 
@@ -45,43 +42,46 @@ def finish_evaluation_routine(evaluator):
 
     """
     evaluator.data_stream.restart()
-    _update_data_buffer(evaluator)
-    _summarize_evaluation(evaluator)
+    _print_to_console(evaluator)
+    if evaluator.output_file_path is not None:
+        _save_to_json(evaluator)
 
 
 def _check_configuration(evaluator):
+    """ Check configurations and variables
+
+    Prior to the evaluation, we check that critical variables have the correct data type
+
+    :param evaluator: (EvaluateFeatureSelection) Evaluator object
+
+    """
     if not isinstance(evaluator.stream, Stream):
-        raise InvalidModelError('Specified data stream is not of type Stream (scikit-multiflow data type)')
+        raise InvalidModelError('Data stream must be of type skmultiflow.data.base_stream.Stream')
+
     if not isinstance(evaluator.feature_selector, BaseFeatureSelector):
-        raise InvalidModelError('Specified feature selection model is not of type BaseFeatureSelector '
-                                '(pystreamfs data type)')
-    if not isinstance(evaluator.predictor.model, ClassifierMixin):
-        raise InvalidModelError('Specified predictive model is not of type ClassifierMixin '
-                                '(scikit-multiflow data type)')
-    if not isinstance(evaluator.predictor_metric, PredictiveMetric):
-        raise InvalidModelError('Specified predictive metric is not of type BaseMetric '
-                                '(pystreamfs data type)')
-    if not isinstance(evaluator.feature_selector_metric, FSMetric):
-        raise InvalidModelError('Specified feature selection metric is not of type FSMetric(BaseMetric) '
-                                '(pystreamfs data type)')
+        raise InvalidModelError('Feature selection model must be of type pystreamfs.feature_selectors.base_feature_selector.BaseFeatureSelector')
 
+    if not hasattr(evaluator.predictor.model, 'partial_fit'):
+        raise InvalidModelError('Predictive model must have a function partial_fit()')
 
-def _init_data_buffer(evaluator):
-    evaluator.data_buffer.set_elements(
-        fs_name=evaluator.feature_selector.name,
-        fs_metric_name=evaluator.feature_selector_metric.name,
-        n_selected_ftr=evaluator.feature_selector.n_selected_ftr,
-        n_total_ftr=evaluator.feature_selector.n_total_ftr,
-        predictor_name=evaluator.predictor.name,
-        predictor_metric_name=evaluator.predictor_metric.name,
-        batch_size=evaluator.batch_size,
-        max_samples=evaluator.max_samples,
-        pretrain_size=evaluator.pretrain_size,
-        iteration=evaluator.iteration
-    )
+    if not hasattr(evaluator.predictor.model, 'predict'):
+        raise InvalidModelError('Predictive model must have a function predict()')
+
+    for metric in evaluator.pred_metrics:
+        if not isinstance(metric, PredictiveMetric):
+            raise InvalidModelError('Predictive metrics must be of type pystreamfs.metrics.predictive_metrics.predictive_metric.PredictiveMetric')
+
+    for metric in evaluator.fs_metrics:
+        if not isinstance(metric, FSMetric):
+            raise InvalidModelError('Feature selection metrics must be of type pystreamfs.metrics.fs_metrics.fs_metric.FSMetric')
 
 
 def _pretrain_predictive_model(evaluator):
+    """ Pre-train the predictive model before starting the evaluation
+
+    :param evaluator: (EvaluateFeatureSelection) Evaluator object
+
+    """
     print('Pre-train {} with {} observation(s).'.format(evaluator.predictor.name, evaluator.pretrain_size))
 
     X, y = evaluator.data_stream.next_sample(evaluator.pretrain_size)
@@ -91,53 +91,24 @@ def _pretrain_predictive_model(evaluator):
     evaluator.global_sample_count += evaluator.pretrain_size
 
 
-def _update_data_buffer(evaluator):
-    evaluator.data_buffer.set_elements(  # Todo: is it possible just to add the last element instead of saving the whole arrays again?
-        ftr_weights=evaluator.feature_selector.weights.copy(),
-        ftr_selection=evaluator.feature_selector.selection.copy(),
-        concept_drifts=evaluator.feature_selector.concept_drifts.copy(),
-        fs_time_measures=evaluator.feature_selector.comp_time.measures.copy(),
-        fs_time_mean=evaluator.feature_selector.comp_time.mean.copy(),
-        fs_time_var=evaluator.feature_selector.comp_time.var.copy(),
-        fs_metric_measures=evaluator.feature_selector_metric.measures.copy(),
-        fs_metric_mean=evaluator.feature_selector_metric.mean.copy(),
-        fs_metric_var=evaluator.feature_selector_metric.var.copy(),
-        test_time_measures=evaluator.predictor.testing_time.measures.copy(),
-        test_time_mean=evaluator.predictor.testing_time.mean.copy(),
-        test_time_var=evaluator.predictor.testing_time.var.copy(),
-        train_time_measures=evaluator.predictor.training_time.measures.copy(),
-        train_time_mean=evaluator.predictor.training_time.mean.copy(),
-        train_time_var=evaluator.predictor.training_time.var.copy(),
-        predictor_metric_measures=evaluator.predictor_metric.measures.copy(),
-        predictor_metric_mean=evaluator.predictor_metric.mean.copy(),
-        predictor_metric_var=evaluator.predictor_metric.var.copy(),
-        predictions=evaluator.predictor.predictions.copy()
-    )
-
-
 def _update_progress_bar(evaluator):
+    """ Update the progress bar
+
+    :param evaluator: (EvaluateFeatureSelection) Evaluator object
+
+    """
     j = evaluator.global_sample_count / evaluator.max_samples
     sys.stdout.write('\r')
     sys.stdout.write("[%-20s] %d%%" % ('=' * int(20 * j), 100 * j))
     sys.stdout.flush()
 
 
-def _summarize_evaluation(evaluator):
-    _print_to_console(evaluator)
-    if evaluator.output_file_path is not None:
-        _save_to_json(evaluator)
-
-
-def _save_to_json(evaluator):
-    file_name = evaluator.output_file_path + 'pystreamfs_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.json'
-
-    with open(file_name, 'w') as fp:
-        json.dump(vars(evaluator.data_buffer), fp)
-
-    print('Saved results to "{}"'.format(file_name))
-
-
 def _print_to_console(evaluator):
+    """ Print a summary of the evaluation to the console
+
+    :param evaluator: (EvaluateFeatureSelection) Evaluator object
+
+    """
     print('\n################################## SUMMARY ##################################')
     print('Evaluation finished after {}s'.format(timer() - evaluator.start_time))
     print('Processed {} instances in batches of {}'.format(evaluator.global_sample_count, evaluator.batch_size))
@@ -157,3 +128,18 @@ def _print_to_console(evaluator):
         'Avg. {}'.format(evaluator.predictor_metric.name): [evaluator.predictor_metric.mean]
     }, headers="keys", tablefmt='github'))
     print('#############################################################################')
+
+
+def _save_to_json(evaluator):
+    """ Save the evaluator object to a json file
+
+    Only save attributes that do not contain a function
+
+    :param evaluator: (EvaluateFeatureSelection) Evaluator object
+
+    """
+    file_name = evaluator.output_file_path + 'pystreamfs_' + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + '.json'
+    print('Save results to "{}"'.format(file_name))
+
+    with open(file_name, 'w') as fp:
+        json.dump(vars(evaluator), fp)

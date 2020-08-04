@@ -55,7 +55,7 @@ class EvaluateFeatureSelection:
         self.data_stream = None             # (skmultiflow.data.FileStream) Streaming data
         self.feature_selector = None        # (BaseFeatureSelector) Feature selection model
         self.predictor = None               # (_BasePredictiveModel) Predictive model with partial_fit() function
-        self.data_buffer = DataBuffer()     # (DataBuffer) Data buffer for visualization and summary file
+        # self.data_buffer = DataBuffer()     # (DataBuffer) Data buffer for visualization and summary file Todo: delete
         self.visualizer = None              # (Visualizer) Live plot object
         self.active_features = []           # (list) Indices of currently active features (for simulating streaming features)
 
@@ -82,7 +82,7 @@ class EvaluateFeatureSelection:
 
         # Evaluation
         if self.live_plot:  # If live visualization
-            self.visualizer = Visualizer(self.data_buffer)  # Initialize visualization object
+            self.visualizer = Visualizer(self)  # Initialize visualization object
             ani = animation.FuncAnimation(fig=self.visualizer.fig,
                                           func=self.visualizer.func,
                                           init_func=self.visualizer.init,
@@ -132,7 +132,7 @@ class EvaluateFeatureSelection:
 
         # Testing
         start = time.time()
-        prediction = self.predictor.model.predict(X).tolist()  # Todo: evaluate that model has predict() method
+        prediction = self.predictor.model.predict(X).tolist()
         self.predictor.testing_time.compute(start, time.time())
         self.predictor.predictions.append(prediction)
         for metric in self.pred_metrics:
@@ -140,7 +140,7 @@ class EvaluateFeatureSelection:
 
         # Training
         start = time.time()
-        self.predictor.model.partial_fit(X, y, self.data_stream.target_values)  # Todo: evaluate that model has partial_fit()
+        self.predictor.model.partial_fit(X, y, self.data_stream.target_values)
         self.predictor.training_time.compute(start, time.time())
 
         # Finish iteration
