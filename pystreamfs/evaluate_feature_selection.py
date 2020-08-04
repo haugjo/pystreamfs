@@ -1,4 +1,6 @@
-from timeit import default_timer as timer
+import time
+import warnings
+import copy
 import numpy as np
 from abc import ABCMeta
 
@@ -7,100 +9,80 @@ import matplotlib.animation as animation
 
 from pystreamfs.metrics.time_metric import TimeMetric
 from pystreamfs.utils.base_event import Event
-from pystreamfs.utils.event_handlers import init_data_buffer, update_data_buffer, check_configuration, update_progress_bar, summarize_evaluation
+from pystreamfs.utils.event_handlers import start_evaluation_routine, finish_iteration_routine, finish_evaluation_routine
 from pystreamfs.utils.base_data_buffer import DataBuffer
 from pystreamfs.visualization.visualizer import Visualizer
 
 
 class EvaluateFeatureSelection:
-    """ Evaluation of online Feature Selection algorithms
-    using the prequential evaluation method or interleaved test-then-train method.
+    """ Main class: Evaluate the online feature selection model
 
-    Reduced version of PrequentialEvaluation from scikit-multiflow, optimized for online feature selection
+    Models are processed in an interleaved test-then-train evaluation (aka. prequential evaluation)
+
+    This class was inspired by the 'PrequentialEvaluation' class from scikit mutliflow
+    (https://scikit-multiflow.readthedocs.io/en/stable/api/generated/skmultiflow.evaluation.EvaluatePrequential.html#skmultiflow.evaluation.EvaluatePrequential)
+
     """
-    # Class variables
-    # Events and event handlers
+    # Event handlers (class variables)
     on_start_evaluation = Event()
-    on_start_evaluation.append(check_configuration)
-    on_start_evaluation.append(init_data_buffer)
-    on_one_iteration = Event()
-    on_one_iteration.append(update_data_buffer)
-    on_one_iteration.append(update_progress_bar)
-    on_finished_evaluation = Event()
-    on_finished_evaluation.append(update_data_buffer)
-    on_finished_evaluation.append(summarize_evaluation)
+    on_start_evaluation.append(start_evaluation_routine)
+    on_finish_iteration = Event()
+    on_finish_iteration.append(finish_iteration_routine)
+    on_finish_evaluation = Event()
+    on_finish_evaluation.append(finish_evaluation_routine)
 
     def __init__(self,
-                 max_samples=100000,
-                 batch_size=100,
-                 pretrain_size=100,
-                 max_time=float("inf"),
-                 pred_metric=None,
-                 fs_metric=None,
-                 streaming_features=None,
-                 check_concept_drift=False,
-                 output_file_path=None,
-                 show_plot=False,
-                 restart_stream=True):
+                 max_samples=100000,        # (int) Maximum number of observations used in the evaluation
+                 batch_size=100,            # (int) Size of one batch (i.e. no. of observations at one time step)
+                 pretrain_size=100,         # (int) No. of observations used for initial training of the predictive model
+                 pred_metrics=None,         # (list) Predictive metrics/measures
+                 fs_metrics=None,           # (list) Feature selection metrics/measures
+                 streaming_features=None,   # (dict) (time, feature index) tuples to simulate streaming features
+                 output_file_path=None,     # (str) Path for the summary file output (if None, no file is created)
+                 live_plot=False):          # (bool) If true, show live plot
 
-        # General parameters
-        # self.n_sliding = n_wait  # Todo: consider using sliding window for performance measurement
-        self.max_samples = max_samples  # max samples to draw from stream
-        self.pretrain_size = pretrain_size  # number of samples to pretrain model at t=0
-        self.batch_size = batch_size  # size of data batch at time t
-        self.max_time = max_time  # max time to run the experiment
-        self.output_file_path = output_file_path  # path of the output file
+        self.max_samples = max_samples
+        self.batch_size = batch_size
+        self.pretrain_size = pretrain_size
+        self.pred_metrics = pred_metrics
+        self.fs_metrics = fs_metrics
+        self.streaming_features = dict() if streaming_features is None else streaming_features
+        self.output_file_path = output_file_path
+        self.live_plot = live_plot
 
-        self.start_time = 0  # global start time
-        self.iteration = 1  # logical time/iteration of data stream
-        self.global_sample_count = 0  # count all seen samples
+        self.iteration = 1                  # (int) Current iteration (logical time step)
+        self.global_sample_count = 0        # (int) No. of observations processed so far
+        self.data_stream = None             # (skmultiflow.data.FileStream) Streaming data
+        self.feature_selector = None        # (BaseFeatureSelector) Feature selection model
+        self.predictor = None               # (_BasePredictiveModel) Predictive model with partial_fit() function
+        self.data_buffer = DataBuffer()     # (DataBuffer) Data buffer for visualization and summary file
+        self.visualizer = None              # (Visualizer) Live plot object
+        self.active_features = []           # (list) Indices of currently active features (for simulating streaming features)
 
-        # Data Stream related parameters
-        self.stream = None
-        self.restart_stream = restart_stream  # restarting stream at end of simulation
+    def evaluate(self, data_stream, feature_selector, predictor, predictor_name=None):
+        """ Evaluate the feature selection model
 
-        # Feature Selection related parameters
-        self.feature_selector = None  # placeholder
-        self.feature_selector_metric = fs_metric  # Todo: think about more than one metric
-        self.check_concept_drift = check_concept_drift
+        :param data_stream: (skmultiflow.data.FileStream) Streaming data
+        :param feature_selector: (BaseFeatureSelector) Feature selection model
+        :param predictor: Predictive model with partial_fit() function (e.g. from skmultiflow or sklearn)
+        :param predictor_name: (str) Name of the predictive model
 
-        self.streaming_features = streaming_features  # time/feature-pairs for simulation of streaming features
-        if streaming_features is None:
-            self.streaming_features = dict()
-
-        # Prediction related parameters
-        self.predictor = None  # placeholder
-        self.predictor_metric = pred_metric  # Todo: think about more than one metric
-
-        # Visualization related parameters
-        self.data_buffer = DataBuffer()
-        self.show_plot = show_plot
-        self.visualizer = None  # placeholder for visualizer
-
-    def evaluate(self, stream, fs_model, predictive_model, predictive_model_name=None):
-        """ Evaluate a feature selection algorithm
-        In future: compare multiple feature selection algorithms
         """
-        self.start_time = timer()  # start experiment
+        self.data_stream = data_stream
+        self.feature_selector = feature_selector
+        self.predictor = _BasePredictiveModel(name=predictor_name, model=predictor)  # Wrap predictive model
 
-        self.stream = stream
-        self.feature_selector = fs_model
-        self.predictor = _BasePredictiveModel(name=predictive_model_name, model=predictive_model)  # Wrap scikit-multiflow evaluator
+        # Issue warning if max_samples exceeds the no. of samples available in the data stream
+        if (self.data_stream.n_remaining_samples() > 0) and (self.data_stream.n_remaining_samples() < self.max_samples):
+            self.max_samples = self.data_stream.n_samples
+            warnings.warn('Parameter max_samples exceeds the size of data_stream and will be reset.')
 
-        # Specify true max samples
-        if (self.stream.n_remaining_samples() > 0) and (self.stream.n_remaining_samples() < self.max_samples):
-            self.max_samples = self.stream.n_samples
-
-        # Fire event
+        # Start evaluation
         self.on_start_evaluation(self)
 
-        # Pretrain predictive model at time t=0
-        if self.pretrain_size > 0:
-            self._pretrain_predictive_model()
-
         # Evaluation
-        if self.show_plot:
-            self.visualizer = Visualizer(self.data_buffer)
+        if self.live_plot:  # If live visualization
+            self.visualizer = Visualizer(self.data_buffer)  # Initialize visualization object
             ani = animation.FuncAnimation(fig=self.visualizer.fig,
                                           func=self.visualizer.func,
                                           init_func=self.visualizer.init,
@@ -109,100 +91,100 @@ class EvaluateFeatureSelection:
                                           interval=5,
                                           repeat=False)
             plt.show()
-        else:  # no live visualization
+        else:
             self._test_then_train()
 
-        if self.restart_stream:
-            self.stream.restart()
-
-        # Fire event
-        self.on_finished_evaluation(self)
-
-    def _pretrain_predictive_model(self):
-        print('Pre-training on {} sample(s).'.format(self.pretrain_size))
-
-        x, y = self.stream.next_sample(self.pretrain_size)
-
-        # Prediction WITHOUT feature selection and computation of metrics
-        self.predictor.model.partial_fit(X=x, y=y, classes=self.stream.target_values)
-
-        # Increase global sample count
-        self.global_sample_count += self.pretrain_size
+        # Finish evaluation
+        self.on_finish_evaluation(self)
 
     def _test_then_train(self):
-        """ Prequential evaluation """
+        """ Test-then-train evaluation """
         print('Evaluating...')
-        while ((self.global_sample_count < self.max_samples) & (timer() - self.start_time < self.max_time)
-               & (self.stream.has_more_samples())):
-            # try:
-            self.one_training_iteration()
-            # except BaseException as exc:
-            #    print(exc)
-            #    break
+        while self.global_sample_count < self.max_samples:
+            try:
+                self._one_training_iteration()
+            except BaseException as exc:
+                print(exc)
+                break
 
-    def one_training_iteration(self):
-        # Load batch
+    def _one_training_iteration(self):
+        # Load data batch
         if self.global_sample_count + self.batch_size <= self.max_samples:
             samples = self.batch_size
         else:
             samples = self.max_samples - self.global_sample_count  # all remaining samples
-        x, y = self.stream.next_sample(samples)
+        X, y = self.data_stream.next_sample(samples)
 
-        if x is not None and y is not None:
-            # Get active features
-            if self.iteration in self.streaming_features and self.feature_selector.supports_streaming_features:
-                x = self._sparsify_x(x, self.streaming_features[self.iteration])
-                print('Detected streaming features at t={}'.format(self.iteration))
+        # Simulate streaming features
+        if self.feature_selector.supports_streaming_features:
+            X = self._simulate_streaming_features(X)
 
-            # Feature Selection
-            start = timer()
-            self.feature_selector.weight_features(x.copy(), y.copy())
-            self.feature_selector.comp_time.compute(start, timer())
-            self.feature_selector.select_features()
-            self.feature_selector_metric.compute(self.feature_selector)
+        # Feature Selection
+        start = time.time()
+        self.feature_selector.weight_features(copy.copy(X), copy.copy(y))
+        self.feature_selector.comp_time.compute(start, time.time())
+        self.feature_selector.select_features()
+        for metric in self.fs_metrics:
+            metric.compute(self.feature_selector)
 
-            # Concept Drift Detection by Feature Selector
-            if self.check_concept_drift and self.feature_selector.supports_concept_drift_detection:
-                self.feature_selector.detect_concept_drift(x.copy(), y.copy())
+        # Retain selected features
+        X = self._sparsify_X(X, self.feature_selector.selection[-1])
 
-            # Sparsify batch x -> retain selected features
-            x = self._sparsify_x(x, self.feature_selector.selection[-1])
+        # Testing
+        start = time.time()
+        prediction = self.predictor.model.predict(X).tolist()  # Todo: evaluate that model has predict() method
+        self.predictor.testing_time.compute(start, time.time())
+        self.predictor.predictions.append(prediction)
+        for metric in self.pred_metrics:
+            metric.compute(y, prediction)
 
-            # Testing
-            start = timer()
-            prediction = self.predictor.model.predict(x).tolist()
-            self.predictor.predictions.append(prediction)
-            self.predictor_metric.compute(y, prediction)
-            self.predictor.testing_time.compute(start, timer())
+        # Training
+        start = time.time()
+        self.predictor.model.partial_fit(X, y, self.data_stream.target_values)  # Todo: evaluate that model has partial_fit()
+        self.predictor.training_time.compute(start, time.time())
 
-            # Training
-            start = timer()
-            self.predictor.model.partial_fit(x, y, self.stream.target_values)
-            self.predictor.training_time.compute(start, timer())
+        # Finish iteration
+        self.on_finish_iteration(self, samples)
 
-            # Update global sample count and iteration/logical time
-            self.iteration += 1
-            self.global_sample_count += samples
+    def _simulate_streaming_features(self, X):
+        """ Simulate streaming features
 
-            # Fire event
-            self.on_one_iteration(self)
+        Remove inactive features as specified in streaming_features.
+
+        :param X: (np.ndarray) Samples of current batch
+        :return: sparse X
+        :rtype np.ndarray
+        """
+        if self.iteration == 0 and self.iteration not in self.streaming_features:
+            self.active_features = np.arange(self.feature_selector.n_total_ftr)
+            warnings.warn(
+                'Simulate streaming features: No active features provided at t=0. All features are used instead.')
+        elif self.iteration in self.streaming_features:
+            self.active_features = self.streaming_features[self.iteration]
+            print('New streaming features {} at t={}'.format(self.streaming_features[self.iteration], self.iteration))
+
+        return self._sparsify_X(X, self.active_features)
 
     @staticmethod
-    def _sparsify_x(x, retained_features):
-        """Set given features to zero
-        This is done to specify active features in a feature stream and to specify the currently active features
+    def _sparsify_X(X, active_features):
+        """ 'Remove' inactive features from X by setting them to zero
+
+        :param X: (np.ndarray) Samples of current batch
+        :param active_features: (list) Indices of active features
+        :return: sparse X
+        :rtype np.ndarray
         """
-        sparse_matrix = np.zeros(x.shape)
-        sparse_matrix[:, retained_features] = x[:, retained_features]
-        return sparse_matrix
+        sparse_X = np.zeros(X.shape)
+        sparse_X[:, active_features] = X[:, active_features]
+        return sparse_X
 
 
 class _BasePredictiveModel(metaclass=ABCMeta):
-    """Private class as wrapper for scikit-multiflow evaluators"""
+    """ Wrapper for predictive model with partial_fit() function """
 
     def __init__(self, name, model):
-        self.name = name
-        self.model = model  # placeholder for scikit multiflow evaluation model
-        self.predictions = []
-        self.testing_time = TimeMetric()
-        self.training_time = TimeMetric()
+        self.name = name                    # (str) Name of the predictive model
+        self.model = model                  # Predictive model with partial_fit() function , e.g. from skmultiflow or sklearn
+        self.predictions = []               # (list) Predicted label(s) per time step
+        self.testing_time = TimeMetric()    # (TimeMetric) Testing times per time step
+        self.training_time = TimeMetric()   # (TimeMetric) Training times per time step

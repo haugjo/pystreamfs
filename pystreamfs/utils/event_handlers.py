@@ -13,7 +13,60 @@ from pystreamfs.utils.exceptions import InvalidModelError
 from pystreamfs.feature_selectors.base_feature_selector import BaseFeatureSelector
 
 
-def init_data_buffer(evaluator):
+def start_evaluation_routine(evaluator):
+    """ Start evaluation routine
+
+    :param evaluator: (EvaluateFeatureSelection) Evaluator object
+
+    """
+    _check_configuration(evaluator)
+    _init_data_buffer(evaluator)
+    if evaluator.pretrain_size > 0:
+        _pretrain_predictive_model(evaluator)
+
+
+def finish_iteration_routine(evaluator, samples):
+    """ Finish one iteration routine
+
+    :param evaluator: (EvaluateFeatureSelection) Evaluator object
+    :param samples: (int) Size of current data batch
+
+    """
+    evaluator.iteration += 1
+    evaluator.global_sample_count += samples
+    _update_data_buffer(evaluator)
+    _update_progress_bar(evaluator)
+
+
+def finish_evaluation_routine(evaluator):
+    """ Finish evaluation routine
+
+    :param evaluator: (EvaluateFeatureSelection) Evaluator object
+
+    """
+    evaluator.data_stream.restart()
+    _update_data_buffer(evaluator)
+    _summarize_evaluation(evaluator)
+
+
+def _check_configuration(evaluator):
+    if not isinstance(evaluator.stream, Stream):
+        raise InvalidModelError('Specified data stream is not of type Stream (scikit-multiflow data type)')
+    if not isinstance(evaluator.feature_selector, BaseFeatureSelector):
+        raise InvalidModelError('Specified feature selection model is not of type BaseFeatureSelector '
+                                '(pystreamfs data type)')
+    if not isinstance(evaluator.predictor.model, ClassifierMixin):
+        raise InvalidModelError('Specified predictive model is not of type ClassifierMixin '
+                                '(scikit-multiflow data type)')
+    if not isinstance(evaluator.predictor_metric, PredictiveMetric):
+        raise InvalidModelError('Specified predictive metric is not of type BaseMetric '
+                                '(pystreamfs data type)')
+    if not isinstance(evaluator.feature_selector_metric, FSMetric):
+        raise InvalidModelError('Specified feature selection metric is not of type FSMetric(BaseMetric) '
+                                '(pystreamfs data type)')
+
+
+def _init_data_buffer(evaluator):
     evaluator.data_buffer.set_elements(
         fs_name=evaluator.feature_selector.name,
         fs_metric_name=evaluator.feature_selector_metric.name,
@@ -28,7 +81,17 @@ def init_data_buffer(evaluator):
     )
 
 
-def update_data_buffer(evaluator):
+def _pretrain_predictive_model(evaluator):
+    print('Pre-train {} with {} observation(s).'.format(evaluator.predictor.name, evaluator.pretrain_size))
+
+    X, y = evaluator.data_stream.next_sample(evaluator.pretrain_size)
+
+    # Fit model and increase sample count
+    evaluator.predictor.model.partial_fit(X=X, y=y, classes=evaluator.data_stream.target_values)
+    evaluator.global_sample_count += evaluator.pretrain_size
+
+
+def _update_data_buffer(evaluator):
     evaluator.data_buffer.set_elements(  # Todo: is it possible just to add the last element instead of saving the whole arrays again?
         ftr_weights=evaluator.feature_selector.weights.copy(),
         ftr_selection=evaluator.feature_selector.selection.copy(),
@@ -52,31 +115,14 @@ def update_data_buffer(evaluator):
     )
 
 
-def check_configuration(evaluator):  # Todo: enhance
-    if not isinstance(evaluator.stream, Stream):
-        raise InvalidModelError('Specified data stream is not of type Stream (scikit-multiflow data type)')
-    if not isinstance(evaluator.feature_selector, BaseFeatureSelector):
-        raise InvalidModelError('Specified feature selection model is not of type BaseFeatureSelector '
-                                '(pystreamfs data type)')
-    if not isinstance(evaluator.predictor.model, ClassifierMixin):
-        raise InvalidModelError('Specified predictive model is not of type ClassifierMixin '
-                                '(scikit-multiflow data type)')
-    if not isinstance(evaluator.predictor_metric, PredictiveMetric):
-        raise InvalidModelError('Specified predictive metric is not of type BaseMetric '
-                                '(pystreamfs data type)')
-    if not isinstance(evaluator.feature_selector_metric, FSMetric):
-        raise InvalidModelError('Specified feature selection metric is not of type FSMetric(BaseMetric) '
-                                '(pystreamfs data type)')
-
-
-def update_progress_bar(evaluator):
+def _update_progress_bar(evaluator):
     j = evaluator.global_sample_count / evaluator.max_samples
     sys.stdout.write('\r')
     sys.stdout.write("[%-20s] %d%%" % ('=' * int(20 * j), 100 * j))
     sys.stdout.flush()
 
 
-def summarize_evaluation(evaluator):
+def _summarize_evaluation(evaluator):
     _print_to_console(evaluator)
     if evaluator.output_file_path is not None:
         _save_to_json(evaluator)

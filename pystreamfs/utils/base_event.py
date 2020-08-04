@@ -1,7 +1,5 @@
 class Event(list):
-    """Base Event Class
-    Todo: Use for visualization (event finishedIteration) and summary print (event finishedEvaluation)
-    """
+    """ Base Event Class """
     def __call__(self, *args, **kwargs):
         for f in self:
             f(*args, **kwargs)
