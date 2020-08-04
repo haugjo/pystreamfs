@@ -1,4 +1,4 @@
-from pystreamfs_v2.feature_selectors.base_feature_selector import BaseFeatureSelector
+from pystreamfs.feature_selectors.base_feature_selector import BaseFeatureSelector
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 

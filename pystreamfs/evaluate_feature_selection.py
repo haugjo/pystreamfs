@@ -5,11 +5,11 @@ from abc import ABCMeta
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-from pystreamfs_v2.metrics.time_metric import TimeMetric
-from pystreamfs_v2.utils.base_event import Event
-from pystreamfs_v2.utils.event_handlers import init_data_buffer, update_data_buffer, check_configuration, update_progress_bar, summarize_evaluation
-from pystreamfs_v2.utils.base_data_buffer import DataBuffer
-from pystreamfs_v2.visualization.visualizer import Visualizer
+from pystreamfs.metrics.time_metric import TimeMetric
+from pystreamfs.utils.base_event import Event
+from pystreamfs.utils.event_handlers import init_data_buffer, update_data_buffer, check_configuration, update_progress_bar, summarize_evaluation
+from pystreamfs.utils.base_data_buffer import DataBuffer
+from pystreamfs.visualization.visualizer import Visualizer
 
 
 class EvaluateFeatureSelection:

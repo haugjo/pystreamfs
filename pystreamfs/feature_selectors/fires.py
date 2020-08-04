@@ -1,6 +1,6 @@
-from pystreamfs_v2.feature_selectors.base_feature_selector import BaseFeatureSelector
-from pystreamfs_v2.utils.exceptions import InvalidModelError
-from pystreamfs_v2.feature_selectors.fires_utils import monte_carlo_sampling, Net, SDT, aggregate_weights
+from pystreamfs.feature_selectors.base_feature_selector import BaseFeatureSelector
+from pystreamfs.utils.exceptions import InvalidModelError
+from pystreamfs.feature_selectors.fires_utils import monte_carlo_sampling, Net, SDT, aggregate_weights
 import numpy as np
 from scipy.stats import norm
 import torch

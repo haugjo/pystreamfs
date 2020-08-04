@@ -1,11 +1,11 @@
-from pystreamfs_v2.evaluate_feature_selection import EvaluateFeatureSelection
-from pystreamfs_v2.metrics.fs_metrics.stability_metric import NogueiraStabilityMetric
-from pystreamfs_v2.metrics.predictive_metrics.predictive_metric import PredictiveMetric
-from pystreamfs_v2.feature_selectors.fires import FIRESFeatureSelector
-from pystreamfs_v2.feature_selectors.ofs import OFSFeatureSelector
-from pystreamfs_v2.feature_selectors.efs import EFSFeatureSelector
-from pystreamfs_v2.feature_selectors.fsds import FSDSFeatureSelector
-from pystreamfs_v2.feature_selectors.cancelout import CancelOutFeatureSelector
+from pystreamfs.evaluate_feature_selection import EvaluateFeatureSelection
+from pystreamfs.metrics.fs_metrics.stability_metric import NogueiraStabilityMetric
+from pystreamfs.metrics.predictive_metrics.predictive_metric import PredictiveMetric
+from pystreamfs.feature_selectors.fires import FIRESFeatureSelector
+from pystreamfs.feature_selectors.ofs import OFSFeatureSelector
+from pystreamfs.feature_selectors.efs import EFSFeatureSelector
+from pystreamfs.feature_selectors.fsds import FSDSFeatureSelector
+from pystreamfs.feature_selectors.cancelout import CancelOutFeatureSelector
 
 from skmultiflow.trees import HoeffdingTree, HATT, HAT
 from skmultiflow.data import FileStream
@@ -49,7 +49,7 @@ stability = NogueiraStabilityMetric(sliding_window=10)
 accuracy = PredictiveMetric.sklearn_metric(metric=accuracy_score, name='Accuracy')
 
 evaluator = EvaluateFeatureSelection(max_samples=100000, batch_size=100, pretrain_size=100, max_time=float("inf"),
-                                     pred_metric=accuracy, fs_metric=stability, output_file_path=None, show_plot=False)
+                                     pred_metric=accuracy, fs_metric=stability, output_file_path=None, show_plot=True)
 
 evaluator.evaluate(stream, fs, predictor, predictive_model_name='Perceptron')
 

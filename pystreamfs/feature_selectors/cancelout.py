@@ -1,4 +1,4 @@
-from pystreamfs_v2.feature_selectors.base_feature_selector import BaseFeatureSelector
+from pystreamfs.feature_selectors.base_feature_selector import BaseFeatureSelector
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset

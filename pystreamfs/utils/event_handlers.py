@@ -7,10 +7,10 @@ from datetime import datetime
 from skmultiflow.data.base_stream import Stream
 from skmultiflow.core.base import ClassifierMixin
 
-from pystreamfs_v2.metrics.fs_metrics.fs_metric import FSMetric
-from pystreamfs_v2.metrics.predictive_metrics.predictive_metric import PredictiveMetric
-from pystreamfs_v2.utils.exceptions import InvalidModelError
-from pystreamfs_v2.feature_selectors.base_feature_selector import BaseFeatureSelector
+from pystreamfs.metrics.fs_metrics.fs_metric import FSMetric
+from pystreamfs.metrics.predictive_metrics.predictive_metric import PredictiveMetric
+from pystreamfs.utils.exceptions import InvalidModelError
+from pystreamfs.feature_selectors.base_feature_selector import BaseFeatureSelector
 
 
 def init_data_buffer(evaluator):

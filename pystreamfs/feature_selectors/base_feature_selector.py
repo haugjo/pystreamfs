@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 import warnings
 import numpy as np
 
-from pystreamfs_v2.metrics.time_metric import TimeMetric
+from pystreamfs.metrics.time_metric import TimeMetric
 
 
 class BaseFeatureSelector(metaclass=ABCMeta):
