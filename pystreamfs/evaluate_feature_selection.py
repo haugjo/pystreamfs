@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from pystreamfs.metrics.time_metric import TimeMetric
 from pystreamfs.utils.base_event import Event
 from pystreamfs.utils.event_handlers import start_evaluation_routine, finish_iteration_routine, finish_evaluation_routine
-from pystreamfs.visualization.visualizer import Visualizer
+from pystreamfs.visualization.live_plot import LivePlot
 
 
 class EvaluateFeatureSelection:
@@ -54,8 +54,6 @@ class EvaluateFeatureSelection:
         self.data_stream = None             # (skmultiflow.data.FileStream) Streaming data
         self.feature_selector = None        # (BaseFeatureSelector) Feature selection model
         self.predictor = None               # (_BasePredictiveModel) Predictive model with partial_fit() function
-        # self.data_buffer = DataBuffer()     # (DataBuffer) Data buffer for visualization and summary file Todo: delete
-        self.visualizer = None              # (Visualizer) Live plot object
         self.active_features = []           # (list) Indices of currently active features (for simulating streaming features)
 
     def evaluate(self, data_stream, feature_selector, predictor, predictor_name=None):
@@ -81,7 +79,7 @@ class EvaluateFeatureSelection:
 
         # Evaluation
         if self.live_plot:  # If live visualization
-            ani = Visualizer(self)  # Initialize visualization object
+            ani = LivePlot(self)
             plt.show()
         else:
             self.test_then_train()

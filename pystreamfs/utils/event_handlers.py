@@ -32,7 +32,8 @@ def finish_iteration_routine(evaluator, samples):
     """
     evaluator.iteration += 1
     evaluator.global_sample_count += samples
-    _update_progress_bar(evaluator)
+    if not evaluator.live_plot:
+        _update_progress_bar(evaluator)
 
 
 def finish_evaluation_routine(evaluator):

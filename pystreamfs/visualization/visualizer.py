@@ -1,96 +1,47 @@
 import seaborn as sns
-import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from matplotlib.animation import FuncAnimation
 import numpy as np
 
-matplotlib.use("TkAgg")
 
-
-class Visualizer(FuncAnimation):
+class Visualizer:
     """ Live visualization of the evaluation results """
-    def __init__(self, evaluator):  # Todo: enable multiple metrics
-        # General parameters
+    def __init__(self, evaluator, plot_scale=1):
+        self.evaluator = evaluator
+
+        # Specify global style parameters
         sns.set_context('paper')
         plt.style.use('seaborn-darkgrid')
-        plt.rcParams.update({'font.size': 12})  # Todo: think about dynamic font size
+        plt.rcParams.update({'font.size': 10 * plot_scale})  # Todo: think about dynamic font size
 
-        self.fig = plt.figure(figsize=(20, 25))
-        self.palette = ['#1f78b4', '#33a02c', '#fdbf6f', '#e31a1c']  # color palette
+        self.fig = plt.figure(figsize=(12 * plot_scale, 10 * plot_scale))
+        self.palette = ['#1f78b4', '#33a02c', '#fdbf6f', '#e31a1c']  # color palette  # Todo: update
 
-        # Grid specifications
-        self.grid1 = gridspec.GridSpec(6, 2)
-        self.grid1.update(wspace=0.2, hspace=0.8)  # Specifications upper part
-        self.grid2 = gridspec.GridSpec(6, 2)
-        self.grid2.update(hspace=0.1)  # Specifications lower part
+        # Grids for subplots
+        self.grid1 = gridspec.GridSpec(6, 2)    # Upper region
+        self.grid1.update(wspace=0.2, hspace=0.8)
+        self.grid2 = gridspec.GridSpec(6, 2)    # Lower region
+        self.grid2.update(hspace=0.1)
 
-        # Evaluation parameters -> not updated
-        self.param_ax = self.fig.add_subplot(self.grid1[0, :])
-        self.param_ax = self._draw_param_plot(self.param_ax, evaluator)
+        # Parameter information subplot
+        self.param_ax = self._draw_param_plot(self.grid1[0, :], evaluator)
 
-        # Feature Selection computation time
-        self.fs_time_ax = self.fig.add_subplot(self.grid1[1, 0])
-        self.fs_time_ax, self.fs_time_measures, self.fs_time_mean = self._draw_regular_subplot(self.fs_time_ax,
-                                                                                               evaluator=evaluator,
-                                                                                               x_label='Time $t$',
-                                                                                               y_label='Time (s)',
-                                                                                               title='Feature Selection Time',
-                                                                                               palette=self.palette)
+        # Comp. time features selection
+        self.fs_time_ax, self.fs_time_measures, self.fs_time_mean = self._draw_regular_subplot(self.grid1[1, 0], 'Time $t$', 'Time (s)', 'Feature Selection Time')
 
-        # Predictive Model Training Time
-        self.training_time_ax = self.fig.add_subplot(self.grid1[1, 1])
-        self.training_time_ax, self.training_time_measures, self.training_time_mean = self._draw_regular_subplot(self.training_time_ax,
-                                                                                                                 evaluator=evaluator,
-                                                                                                                 x_label='Time $t$',
-                                                                                                                 y_label='Training Time (s)',
-                                                                                                                 title='Predictive Model Training Time',
-                                                                                                                 palette=self.palette)
+        # Comp. time prediction (training/testing)
+        self.pred_time_ax, self.pred_time_measures, self.pred_time_mean = self._draw_regular_subplot(self.grid1[1, 1], 'Time $t$', 'Training Time (s)', 'Predictive Model Training Time', 2)
 
-        # Performance Score
-        self.predictor_metric_ax = self.fig.add_subplot(self.grid1[2, :])
-        self.predictor_metric_ax, self.predictor_metric_measures, self.predictor_metric_mean = self._draw_regular_subplot(self.predictor_metric_ax,
-                                                                                                                          evaluator=evaluator,
-                                                                                                                          x_label='Time $t$',
-                                                                                                                          y_label=evaluator.pred_metrics[0].name,
-                                                                                                                          title='Learning Performance',
-                                                                                                                          palette=self.palette)
+        # Predictive metrics
+        self.pred_metric_ax, self.pred_metric_measures, self.pred_metric_mean = self._draw_regular_subplot(self.grid1[2, :], 'Time $t$', 'Predictive Metric(s)', 'Learning Performance', len(self.evaluator.fs_metrics))
 
         # Selected features
-        self.selection_ax = self.fig.add_subplot(self.grid1[3:-1, :])
-        self.selection_ax, self.selection_measures = self._draw_selection_subplot(self.selection_ax,
-                                                                                  evaluator=evaluator,
-                                                                                  palette=self.palette)
+        self.fs_ax, self.fs_measures = self._draw_selection_subplot(self.grid1[3:-1, :])
 
-        # FS Metric -> grid2
-        self.fs_metric_ax = self.fig.add_subplot(self.grid2[5, :])
-        self.fs_metric_ax, self.fs_metric_measures, self.fs_metric_mean = self._draw_regular_subplot(self.fs_metric_ax,
-                                                                                                     evaluator=evaluator,
-                                                                                                     x_label='Time $t$',
-                                                                                                     y_label=evaluator.fs_metrics[0].name,
-                                                                                                     title=None,
-                                                                                                     palette=self.palette)
+        # FS metrics
+        self.fs_metric_ax, self.fs_metric_measures, self.fs_metric_mean = self._draw_regular_subplot(self.grid2[5, :], 'Time $t$', 'FS Metric(s)', None)
 
-        FuncAnimation.__init__(self, self.fig, self.func, frames=self.gen_function(evaluator), init_func=self.init_func, blit=True, repeat=False)
-
-    def init_func(self):
-        """ Initialize the subplot placeholders """
-
-        self.fs_time_measures.set_data([], [])
-        self.fs_time_mean.set_data([], [])
-        self.training_time_measures.set_data([], [])
-        self.training_time_mean.set_data([], [])
-        self.predictor_metric_measures.set_data([], [])
-        self.predictor_metric_mean.set_data([], [])
-        self.fs_metric_measures.set_data([], [])
-        self.fs_metric_mean.set_data([], [])
-        self.selection_measures.set_offsets([])
-
-        return [self.fs_time_measures, self.fs_time_mean, self.training_time_measures, self.training_time_mean,
-                self.predictor_metric_measures, self.predictor_metric_mean, self.fs_metric_measures,
-                self.fs_metric_mean, self.selection_measures]
-
-    def func(self, evaluator):
+    def update(self, evaluator):
         """ Update plots given a new frame (current evaluator)
 
         :param evaluator: (EvaluateFeatureSelection) Evaluator object
@@ -100,58 +51,39 @@ class Visualizer(FuncAnimation):
 
         # Feature Selection computation time
         self.fs_time_ax.set_ylim(0, max(evaluator.feature_selector.comp_time.measures))  # update y-lim
-        self.fs_time_measures.set_data(x, evaluator.feature_selector.comp_time.measures)
-        self.fs_time_mean.set_data(x, evaluator.feature_selector.comp_time.mean)
+        self.fs_time_measures[0].set_data(x, evaluator.feature_selector.comp_time.measures)
+        self.fs_time_mean[0].set_data(x, evaluator.feature_selector.comp_time.mean)
 
-        # Predictive Model Training Time
-        self.training_time_ax.set_ylim(0, max(evaluator.predictor.training_time.measures))
-        self.training_time_measures.set_data(x, evaluator.predictor.training_time.measures)
-        self.training_time_mean.set_data(x, evaluator.predictor.training_time.mean)
+        # Prediction time (training/testing)
+        self.pred_time_ax.set_ylim(0, max(evaluator.predictor.training_time.measures))
+        self.pred_time_measures[0].set_data(x, evaluator.predictor.training_time.measures)
+        self.pred_time_mean[0].set_data(x, evaluator.predictor.training_time.mean)
+        self.pred_time_measures[1].set_data(x, evaluator.predictor.testing_time.measures)
+        self.pred_time_mean[1].set_data(x, evaluator.predictor.testing_time.mean)
 
-        # Predictor Metric Todo: add iterator for all metrics
-        if max(evaluator.pred_metrics[0].measures) > 1:  # update y-lim if range not in [0,1]
-            self.predictor_metric_ax.set_ylim(0, max(evaluator.pred_metrics[0].measures))
-        self.predictor_metric_measures.set_data(x, evaluator.pred_metrics[0].measures)
-        self.predictor_metric_mean.set_data(x, evaluator.pred_metrics[0].mean)
+        # Predictive Metrics
+        for i, metric in enumerate(evaluator.pred_metrics):
+            if max(metric.measures) > 1:  # update y-lim if range not in [0,1]
+                self.pred_metric_ax.set_ylim(0, max(metric.measures))
+            self.pred_metric_measures[i].set_data(x, metric.measures)
+            self.pred_metric_mean[i].set_data(x, metric.mean)
 
         # FS Metric
-        if max(evaluator.fs_metrics[0].measures) > 1:  # update y-lim if range not in [0,1]
-            self.fs_metric_ax.set_ylim(0, max(evaluator.fs_metrics[0].measures))
-        self.fs_metric_measures.set_data(x, evaluator.fs_metrics[0].measures)
-        self.fs_metric_mean.set_data(x, evaluator.fs_metrics[0].mean)
+        for i, metric in enumerate(evaluator.fs_metrics):
+            if max(metric.measures) > 1:  # update y-lim if range not in [0,1]
+                self.fs_metric_ax.set_ylim(0, max(metric.measures))
+            self.fs_metric_measures[i].set_data(x, metric.measures)
+            self.fs_metric_mean[i].set_data(x, metric.mean)
 
         # Selected features
-        x = []
-        y = []
+        x, y = [], []
         for i, val in enumerate(evaluator.feature_selector.selection):
             x.extend(np.ones(len(val), dtype=int) * i)
             y.extend(val)
 
-        self.selection_measures.set_offsets(list(zip(x, y)))
+        self.fs_measures.set_offsets(list(zip(x, y)))
 
-        return [self.fs_time_measures, self.fs_time_mean, self.training_time_measures, self.training_time_mean,
-                self.predictor_metric_measures, self.predictor_metric_mean, self.fs_metric_measures,
-                self.fs_metric_mean, self.selection_measures]
-
-    @staticmethod
-    def gen_function(evaluator):
-        """ Yield frames for live plot Todo: check if we can call _test_then_train() directly
-
-        This function corresponds to EvaluateFeatureSelection._test_then_train() but yields a new frame (current evaluator) at every iteration.
-
-        :param evaluator: (EvaluateFeatureSelection) Evaluator object
-
-        """
-        while evaluator.global_sample_count < evaluator.max_samples:
-            try:
-                evaluator.one_training_iteration()
-                yield evaluator
-            except BaseException as exc:
-                print(exc)
-                break
-
-    @staticmethod
-    def _draw_param_plot(ax, evaluator):
+    def _draw_param_plot(self, grid, evaluator):
         """ Draw the parameter subplot
 
         :param ax: (plt.axis) Axis identifier on the grid
@@ -160,6 +92,8 @@ class Visualizer(FuncAnimation):
         :rtype plt.axis
 
         """
+        ax = self.fig.add_subplot(grid)
+
         ax.axis('off')
         ax.text(0, 1, 'Pystreamfs Evaluation: $' + evaluator.feature_selector.name + '$ (Feature Selector) --- $'
                 + evaluator.predictor.name + '$ (Predictive Model)', weight='bold', size='xx-large')
@@ -175,8 +109,7 @@ class Visualizer(FuncAnimation):
 
         return ax
 
-    @staticmethod
-    def _draw_regular_subplot(ax, evaluator, x_label, y_label, title, palette):
+    def _draw_regular_subplot(self, grid, x_label, y_label, title, num_plots=1):
         """  Draw a line plot (used for illustrating metrics)
 
         This returns a two line plots per axis (the measures and a moving average)
@@ -192,11 +125,19 @@ class Visualizer(FuncAnimation):
 
         """
 
-        measures, = ax.plot([], [], color=palette[0])  # measures
-        avg, = ax.plot([], [], color=palette[3], ls='--')  # moving average
+        ax = self.fig.add_subplot(grid)
+
+        measures = []
+        averages = []
+
+        for i in range(num_plots):
+            m, = ax.plot([], [], color=self.palette[0 + i])  # measures
+            measures.append(m)
+            avg, = ax.plot([], [], color=self.palette[1 + i], ls='--')  # moving average
+            averages.append(avg)
 
         # Set x-lim
-        x_lim = (evaluator.max_samples - evaluator.pretrain_size) / evaluator.batch_size
+        x_lim = (self.evaluator.max_samples - self.evaluator.pretrain_size) / self.evaluator.batch_size
         ax.set_xlim(0, x_lim)
 
         # Set y-lim
@@ -217,10 +158,9 @@ class Visualizer(FuncAnimation):
                   markerscale=0.1)
         ax.set_title(title, weight='bold', loc='left')
 
-        return ax, measures, avg
+        return ax, measures, averages
 
-    @staticmethod
-    def _draw_selection_subplot(ax, evaluator, palette):
+    def _draw_selection_subplot(self, grid):
         """ Draw the selected features
 
         Returns a scatter plot of selected features at each time step
@@ -232,17 +172,19 @@ class Visualizer(FuncAnimation):
         :rtype plt.axis, plt.axis.plot
 
         """
-        ax.set_title('Selected Features ($m=' + str(evaluator.feature_selector.n_selected_ftr) + '$) & ' + evaluator.fs_metrics[0].name, weight='bold')
+        ax = self.fig.add_subplot(grid)
+
+        ax.set_title('Selected Features ($m=' + str(self.evaluator.feature_selector.n_selected_ftr) + '$) & ' + self.evaluator.fs_metrics[0].name, weight='bold')
         ax.set_ylabel('Feature Index')
 
         # plot selected features for each time step
-        measures = ax.scatter([], [], marker='_', color=palette[0])
+        measures = ax.scatter([], [], marker='_', color=self.palette[0])
 
         # Set x-lim
-        x_lim = (evaluator.max_samples - evaluator.pretrain_size) / evaluator.batch_size
+        x_lim = (self.evaluator.max_samples - self.evaluator.pretrain_size) / self.evaluator.batch_size
         ax.set_xlim(0, x_lim)
 
         # Set y-lim
-        ax.set_ylim(0, evaluator.feature_selector.n_total_ftr)
+        ax.set_ylim(0, self.evaluator.feature_selector.n_total_ftr)
 
         return ax, measures
