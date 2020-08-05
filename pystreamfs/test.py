@@ -12,23 +12,6 @@ stream.prepare_for_use()
 
 predictor = PerceptronMask()
 
-"""
-fs = FIRESFeatureSelector(n_total_ftr=stream.n_features,
-                          n_selected_ftr=10,
-                          model='probit')
-
-fs = OFSFeatureSelector(n_total_ftr=stream.n_features,
-                        n_selected_ftr=10)
-
-fs = EFSFeatureSelector(n_total_ftr=stream.n_features,
-                        n_selected_ftr=10)
-                        
-fs = FSDSFeatureSelector(n_total_ftr=stream.n_features,
-                         n_selected_ftr=10)
-                         
-fs = CancelOutFeatureSelector(n_total_ftr=stream.n_features,
-                              n_selected_ftr=10)
-"""
 fs = FIRESFeatureSelector(n_total_ftr=stream.n_features,
                           n_selected_ftr=10,
                           lr_mu=0.01,
@@ -41,9 +24,14 @@ stability = NogueiraStabilityMetric(sliding_window=10)
 
 accuracy = PredictiveMetric.sklearn_metric(metric=accuracy_score, name='Accuracy')
 
-evaluator = EvaluateFeatureSelection(max_samples=100000, batch_size=100, pretrain_size=100, max_time=float("inf"),
-                                     pred_metric=accuracy, fs_metric=stability, output_file_path=None, show_plot=False)
+evaluator = EvaluateFeatureSelection(max_samples=100000,
+                                     batch_size=100,
+                                     pretrain_size=100,
+                                     pred_metrics=[accuracy],
+                                     fs_metrics=[stability],
+                                     output_file_path=None,
+                                     live_plot=True)
 
-evaluator.evaluate(stream, fs, predictor, predictive_model_name='Perceptron')
+evaluator.evaluate(stream, fs, predictor, predictor_name='Perceptron')
 
 test =None # breakpoint

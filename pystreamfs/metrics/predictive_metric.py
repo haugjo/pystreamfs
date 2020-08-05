@@ -15,7 +15,7 @@ class PredictiveMetric(BaseMetric, metaclass=ABCMeta):
         super().compute()  # update sufficient statistics
 
     @staticmethod
-    def sklearn_metric(metric, name):
+    def sklearn_metric(metric, name):  # Todo: Move this to __init__ + also allow skmultiflow metrics
         """Dynamically create an object of type PredictiveMetric given the specified sklearn metric"""
 
         # Specify compute() function

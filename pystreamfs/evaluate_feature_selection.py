@@ -5,12 +5,10 @@ import numpy as np
 from abc import ABCMeta
 
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 
 from pystreamfs.metrics.time_metric import TimeMetric
 from pystreamfs.utils.base_event import Event
 from pystreamfs.utils.event_handlers import start_evaluation_routine, finish_iteration_routine, finish_evaluation_routine
-from pystreamfs.utils.base_data_buffer import DataBuffer
 from pystreamfs.visualization.visualizer import Visualizer
 
 
@@ -51,6 +49,7 @@ class EvaluateFeatureSelection:
         self.live_plot = live_plot
 
         self.iteration = 1                  # (int) Current iteration (logical time step)
+        self.start_time = 0                 # (float) Physical time when starting the evaluation
         self.global_sample_count = 0        # (int) No. of observations processed so far
         self.data_stream = None             # (skmultiflow.data.FileStream) Streaming data
         self.feature_selector = None        # (BaseFeatureSelector) Feature selection model
@@ -75,29 +74,22 @@ class EvaluateFeatureSelection:
         # Issue warning if max_samples exceeds the no. of samples available in the data stream
         if (self.data_stream.n_remaining_samples() > 0) and (self.data_stream.n_remaining_samples() < self.max_samples):
             self.max_samples = self.data_stream.n_samples
-            warnings.warn('Parameter max_samples exceeds the size of data_stream and will be reset.')
+            warnings.warn('Parameter max_samples exceeds the size of data_stream and will be automatically reset.', stacklevel=2)
 
         # Start evaluation
         self.on_start_evaluation(self)
 
         # Evaluation
         if self.live_plot:  # If live visualization
-            self.visualizer = Visualizer(self)  # Initialize visualization object
-            ani = animation.FuncAnimation(fig=self.visualizer.fig,
-                                          func=self.visualizer.func,
-                                          init_func=self.visualizer.init,
-                                          frames=self.visualizer.data_generator(self),
-                                          blit=False,
-                                          interval=5,
-                                          repeat=False)
+            ani = Visualizer(self)  # Initialize visualization object
             plt.show()
         else:
-            self._test_then_train()
+            self.test_then_train()
 
         # Finish evaluation
         self.on_finish_evaluation(self)
 
-    def _test_then_train(self):
+    def test_then_train(self):
         """ Test-then-train evaluation """
         while self.global_sample_count < self.max_samples:
             try:

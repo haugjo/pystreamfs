@@ -1,5 +1,4 @@
 from pystreamfs.feature_selectors.base_feature_selector import BaseFeatureSelector
-from pystreamfs.utils.exceptions import InvalidModelError
 from pystreamfs.feature_selectors.fires_utils import monte_carlo_sampling, Net, SDT, aggregate_weights
 import numpy as np
 from scipy.stats import norm
@@ -16,20 +15,17 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         if model == 'probit':
             supports_multi_class = False
             supports_streaming_features = False
-            supports_concept_drift_detection = True
         elif model == 'ann':
             supports_multi_class = True
             supports_streaming_features = False
-            supports_concept_drift_detection = True
         elif model == 'sdt':
             supports_multi_class = True
             supports_streaming_features = False
-            supports_concept_drift_detection = True
         else:
             print('FIRES model does not exist!')
-            raise NotImplementedError  # Todo: look for different error
+            raise NotImplementedError
 
-        super().__init__('FIRES', n_total_ftr, n_selected_ftr, supports_multi_class, supports_streaming_features, supports_concept_drift_detection)
+        super().__init__('FIRES', n_total_ftr, n_selected_ftr, supports_multi_class, supports_streaming_features)
 
         self.mu = np.zeros(n_total_ftr)
         self.sigma = np.ones(n_total_ftr) * sigma_init
@@ -78,7 +74,7 @@ class FIRESFeatureSelector(BaseFeatureSelector):
         elif self.model in ['ann', 'sdt']:
             self.__nonlinear(x, y, self.model)
         else:
-            raise InvalidModelError('FIRE Feature Selection: The chosen model is not specified.')
+            raise BaseException('FIRES: The chosen model is not specified.')
 
         # Update feature weights
         self.__update_weights()

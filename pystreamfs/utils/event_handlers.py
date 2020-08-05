@@ -1,7 +1,7 @@
 import sys
 import json
+import time
 from tabulate import tabulate
-from timeit import default_timer as timer
 from datetime import datetime
 
 from skmultiflow.data.base_stream import Stream
@@ -17,6 +17,7 @@ def start_evaluation_routine(evaluator):
     :param evaluator: (EvaluateFeatureSelection) Evaluator object
 
     """
+    evaluator.start_time = time.time()
     _check_configuration(evaluator)
     if evaluator.pretrain_size > 0:
         _pretrain_predictive_model(evaluator)
@@ -54,7 +55,7 @@ def _check_configuration(evaluator):
     :param evaluator: (EvaluateFeatureSelection) Evaluator object
 
     """
-    if not isinstance(evaluator.stream, Stream):
+    if not isinstance(evaluator.data_stream, Stream):
         raise BaseException('Data stream must be of type skmultiflow.data.base_stream.Stream')
 
     if not isinstance(evaluator.feature_selector, BaseFeatureSelector):
@@ -109,14 +110,14 @@ def _print_to_console(evaluator):
 
     """
     print('\n################################## SUMMARY ##################################')
-    print('Evaluation finished after {}s'.format(timer() - evaluator.start_time))
+    print('Evaluation finished after {}s'.format(time.time() - evaluator.start_time))
     print('Processed {} instances in batches of {}'.format(evaluator.global_sample_count, evaluator.batch_size))
     print('----------------------')
     print('Feature Selection ({}/{} features):'.format(evaluator.feature_selector.n_selected_ftr, evaluator.feature_selector.n_total_ftr))
     print(tabulate({
         'Model': [evaluator.feature_selector.name],
         'Avg. Time': [evaluator.feature_selector.comp_time.mean],
-        'Avg. {}'.format(evaluator.feature_selector_metric.name): [evaluator.feature_selector_metric.mean]
+        'Avg. {}'.format(evaluator.fs_metrics[0].name): [evaluator.fs_metrics[0].mean]  # Todo: print all metrics
     }, headers="keys", tablefmt='github'))
     print('----------------------')
     print('Prediction:')
@@ -124,7 +125,7 @@ def _print_to_console(evaluator):
         'Model': [evaluator.predictor.name],
         'Avg. Test Time': [evaluator.predictor.testing_time.mean],
         'Avg. Train Time': [evaluator.predictor.training_time.mean],
-        'Avg. {}'.format(evaluator.predictor_metric.name): [evaluator.predictor_metric.mean]
+        'Avg. {}'.format(evaluator.pred_metrics[0].name): [evaluator.pred_metrics[0].mean]  # Todo: print all metrics
     }, headers="keys", tablefmt='github'))
     print('#############################################################################')
 

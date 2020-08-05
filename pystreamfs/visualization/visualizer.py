@@ -1,17 +1,20 @@
 import seaborn as sns
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from matplotlib.animation import FuncAnimation
 import numpy as np
 
+matplotlib.use("TkAgg")
 
-class Visualizer:
+
+class Visualizer(FuncAnimation):
     """ Live visualization of the evaluation results """
     def __init__(self, evaluator):  # Todo: enable multiple metrics
         # General parameters
         sns.set_context('paper')
         plt.style.use('seaborn-darkgrid')
         plt.rcParams.update({'font.size': 12})  # Todo: think about dynamic font size
-        # plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
 
         self.fig = plt.figure(figsize=(20, 25))
         self.palette = ['#1f78b4', '#33a02c', '#fdbf6f', '#e31a1c']  # color palette
@@ -68,7 +71,9 @@ class Visualizer:
                                                                                                      title=None,
                                                                                                      palette=self.palette)
 
-    def init(self):
+        FuncAnimation.__init__(self, self.fig, self.func, frames=self.gen_function(evaluator), init_func=self.init_func, blit=True, repeat=False)
+
+    def init_func(self):
         """ Initialize the subplot placeholders """
 
         self.fs_time_measures.set_data([], [])
@@ -91,8 +96,7 @@ class Visualizer:
         :param evaluator: (EvaluateFeatureSelection) Evaluator object
 
         """
-
-        x = np.arange(len(evaluator.fs_time_measures))
+        x = np.arange(len(evaluator.feature_selector.comp_time.measures))
 
         # Feature Selection computation time
         self.fs_time_ax.set_ylim(0, max(evaluator.feature_selector.comp_time.measures))  # update y-lim
@@ -130,7 +134,7 @@ class Visualizer:
                 self.fs_metric_mean, self.selection_measures]
 
     @staticmethod
-    def data_generator(evaluator):
+    def gen_function(evaluator):
         """ Yield frames for live plot Todo: check if we can call _test_then_train() directly
 
         This function corresponds to EvaluateFeatureSelection._test_then_train() but yields a new frame (current evaluator) at every iteration.
@@ -164,7 +168,7 @@ class Visualizer:
         ax.axhline(0.95, color='black')
 
         # General Parameters
-        ax.text(0, 0.65, 'n_selected_ftr = ' + str(evaluator.n_selected_ftr) + '/' + str(evaluator.n_total_ftr))
+        ax.text(0, 0.65, 'n_selected_ftr = ' + str(evaluator.feature_selector.n_selected_ftr) + '/' + str(evaluator.feature_selector.n_total_ftr))
         ax.text(0.2, 0.65, 'batch_size = ' + str(evaluator.batch_size))
         ax.text(0, 0.35, 'samples = ' + str(evaluator.max_samples))
         ax.text(0.2, 0.35, 'pretrain_size = ' + str(evaluator.pretrain_size))
@@ -228,7 +232,7 @@ class Visualizer:
         :rtype plt.axis, plt.axis.plot
 
         """
-        ax.set_title('Selected Features ($m=' + str(evaluator.n_selected_ftr) + '$) & ' + evaluator.fs_metric_name, weight='bold')
+        ax.set_title('Selected Features ($m=' + str(evaluator.feature_selector.n_selected_ftr) + '$) & ' + evaluator.fs_metrics[0].name, weight='bold')
         ax.set_ylabel('Feature Index')
 
         # plot selected features for each time step
@@ -239,6 +243,6 @@ class Visualizer:
         ax.set_xlim(0, x_lim)
 
         # Set y-lim
-        ax.set_ylim(0, evaluator.n_total_ftr)
+        ax.set_ylim(0, evaluator.feature_selector.n_total_ftr)
 
         return ax, measures
