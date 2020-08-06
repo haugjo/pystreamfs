@@ -37,7 +37,8 @@ class EvaluateFeatureSelection:
                  fs_metrics=None,           # (list) Feature selection metrics/measures
                  streaming_features=None,   # (dict) (time, feature index) tuples to simulate streaming features
                  output_file_path=None,     # (str) Path for the summary file output (if None, no file is created)
-                 live_plot=False):          # (bool) If true, show live plot
+                 live_plot=False,           # (bool) If true, show live plot
+                 plot_scale=1):             # (int) Scaling factor for plot size
 
         self.max_samples = max_samples
         self.batch_size = batch_size
@@ -47,6 +48,7 @@ class EvaluateFeatureSelection:
         self.streaming_features = dict() if streaming_features is None else streaming_features
         self.output_file_path = output_file_path
         self.live_plot = live_plot
+        self.plot_scale = plot_scale
 
         self.iteration = 1                  # (int) Current iteration (logical time step)
         self.start_time = 0                 # (float) Physical time when starting the evaluation

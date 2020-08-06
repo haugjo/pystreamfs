@@ -30,8 +30,9 @@ evaluator = EvaluateFeatureSelection(max_samples=100000,
                                      pred_metrics=[accuracy],
                                      fs_metrics=[stability],
                                      output_file_path=None,
-                                     live_plot=True)
+                                     live_plot=True,
+                                     plot_scale=1)
 
 evaluator.evaluate(stream, fs, predictor, predictor_name='Perceptron')
 
-test =None # breakpoint
+test = None  # breakpoint

@@ -8,7 +8,7 @@ matplotlib.use("TkAgg")
 class LivePlot(Visualizer, FuncAnimation):
     def __init__(self, evaluator):
         Visualizer.__init__(self, evaluator)
-        FuncAnimation.__init__(self, self.fig, self.update, frames=self.gen_function(evaluator), blit=False, repeat=False)
+        FuncAnimation.__init__(self, self.fig, self.update, frames=self.gen_function(evaluator), blit=False, interval=1, repeat=False)
 
     @staticmethod
     def gen_function(evaluator):
