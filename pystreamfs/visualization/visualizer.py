@@ -1,4 +1,3 @@
-import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
@@ -33,6 +32,8 @@ class Visualizer:
 
         self.fs_ax, self.fs_markers = self._draw_selection_subplot(self.grid_low[3, :])
 
+        self.top_features_ax = self._draw_top_features_plot(self.grid_low[4, :])
+
     def update(self, evaluator):
         """ Update plots given a new frame (current evaluator)
 
@@ -58,6 +59,12 @@ class Visualizer:
             y.extend(val)
 
         self.fs_markers.set_offsets(list(zip(x, y)))
+
+        # Top features
+        counts = np.bincount(y)
+        top_ftr_idx = counts.argsort()[-10:][::-1]
+        self.top_features_ax.bar(np.arange(10), counts[top_ftr_idx], color=self.palette[0], width=0.3, zorder=100)
+        self.top_features_ax.set_xticklabels(np.asarray(self.evaluator.data_stream.feature_names)[top_ftr_idx])
 
     @staticmethod
     def _update_lineplot(ax, x, data, plot_measures, plot_mean):
@@ -153,7 +160,7 @@ class Visualizer:
         Returns a scatter plot of selected features at each time step
 
         :param grid: (plt.GridSpec) Grid identifier of subplot
-        :return: ax, measures
+        :return: ax, markers
         :rtype plt.axis, plt.axis.plot
 
         """
@@ -173,3 +180,20 @@ class Visualizer:
         plt.legend(frameon=True, loc='best', fontsize=self.font_size * 0.7, borderpad=0.2, handletextpad=0.2)
 
         return ax, markers
+
+    def _draw_top_features_plot(self, grid):
+        """ Draw the most selected features over time
+
+        :param grid: (plt.GridSpec) Grid identifier of subplot
+        :return: ax
+        :rtype plt.axis
+        """
+        ax = self.fig.add_subplot(grid)
+        ax.grid(True, axis='y')
+        ax.set_ylabel('Times Selected', size=self.font_size, labelpad=1.5)
+        ax.set_xlabel('Top 10 Features', size=self.font_size, labelpad=1.6)
+        ax.tick_params(axis='both', labelsize=self.font_size * 0.7, length=0)
+        ax.set_xticks(np.arange(10))
+        ax.set_xlim(-0.2, 9.2)
+
+        return ax
