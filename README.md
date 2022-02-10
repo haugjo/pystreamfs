@@ -1,3 +1,5 @@
+>**Important Note:** Pystreamfs is no longer actively maintained. Most of the package's functionality has been integrated into the [float](https://github.com/haugjo/float) evaluation framework.
+
 <img src="https://raw.githubusercontent.com/haugjo/pystreamfs/master/logo.png" width="450" height="70"/>
 
 [![PyPI version](https://badge.fury.io/py/pystreamfs.svg)](https://badge.fury.io/py/pystreamfs)
